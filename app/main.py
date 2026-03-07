@@ -59,8 +59,8 @@ app = FastAPI(title="Tribal", lifespan=lifespan)
 
 # ── Auth middleware ────────────────────────────────────────────────────────────
 # Paths that do NOT require a valid session cookie.
-_AUTH_EXEMPT_PREFIXES = ("/auth/", "/static/")
-_AUTH_EXEMPT_EXACT = {"/login", "/healthz"}
+_AUTH_EXEMPT_PREFIXES = ("/auth/",)
+_AUTH_EXEMPT_EXACT = {"/login", "/healthz", "/static/tribal_logo.png", "/static/favicon.ico"}
 
 
 @app.middleware("http")
