@@ -1,0 +1,10 @@
+services:
+  tribal:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - tribal-data:/app/data
+
+volumes:
+  tribal-data:

@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tribal</title>
+  <link rel="icon" type="image/x-icon" href="/static/favicon.ico" />
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+<header>
+  <img src="/static/tribal_logo.png" alt="" class="logo" />
+  <h1>Tribal</h1>
+  <p class="tagline">Stay on top of expiration dates and rotation processes for certs, API keys, and more.</p>
+  <button class="btn-primary" onclick="openModal()">+ Add Resource</button>
+</header>
+
+<nav class="tabs">
+  <button class="tab active" data-tab="overview" onclick="switchTab('overview')">Overview</button>
+  <button class="tab" data-tab="resources" onclick="switchTab('resources')">Resources</button>
+  <button class="tab" data-tab="about" onclick="switchTab('about')">About</button>
+</nav>
+
+<main>
+
+  <!-- Overview tab -->
+  <div id="tab-overview" class="tab-pane active">
+    <div class="overview-layout" id="overview-layout">
+
+      <!-- Calendar -->
+      <div class="calendar-panel">
+        <div class="cal-header">
+          <button class="cal-nav" onclick="changeMonth(-1)">&#8592;</button>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span class="cal-title" id="cal-title"></span>
+            <button class="cal-today-btn" onclick="goToday()">Today</button>
+            <button class="cal-today-btn" id="cal-view-toggle" onclick="toggleYearView()">Year View</button>
+          </div>
+          <button class="cal-nav" onclick="changeMonth(1)">&#8594;</button>
+        </div>
+        <div class="cal-weekdays" id="cal-weekdays">
+          <div class="cal-weekday">Su</div>
+          <div class="cal-weekday">Mo</div>
+          <div class="cal-weekday">Tu</div>
+          <div class="cal-weekday">We</div>
+          <div class="cal-weekday">Th</div>
+          <div class="cal-weekday">Fr</div>
+          <div class="cal-weekday">Sa</div>
+        </div>
+        <div class="cal-body" id="cal-body"></div>
+      </div>
+
+      <!-- Upcoming events sidebar -->
+      <div class="events-sidebar" id="events-sidebar">
+        <div class="sidebar-header">
+          <span>Upcoming</span>
+          <span id="upcoming-count" style="font-size:12px;color:var(--text-mut);font-weight:400"></span>
+        </div>
+        <div class="sidebar-body" id="upcoming-list">
+          <div class="sidebar-empty">Loading…</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- About tab -->
+  <div id="tab-about" class="tab-pane">
+    <div class="about-panel">
+      <h2>About Tribal</h2>
+      <p class="about-lead">Tribal helps teams stay on top of expiration dates and rotation processes for certificates, API keys, SSH keys, and other time-sensitive credentials.</p>
+
+      <h3>The Problem</h3>
+      <p>Expired certificates and rotated credentials cause outages. Teams discover expirations too late because the knowledge of what expires, when, and how to rotate it is scattered across emails, wikis, and individual memory.</p>
+
+      <h3>What Tribal Does</h3>
+      <ul>
+        <li>Tracks expiration and rotation dates for any credential or certificate</li>
+        <li>Sends automated Slack reminders 30, 14, 7, and 3 days before expiration</li>
+        <li>Stores generation and rotation instructions so any team member can act</li>
+        <li>Parses public certificate files to automatically extract expiry dates</li>
+        <li>Provides a visual calendar to see what's expiring and when</li>
+      </ul>
+
+      <p class="about-footer">More information coming soon.</p>
+    </div>
+  </div>
+
+  <!-- Resources tab -->
+  <div id="tab-resources" class="tab-pane">
+    <div class="toolbar">
+      <h2>All Resources</h2>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th class="sortable" onclick="sortBy('name')"><span>Name</span><span class="sort-icon" id="sort-name"></span></th>
+            <th class="sortable" onclick="sortBy('type')"><span>Type</span><span class="sort-icon" id="sort-type"></span></th>
+            <th class="sortable" onclick="sortBy('dri')"><span>DRI</span><span class="sort-icon" id="sort-dri"></span></th>
+            <th class="sortable" onclick="sortBy('expiration_date')"><span>Expiration</span><span class="sort-icon" id="sort-expiration_date"></span></th>
+            <th class="sortable" onclick="sortBy('status')"><span>Status</span><span class="sort-icon" id="sort-status"></span></th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="resources-body">
+          <tr><td colspan="6" class="loading">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<!-- Create / Edit modal -->
+<div id="modal" class="modal-overlay hidden">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modal-header">
+      <h2 id="modal-title">Add Resource</h2>
+      <button class="btn-icon" onclick="closeModal()" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <form id="resource-form" onsubmit="saveResource(event)">
+
+        <div class="form-group">
+          <label for="f-name">Name <span class="required">*</span></label>
+          <input type="text" id="f-name" placeholder="e.g. Production TLS Certificate" required />
+        </div>
+
+        <div class="form-group">
+          <label for="f-dri">DRI <span class="required">*</span></label>
+          <input type="text" id="f-dri" placeholder="e.g. platform-team or jane@example.com" required />
+        </div>
+
+        <div class="form-group">
+          <label for="f-type">Type <span class="required">*</span></label>
+          <select id="f-type" onchange="onTypeChange()" required>
+            <option value="">Select type…</option>
+            <option value="Certificate">Certificate</option>
+            <option value="API Key">API Key</option>
+            <option value="SSH Key">SSH Key</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
+        <div id="cert-section" class="form-group cert-section" style="display:none">
+          <h4>Certificate <span class="optional">(optional)</span></h4>
+          <p>Upload a public certificate (.pem, .crt, .cer) to automatically extract the expiration date. Private keys are not accepted.</p>
+          <div class="cert-input-row">
+            <input type="file" id="f-cert-file" accept=".pem,.crt,.cer" onchange="if(editingId) uploadCertificate()" />
+          </div>
+          <div id="cert-status" class="cert-status"></div>
+        </div>
+
+        <div class="form-group">
+          <label for="f-date-picker">Expiration / Rotation Date <span class="required">*</span></label>
+          <input type="date" id="f-date-picker" required />
+        </div>
+
+        <div class="form-group">
+          <label for="f-purpose">Purpose / Usage <span class="required">*</span></label>
+          <textarea id="f-purpose" placeholder="Describe what this resource is used for…" required></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="f-instructions">Generation / Rotation Instructions <span class="required">*</span></label>
+          <textarea id="f-instructions" placeholder="Step-by-step instructions for rotating or regenerating this resource…" rows="4" required></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="f-secret-link">Secret Manager Link <span class="optional">(optional)</span></label>
+          <input type="url" id="f-secret-link" placeholder="https://…" />
+        </div>
+
+        <div class="form-group">
+          <label for="f-webhook">Slack Webhook URL <span class="required">*</span></label>
+          <div class="webhook-row">
+            <input type="url" id="f-webhook" placeholder="https://hooks.slack.com/services/…" required />
+            <button type="button" class="btn-test" onclick="testWebhook()">Send Test</button>
+          </div>
+          <div id="webhook-test-status" class="webhook-test-status"></div>
+        </div>
+
+        <div id="form-error" class="error-msg"></div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button type="submit" form="resource-form" class="btn-primary" id="save-btn">Save Resource</button>
+    </div>
+  </div>
+</div>
+
+<!-- Resource detail modal (read-only) -->
+<div id="detail-modal" class="modal-overlay hidden">
+  <div class="modal" role="dialog" aria-modal="true" style="max-width:560px">
+    <div class="modal-header">
+      <h2 id="detail-name"></h2>
+      <button class="btn-icon" onclick="closeDetailModal()" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="detail-grid">
+        <div>
+          <div class="detail-label">Type</div>
+          <div class="detail-value" id="detail-type-val"></div>
+        </div>
+        <div>
+          <div class="detail-label">Expiration</div>
+          <div class="detail-value" id="detail-expiration"></div>
+        </div>
+      </div>
+      <div class="detail-field">
+        <div class="detail-label">DRI</div>
+        <div class="detail-value" id="detail-dri"></div>
+      </div>
+      <div class="detail-field">
+        <div class="detail-label">Purpose / Usage</div>
+        <div class="detail-value" id="detail-purpose"></div>
+      </div>
+      <div class="detail-field">
+        <div class="detail-label">Generation / Rotation Instructions</div>
+        <div class="detail-value" id="detail-instructions"></div>
+      </div>
+      <div class="detail-field" id="detail-secret-wrap" style="display:none">
+        <div class="detail-label">Secret Manager</div>
+        <div class="detail-value" id="detail-secret"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-primary" id="detail-edit-btn" onclick="editFromDetail()">Edit</button>
+      <button class="btn-danger" id="detail-delete-btn" onclick="openDeleteFromDetail()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Date-list modal (multiple resources on one date) -->
+<div id="datelist-modal" class="modal-overlay hidden">
+  <div class="modal" role="dialog" aria-modal="true" style="max-width:500px">
+    <div class="modal-header">
+      <h2 id="datelist-title"></h2>
+      <button class="btn-icon" onclick="closeDatelistModal()" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body" id="datelist-body"></div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeDatelistModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete confirmation modal -->
+<div id="delete-modal" class="modal-overlay hidden">
+  <div class="modal" role="dialog" aria-modal="true" style="max-width:440px">
+    <div class="modal-header">
+      <h2>Delete Resource</h2>
+      <button class="btn-icon" onclick="closeDeleteModal()" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p style="color:var(--text-sec);margin-bottom:16px">
+        This action <strong style="color:var(--text)">cannot be undone</strong>. A Slack message will be sent to the owning team notifying them of the deletion.
+      </p>
+      <p style="font-size:13px;margin-bottom:10px;color:var(--text-sec)">
+        Type <strong id="delete-name-display" style="color:var(--text)"></strong> to confirm:
+      </p>
+      <input type="text" id="delete-confirm-input" placeholder="Resource name" oninput="onDeleteInput()" autocomplete="off" />
+      <div id="delete-error" class="error-msg"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeDeleteModal()">Cancel</button>
+      <button class="btn-danger" id="confirm-delete-btn" onclick="confirmDelete()" disabled>Delete Resource</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
