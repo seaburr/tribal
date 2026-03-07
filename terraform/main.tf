@@ -1,3 +1,6 @@
+# Note: DigitalOcean App Platform cannot be attached to a customer VPC.
+# The VPC is provisioned here for the future managed MySQL cluster, which will
+# use its private hostname to keep DB traffic off the public internet.
 resource "digitalocean_vpc" "tribal" {
   name   = "tribal-app"
   region = var.region
@@ -34,7 +37,7 @@ resource "digitalocean_app" "tribal" {
       image {
         registry_type = "DOCR"
         repository    = "tribal"
-        tag           = var.image_tag
+        tag           = "latest"
         deploy_on_push {
           enabled = true
         }
@@ -49,7 +52,7 @@ resource "digitalocean_app" "tribal" {
 
       # env {
       #   key   = "DATABASE_URL"
-      #   value = digitalocean_database_cluster.tribal_db.uri
+      #   value = digitalocean_database_cluster.tribal_db.private_uri
       #   scope = "RUN_TIME"
       #   type  = "SECRET"
       # }

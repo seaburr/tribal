@@ -4,12 +4,6 @@ variable "do_token" {
   sensitive   = true
 }
 
-variable "image_tag" {
-  description = "Docker image tag to deploy."
-  type        = string
-  default     = "latest"
-}
-
 variable "region" {
   description = "DigitalOcean region slug."
   type        = string

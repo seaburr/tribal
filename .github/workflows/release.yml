@@ -59,21 +59,13 @@ jobs:
       - name: Log in to DO Container Registry
         run: doctl registry login --expiry-seconds 1200
 
-      - name: Extract image metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: registry.digitalocean.com/seaburr/tribal
-          tags: |
-            type=raw,value=${{ needs.tag.outputs.new_tag }}
-            type=raw,value=latest
-
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: |
+            registry.digitalocean.com/seaburr/tribal:${{ needs.tag.outputs.new_tag }}
+            registry.digitalocean.com/seaburr/tribal:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
