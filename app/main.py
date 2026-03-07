@@ -43,6 +43,11 @@ app.include_router(resources.router)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
+@app.get("/healthz")
+def healthz():
+    return {"status": "ok"}
+
+
 @app.get("/")
 def root():
     return FileResponse("static/index.html")
