@@ -71,7 +71,7 @@ function daysUntil(isoDate) {
 }
 
 function urgencyClass(days) {
-  if (days < 0)   return "evt-red";
+  if (days < 0)   return "evt-overdue";
   if (days <= 7)  return "evt-red";
   if (days <= 14) return "evt-orange";
   if (days <= 30) return "evt-amber";
@@ -106,12 +106,9 @@ function linkify(text) {
 function renderCalendar() {
   const weekdaysEl = document.getElementById("cal-weekdays");
   const toggleBtn  = document.getElementById("cal-view-toggle");
-  const layoutEl   = document.getElementById("overview-layout");
 
   if (calViewMode === 'year') {
     weekdaysEl.style.display = "none";
-    layoutEl.style.gridTemplateColumns = "1fr";
-    document.getElementById("events-sidebar").style.display = "none";
     toggleBtn.textContent = "Month View";
     renderYearView();
     return;
@@ -119,8 +116,6 @@ function renderCalendar() {
 
   // Month view
   weekdaysEl.style.display = "grid";
-  layoutEl.style.gridTemplateColumns = "";
-  document.getElementById("events-sidebar").style.display = "";
   toggleBtn.textContent = "Year View";
 
   document.getElementById("cal-title").textContent = `${MONTH_NAMES[calMonth]} ${calYear}`;
@@ -305,30 +300,30 @@ function renderUpcoming() {
   const today = todayISO();
 
   const sorted = [...resources].sort((a, b) => a.expiration_date.localeCompare(b.expiration_date));
-  const expired  = sorted.filter(r => r.expiration_date <  today).reverse();
-  const upcoming = sorted.filter(r => r.expiration_date >= today);
+  const expired  = sorted.filter(r => r.expiration_date < today).reverse();
+  const upcoming = sorted.filter(r => r.expiration_date >= today && daysUntil(r.expiration_date) <= 30);
   const all = [...expired, ...upcoming];
 
   if (all.length === 0) {
-    container.innerHTML = `<div class="sidebar-empty">No resources tracked yet.</div>`;
+    container.innerHTML = `<div class="sidebar-empty">Nothing expiring in the next 30 days.</div>`;
     countEl.textContent = "";
     return;
   }
 
-  countEl.textContent = `${upcoming.length} upcoming`;
+  countEl.textContent = upcoming.length === 1 ? "1 in next 30d" : `${upcoming.length} in next 30d`;
 
   container.innerHTML = all.map(r => {
     const days = daysUntil(r.expiration_date);
+    const isOverdue = days < 0;
     let label;
     if (days < 0)        label = `<span style="color:var(--red)">Expired ${Math.abs(days)}d ago</span>`;
     else if (days === 0) label = `<span style="color:var(--red)">Today</span>`;
     else if (days <= 7)  label = `<span style="color:var(--red)">${days}d</span>`;
     else if (days <= 14) label = `<span style="color:var(--orange)">${days}d</span>`;
-    else if (days <= 30) label = `<span style="color:var(--amber)">${days}d</span>`;
-    else                 label = `<span style="color:var(--text-mut)">${days}d</span>`;
+    else                 label = `<span style="color:var(--amber)">${days}d</span>`;
 
     return `
-      <div class="upcoming-item" onclick="showResourceDetail(${r.id})">
+      <div class="upcoming-item${isOverdue ? ' overdue' : ''}" onclick="showResourceDetail(${r.id})">
         <div class="upcoming-item-name">${esc(r.name)}</div>
         <div class="upcoming-item-meta">
           <span>${isoToDisplay(r.expiration_date)}</span>
@@ -382,8 +377,10 @@ function renderTable() {
     return 0;
   });
 
-  tbody.innerHTML = sorted.map(r => `
-    <tr>
+  tbody.innerHTML = sorted.map(r => {
+    const isOverdue = daysUntil(r.expiration_date) < 0;
+    return `
+    <tr${isOverdue ? ' class="overdue"' : ''}>
       <td class="name">${esc(r.name)}</td>
       <td style="color:var(--text-sec)">${esc(r.type)}</td>
       <td style="color:var(--text-sec)">${esc(r.dri)}</td>
@@ -394,7 +391,8 @@ function renderTable() {
         <button class="btn-danger btn-sm" onclick="openDeleteModal(${r.id},'${esc(r.name)}')">Delete</button>
       </td>
     </tr>
-  `).join("");
+  `;
+  }).join("");
 }
 
 // ── Create / Edit modal ───────────────────────────────────────────────────────

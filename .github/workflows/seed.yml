@@ -1,0 +1,29 @@
+name: seed demo data
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "Target URL (e.g. https://dev.tribal-app.xyz)"
+        required: false
+        default: "https://dev.tribal-app.xyz"
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install httpx
+
+      - name: Run seed script
+        env:
+          BASE_URL: ${{ inputs.base_url }}
+        run: python seed.py

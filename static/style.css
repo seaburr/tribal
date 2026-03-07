@@ -193,10 +193,11 @@ main { max-width: 1200px; margin: 0 auto; padding: 24px; }
 .cal-cell.selected { outline: 2px solid #fff; outline-offset: -2px; }
 
 /* Event colors based on urgency */
-.cal-cell.evt-red    { background: rgba(239,68,68,.28);  color: #fca5a5; }
-.cal-cell.evt-orange { background: rgba(249,115,22,.28); color: #fdba74; }
-.cal-cell.evt-amber  { background: rgba(245,158,11,.28); color: #fcd34d; }
-.cal-cell.evt-green  { background: rgba(34,197,94,.18);  color: #86efac; }
+.cal-cell.evt-overdue { background: rgba(239,68,68,.55);  color: #fff; }
+.cal-cell.evt-red     { background: rgba(239,68,68,.28);  color: #fca5a5; }
+.cal-cell.evt-orange  { background: rgba(249,115,22,.28); color: #fdba74; }
+.cal-cell.evt-amber   { background: rgba(245,158,11,.28); color: #fcd34d; }
+.cal-cell.evt-green   { background: rgba(34,197,94,.18);  color: #86efac; }
 
 /* ── Selected date detail ──────────────────────────────────────────────────── */
 .selected-date-panel {
@@ -269,6 +270,8 @@ main { max-width: 1200px; margin: 0 auto; padding: 24px; }
 }
 .upcoming-item:last-child { border-bottom: none; }
 .upcoming-item:hover { background: var(--surface2); }
+.upcoming-item.overdue { background: rgba(239,68,68,.08); border-left: 3px solid var(--red); padding-left: 15px; }
+.upcoming-item.overdue:hover { background: rgba(239,68,68,.15); }
 
 .upcoming-item-name {
   font-weight: 600;
@@ -394,6 +397,8 @@ td {
 
 tr:last-child td { border-bottom: none; }
 tr:hover td { background: var(--surface2); }
+tr.overdue td { color: var(--red); }
+tr.overdue:hover td { background: rgba(239,68,68,.08); }
 
 td.name { font-weight: 600; }
 td.actions { white-space: nowrap; }
@@ -735,10 +740,11 @@ textarea { resize: vertical; min-height: 80px; }
 .mini-cell.has-event:hover { filter: brightness(1.25); }
 .mini-cell.today { outline: 1px solid var(--blue); color: var(--blue); font-weight: 700; }
 
-.mini-cell.evt-red    { background: rgba(239,68,68,.28);  color: #fca5a5; }
-.mini-cell.evt-orange { background: rgba(249,115,22,.28); color: #fdba74; }
-.mini-cell.evt-amber  { background: rgba(245,158,11,.28); color: #fcd34d; }
-.mini-cell.evt-green  { background: rgba(34,197,94,.18);  color: #86efac; }
+.mini-cell.evt-overdue { background: rgba(239,68,68,.55);  color: #fff; }
+.mini-cell.evt-red     { background: rgba(239,68,68,.28);  color: #fca5a5; }
+.mini-cell.evt-orange  { background: rgba(249,115,22,.28); color: #fdba74; }
+.mini-cell.evt-amber   { background: rgba(245,158,11,.28); color: #fcd34d; }
+.mini-cell.evt-green   { background: rgba(34,197,94,.18);  color: #86efac; }
 
 /* ── About page ────────────────────────────────────────────────────────────── */
 .about-panel {
@@ -807,3 +813,62 @@ textarea { resize: vertical; min-height: 80px; }
 
 /* ── Loading ───────────────────────────────────────────────────────────────── */
 .loading { color: var(--text-mut); padding: 24px; text-align: center; }
+
+/* ── Mobile ────────────────────────────────────────────────────────────────── */
+
+/* Tablet: sidebar stacks below calendar — cap its height so it doesn't dominate */
+@media (max-width: 760px) {
+  .sidebar-body { max-height: 280px; }
+}
+
+/* Phone */
+@media (max-width: 640px) {
+  /* Header */
+  header { padding: 0 16px; gap: 8px; }
+  header .tagline { display: none; }
+  header h1 { font-size: 15px; }
+
+  /* Tabs — scroll horizontally rather than wrap/clip */
+  .tabs { overflow-x: auto; padding: 0 16px; gap: 0; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { padding: 10px 14px; font-size: 12px; white-space: nowrap; }
+
+  /* Main content padding */
+  main { padding: 16px; }
+
+  /* Calendar header — tighter on small screens */
+  .cal-header { padding: 12px; gap: 6px; }
+  .cal-today-btn { padding: 3px 8px; font-size: 11px; }
+  .cal-nav { padding: 4px 8px; font-size: 12px; }
+
+  /* Year view — 2 columns on phones */
+  .year-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; padding: 10px 12px 16px; }
+
+  /* Table — hide Type and DRI columns; they're always available in the detail modal */
+  .table-wrap { overflow-x: auto; }
+  table th:nth-child(2), table td:nth-child(2),
+  table th:nth-child(3), table td:nth-child(3) { display: none; }
+
+  /* Toolbar */
+  .toolbar h2 { font-size: 14px; }
+
+  /* Modals */
+  .modal-overlay { padding: 10px; }
+  .modal { max-height: 88vh; }
+  .modal-header { padding: 14px 16px 12px; }
+  .modal-body { padding: 16px; }
+  .modal-footer { padding: 12px 16px; gap: 8px; }
+
+  /* Detail modal — stack the Type/Expiration grid */
+  .detail-grid { grid-template-columns: 1fr; gap: 12px; }
+
+  /* Webhook row — stack input and button */
+  .webhook-row { flex-direction: column; align-items: stretch; }
+  .btn-test { width: 100%; }
+
+  /* About/Admin panels */
+  .about-panel { padding: 20px; }
+
+  /* Toast — full width at bottom */
+  .toast { left: 16px; right: 16px; bottom: 16px; text-align: center; }
+}

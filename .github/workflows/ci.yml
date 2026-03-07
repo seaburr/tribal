@@ -21,3 +21,6 @@ jobs:
 
       - name: Import check
         run: python -c "from app.main import app; print('Import OK')"
+
+      - name: Run tests
+        run: pytest tests/ -v

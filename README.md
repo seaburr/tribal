@@ -60,3 +60,17 @@ Feedback from the first round of testing that needs to be addressed:
 * If "Certificate" is selected, the upload button should fall immediately above the date picker instead of at the bottom.
 * Add an "About" option to the nav class with a little explainer of the tool and it's purpose. I'll fill this in more later.
 * Nothing to implement here BUT can you output a plan for what it would take to make this a multi-tenant application with admins/users/teams, Entra auth, audit logs, and other common SaaS-oriented admin features. No need to make this product particularly complicated but now that we're close to having the core problem solved, it's time to consider how to turn this into a fully-fledged SaaS application.
+
+## Iteration 5
+
+* The Upcoming sidebar should only show events that occurr within the next 30 days.
+* If a resource expires within 7 days, it should be red. If it's past due, the text should be red and the item should be highlighted in red in the UI.
+* The "Year View" should maintain the same dimensions as the "Month View" with the upcoming column still present.
+* Change "About" to "Docs" and leave the content as-is for now.
+* Between "Docs" and "Resources" Add an additional tab called "Admin". This is where admin configuration (like around notification policies, org timezones, allow deletion, admin notifications, etc.) will be managed.
+* Add unit tests to the code, verify they work, and add the tests into the CI workflow before building and publishing the latest image.
+
+## Iteration 6
+
+* At least try to make the application load nicely on a mobile device. 
+* 

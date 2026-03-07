@@ -19,7 +19,8 @@
 <nav class="tabs">
   <button class="tab active" data-tab="overview" onclick="switchTab('overview')">Overview</button>
   <button class="tab" data-tab="resources" onclick="switchTab('resources')">Resources</button>
-  <button class="tab" data-tab="about" onclick="switchTab('about')">About</button>
+  <button class="tab" data-tab="admin" onclick="switchTab('admin')">Admin</button>
+  <button class="tab" data-tab="docs" onclick="switchTab('docs')">Docs</button>
 </nav>
 
 <main>
@@ -65,10 +66,28 @@
     </div>
   </div>
 
-  <!-- About tab -->
-  <div id="tab-about" class="tab-pane">
+  <!-- Admin tab -->
+  <div id="tab-admin" class="tab-pane">
     <div class="about-panel">
-      <h2>About Tribal</h2>
+      <h2>Admin</h2>
+      <p class="about-lead">Configuration and administration settings for your Tribal instance.</p>
+
+      <h3>Coming Soon</h3>
+      <p>The Admin panel will provide controls for:</p>
+      <ul>
+        <li>Notification policies (reminder intervals, escalation)</li>
+        <li>Organisation timezone settings</li>
+        <li>Deletion permissions and confirmation requirements</li>
+        <li>Admin notifications and alert routing</li>
+        <li>Audit log access</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Docs tab -->
+  <div id="tab-docs" class="tab-pane">
+    <div class="about-panel">
+      <h2>Docs</h2>
       <p class="about-lead">Tribal helps teams stay on top of expiration dates and rotation processes for certificates, API keys, SSH keys, and other time-sensitive credentials.</p>
 
       <h3>The Problem</h3>
