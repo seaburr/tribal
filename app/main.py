@@ -43,7 +43,7 @@ app.include_router(resources.router)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
-@app.get("/healthz")
+@app.get("/healthz", include_in_schema=False)
 def healthz():
     return {"status": "ok"}
 
