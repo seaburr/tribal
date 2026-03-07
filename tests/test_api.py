@@ -7,8 +7,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.main import app
+from app.auth import hash_password
 from app.database import get_db
-from app.models import Base
+from app.models import Base, User
 
 SAMPLE = {
     "name": "Production TLS Certificate",
@@ -37,7 +38,18 @@ def client(tmp_path):
             db.close()
 
     app.dependency_overrides[get_db] = override_get_db
-    with TestClient(app) as c:
+
+    # Seed a test admin user.
+    db = Session()
+    db.add(User(email="test@example.com", hashed_password=hash_password("testpassword"), is_admin=True))
+    db.commit()
+    db.close()
+
+    with TestClient(app, follow_redirects=False) as c:
+        # Log in via the real endpoint so the session cookie is stored by the
+        # HTTP client (secure=False over HTTP, so httpx retains the cookie).
+        r = c.post("/auth/login", json={"email": "test@example.com", "password": "testpassword"})
+        assert r.status_code == 200, f"Test login failed: {r.text}"
         yield c
     app.dependency_overrides.clear()
     Base.metadata.drop_all(bind=engine)
