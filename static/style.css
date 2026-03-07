@@ -849,6 +849,10 @@ textarea { resize: vertical; min-height: 80px; }
   table th:nth-child(2), table td:nth-child(2),
   table th:nth-child(3), table td:nth-child(3) { display: none; }
 
+  /* Stack action buttons so they don't blow out the column width */
+  td.actions { flex-direction: column; gap: 3px; align-items: stretch; }
+  td.actions .btn-sm { font-size: 11px; padding: 3px 6px; text-align: center; }
+
   /* Toolbar */
   .toolbar h2 { font-size: 14px; }
 

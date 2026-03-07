@@ -305,12 +305,15 @@ function renderUpcoming() {
   const all = [...expired, ...upcoming];
 
   if (all.length === 0) {
-    container.innerHTML = `<div class="sidebar-empty">Nothing expiring in the next 30 days.</div>`;
+    container.innerHTML = `<div class="sidebar-empty">Zarro items expiring.</div>`;
     countEl.textContent = "";
     return;
   }
 
-  countEl.textContent = upcoming.length === 1 ? "1 in next 30d" : `${upcoming.length} in next 30d`;
+  const parts = [];
+  if (expired.length)  parts.push(`${expired.length} overdue`);
+  if (upcoming.length) parts.push(`${upcoming.length} within 30 days`);
+  countEl.textContent = parts.join(", ");
 
   container.innerHTML = all.map(r => {
     const days = daysUntil(r.expiration_date);

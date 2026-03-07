@@ -1,14 +1,11 @@
 name: dev deploy
 
 on:
-  workflow_run:
-    workflows: ["release"]
-    types: [completed]
   workflow_dispatch:
 
 jobs:
   deploy:
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    if: true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
