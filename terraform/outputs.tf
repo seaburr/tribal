@@ -1,8 +1,3 @@
-output "landing_url" {
-  description = "Live URL of the landing page (tribal-app.xyz)."
-  value       = digitalocean_app.tribal_landing.live_url
-}
-
 output "app_url" {
   description = "Live URL of the deployed application."
   value       = digitalocean_app.tribal.live_url

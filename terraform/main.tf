@@ -17,32 +17,6 @@ resource "digitalocean_vpc" "tribal" {
 #   private_network_uuid = digitalocean_vpc.tribal.id
 # }
 
-resource "digitalocean_app" "tribal_landing" {
-  spec {
-    name   = "tribal-landing"
-    region = var.app_region
-
-    domain {
-      name = "tribal-app.xyz"
-      type = "PRIMARY"
-      zone = "tribal-app.xyz"
-    }
-
-    static_site {
-      name           = "landing"
-      source_dir     = "landing"
-      index_document = "index.html"
-      error_document = "index.html"
-
-      github {
-        repo           = "seaburr/Tribal"
-        branch         = "main"
-        deploy_on_push = true
-      }
-    }
-  }
-}
-
 resource "digitalocean_app" "tribal" {
   spec {
     name   = "tribal"
