@@ -24,6 +24,60 @@ The expiry/rotation should be available in a date picker or with the choice to e
 * FastAPI
 * SQLite (for now)
 
+## Deploying / Standup
+
+Tribal is deployed to DigitalOcean App Platform via Terraform (state managed in Terraform Cloud under the `seaburr` org, workspace `tribal-app`). The container image is built and pushed to the DO Container Registry by GitHub Actions; App Platform redeploys automatically when a new `latest` tag is detected.
+
+### Prerequisites
+
+- [Terraform CLI](https://developer.hashicorp.com/terraform/install) >= 1.3
+- A Terraform Cloud account with access to the `seaburr / tribal-app` workspace
+- A DigitalOcean personal access token with read/write scopes
+- Docker (for local builds)
+
+### First-time setup
+
+```bash
+cd terraform
+terraform init        # authenticates to Terraform Cloud, downloads providers
+terraform apply       # provisions the VPC, App Platform app, and generates secrets
+```
+
+`terraform apply` will:
+1. Provision a DigitalOcean VPC (reserved for the future managed MySQL cluster)
+2. Create the App Platform service pointing at the `tribal:latest` image in DOCR
+3. Generate a 64-character random `JWT_SECRET` and inject it as an encrypted runtime env var — **no manual secret generation needed**
+
+The `JWT_SECRET` is generated once and stored in Terraform state. It will not be regenerated on subsequent applies. To rotate it intentionally (e.g. after a suspected compromise):
+
+```bash
+terraform taint random_password.jwt_secret
+terraform apply
+```
+
+To inspect the current value (e.g. for local dev parity):
+
+```bash
+terraform output jwt_secret
+```
+
+### Environment variables
+
+| Variable | Set by | Required | Notes |
+|---|---|---|---|
+| `JWT_SECRET` | Terraform (`random_password`) | Yes in prod | Auto-generated; stable across restarts. If unset locally, a random value is generated at startup (sessions lost on restart). |
+
+Future variables (`DATABASE_URL`, `ENTRA_TENANT_ID`, `ENTRA_CLIENT_ID`) are stubbed as comments in `terraform/main.tf` and will be wired in as the SaaS phases land.
+
+### CI / CD
+
+Pushing to `main` triggers `.github/workflows/release.yml`, which:
+1. Runs `pytest` (fails fast on any test failure)
+2. Builds and pushes the Docker image to DO Container Registry as `tribal:latest`
+3. App Platform detects the new image and redeploys automatically
+
+Infrastructure changes (Terraform) are applied manually via `workflow_dispatch` on `.github/workflows/deploy-dev.yml`, or locally with `terraform apply`.
+
 ## Development Feedback
 
 ### Iteration 1

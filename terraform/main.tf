@@ -1,3 +1,12 @@
+resource "random_password" "jwt_secret" {
+  length  = 64
+  special = false
+  # Regenerating this invalidates all active sessions. Taint intentionally if rotation is needed.
+  lifecycle {
+    ignore_changes = all
+  }
+}
+
 # Note: DigitalOcean App Platform cannot be attached to a customer VPC.
 # The VPC is provisioned here for the future managed MySQL cluster, which will
 # use its private hostname to keep DB traffic off the public internet.
@@ -48,6 +57,13 @@ resource "digitalocean_app" "tribal" {
         initial_delay_seconds = 30
         period_seconds        = 30
         timeout_seconds       = 5
+      }
+
+      env {
+        key   = "JWT_SECRET"
+        value = random_password.jwt_secret.result
+        scope = "RUN_TIME"
+        type  = "SECRET"
       }
 
       # env {

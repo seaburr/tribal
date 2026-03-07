@@ -133,7 +133,45 @@ audit_logs
 
 ---
 
+### Phase 1.5 — Email/Password Auth *(done — branch: go-for-saas)*
+
+Implemented ahead of full Entra integration to unblock SaaS user onboarding. Designed to be a drop-in precursor: the `User` model matches the schema in Phase 1, and Entra can be layered on in Phase 2 without breaking changes.
+
+**What was implemented:**
+
+- `app/auth.py` — bcrypt password hashing (`passlib[bcrypt]`) and JWT creation/validation (`pyjwt`)
+- `app/models.py` — `User` model: `id`, `email`, `display_name`, `hashed_password`, `created_at`
+- `app/schemas.py` — `RegisterRequest`, `LoginRequest`, `UserResponse` Pydantic schemas
+- `app/routers/auth.py` — `/auth/register`, `/auth/login`, `/auth/logout`, `/auth/me`
+- `app/dependencies.py` — `get_current_user` FastAPI dependency (reads httpOnly cookie → validates JWT → returns `User`)
+- `app/main.py` — HTTP middleware: unauthenticated GET → 303 to `/login`; non-GET → 401 JSON. Exempt: `/login`, `/healthz`, `/auth/*`, `/static/*`
+- `static/login.html` — self-contained two-tab login / create-account page
+- `static/index.html` — header shows user display name + Sign Out button
+- `static/app.js` — `loadUser()`, `signOut()`, fetch interceptor (401 → redirect to `/login`)
+
+**New dependencies:** `passlib[bcrypt]>=1.7.4`, `pyjwt>=2.8.0`, `email-validator>=2.0.0`
+
+**New environment variable:**
+```
+JWT_SECRET   # required for production — use: openssl rand -hex 32
+             # if unset, a random secret is generated at startup (sessions
+             # invalidated on restart; won't work across multiple replicas)
+```
+
+**What was NOT implemented (deferred to Phase 2):**
+- Org/team scoping of resource queries
+- Role enforcement (admin / member / read_only) on routes
+- `get_current_user` is not yet injected into resource routes — auth is enforced only at the middleware layer
+
+---
+
 ### Phase 2 — Authentication: Entra ID
+
+**Migration path from Phase 1.5:**
+- Add `entra_oid VARCHAR(128) UNIQUE` (nullable) to `users` via Alembic migration
+- Replace `hashed_password` auth path with `AzureAuthorizationCodeBearer` token validation
+- The `get_current_user` dependency in `app/dependencies.py` is the single swap point — no route changes needed
+- Disable `/auth/register` and `/auth/login` once Entra is live (or keep as a fallback for non-Entra users)
 
 **Backend:**
 

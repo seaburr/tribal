@@ -1,3 +1,9 @@
+output "jwt_secret" {
+  description = "Generated JWT signing secret (sensitive — stored in Terraform state)."
+  value       = random_password.jwt_secret.result
+  sensitive   = true
+}
+
 output "app_url" {
   description = "Live URL of the deployed application."
   value       = digitalocean_app.tribal.live_url

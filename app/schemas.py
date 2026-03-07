@@ -1,7 +1,53 @@
 from datetime import date, datetime
 from typing import Optional
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, EmailStr, field_validator
+
+
+# ── Auth ──────────────────────────────────────────────────────────────────────
+
+class RegisterRequest(BaseModel):
+    email: EmailStr
+    password: str
+    display_name: Optional[str] = None
+
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+
+
+class UserResponse(BaseModel):
+    id: int
+    email: str
+    display_name: Optional[str]
+    is_admin: bool = False
+
+    model_config = {"from_attributes": True}
+
+
+class AdminSettingsResponse(BaseModel):
+    reminder_days: list[int]
+    notify_hour: int
+
+    model_config = {"from_attributes": True}
+
+
+class AdminSettingsUpdate(BaseModel):
+    reminder_days: list[int]
+    notify_hour: int
+
+
+class AuditLogEntry(BaseModel):
+    id: int
+    user_email: Optional[str]
+    resource_id: Optional[int]
+    resource_name: Optional[str]
+    action: str
+    detail: Optional[dict]
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
 
 
 def _parse_date(v):

@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
@@ -6,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from .. import models, schemas
 from ..database import get_db
+from ..dependencies import get_optional_user
 from ..cert_utils import extract_expiry_from_pem
 from ..scheduler import send_deletion_notification
 
@@ -14,6 +16,21 @@ router = APIRouter(prefix="/api/resources", tags=["resources"])
 BLOCKED_EXTENSIONS = {".key", ".p12", ".p7b", ".pfx"}
 ALLOWED_EXTENSIONS = {".pem", ".crt", ".cer"}
 PRIVATE_KEY_MARKERS = ["PRIVATE KEY", "RSA PRIVATE", "EC PRIVATE", "ENCRYPTED PRIVATE", "DSA PRIVATE"]
+
+
+def _audit(db: Session, action: str, resource: models.Resource, user: Optional[models.User], detail: Optional[dict] = None):
+    try:
+        entry = models.AuditLog(
+            user_email=user.email if user else None,
+            resource_id=resource.id,
+            resource_name=resource.name,
+            action=action,
+            detail=detail,
+        )
+        db.add(entry)
+        db.commit()
+    except Exception:
+        pass  # audit logging must never break the main flow
 
 
 @router.post("/webhook-test", status_code=204)
@@ -34,11 +51,16 @@ def list_resources(db: Session = Depends(get_db)):
 
 
 @router.post("/", response_model=schemas.ResourceResponse, status_code=201)
-def create_resource(resource: schemas.ResourceCreate, db: Session = Depends(get_db)):
+def create_resource(
+    resource: schemas.ResourceCreate,
+    db: Session = Depends(get_db),
+    current_user: Optional[models.User] = Depends(get_optional_user),
+):
     db_resource = models.Resource(**resource.model_dump())
     db.add(db_resource)
     db.commit()
     db.refresh(db_resource)
+    _audit(db, "resource.create", db_resource, current_user, {"type": db_resource.type})
     return db_resource
 
 
@@ -51,7 +73,12 @@ def get_resource(resource_id: int, db: Session = Depends(get_db)):
 
 
 @router.put("/{resource_id}", response_model=schemas.ResourceResponse)
-def update_resource(resource_id: int, updates: schemas.ResourceUpdate, db: Session = Depends(get_db)):
+def update_resource(
+    resource_id: int,
+    updates: schemas.ResourceUpdate,
+    db: Session = Depends(get_db),
+    current_user: Optional[models.User] = Depends(get_optional_user),
+):
     resource = db.query(models.Resource).filter(models.Resource.id == resource_id).first()
     if not resource:
         raise HTTPException(status_code=404, detail="Resource not found")
@@ -63,14 +90,20 @@ def update_resource(resource_id: int, updates: schemas.ResourceUpdate, db: Sessi
     resource.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(resource)
+    _audit(db, "resource.update", resource, current_user, {"updated_fields": list(update_data.keys())})
     return resource
 
 
 @router.delete("/{resource_id}", status_code=204)
-async def delete_resource(resource_id: int, db: Session = Depends(get_db)):
+async def delete_resource(
+    resource_id: int,
+    db: Session = Depends(get_db),
+    current_user: Optional[models.User] = Depends(get_optional_user),
+):
     resource = db.query(models.Resource).filter(models.Resource.id == resource_id).first()
     if not resource:
         raise HTTPException(status_code=404, detail="Resource not found")
+    _audit(db, "resource.delete", resource, current_user, {"type": resource.type, "dri": resource.dri})
     await send_deletion_notification(resource)
     db.delete(resource)
     db.commit()
@@ -81,6 +114,7 @@ async def upload_certificate(
     resource_id: int,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
+    current_user: Optional[models.User] = Depends(get_optional_user),
 ):
     resource = db.query(models.Resource).filter(models.Resource.id == resource_id).first()
     if not resource:
@@ -115,4 +149,5 @@ async def upload_certificate(
     resource.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(resource)
+    _audit(db, "resource.cert_upload", resource, current_user, {"expiration_date": expiry.isoformat()})
     return resource

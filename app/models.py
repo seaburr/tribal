@@ -1,8 +1,41 @@
 from datetime import datetime
 
-from sqlalchemy import Column, Date, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, Integer, JSON, String, Text
 
 from .database import Base
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String, unique=True, nullable=False, index=True)
+    display_name = Column(String, nullable=True)
+    hashed_password = Column(String, nullable=False)
+    is_admin = Column(Boolean, nullable=False, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class AdminSettings(Base):
+    """Singleton row (id=1) storing org-wide admin configuration."""
+    __tablename__ = "admin_settings"
+
+    id = Column(Integer, primary_key=True, default=1)
+    reminder_days = Column(JSON, nullable=False, default=lambda: [30, 14, 7, 3])
+    notify_hour = Column(Integer, nullable=False, default=9)
+    updated_at = Column(DateTime, default=datetime.utcnow)
+
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_email = Column(String, nullable=True)   # null for system actions
+    resource_id = Column(Integer, nullable=True)  # nullable — resource may be deleted later
+    resource_name = Column(String, nullable=True) # denormalized so it survives deletion
+    action = Column(String, nullable=False)       # e.g. resource.create / resource.update / resource.delete
+    detail = Column(JSON, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
 
 
 class Resource(Base):

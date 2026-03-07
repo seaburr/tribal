@@ -13,13 +13,31 @@
   <img src="/static/tribal_logo.png" alt="" class="logo" />
   <h1>Tribal</h1>
   <p class="tagline">Stay on top of expiration dates and rotation processes for certs, API keys, and more.</p>
-  <button class="btn-primary" onclick="openModal()">+ Add Resource</button>
+  <div class="header-actions">
+    <button class="btn-primary" onclick="openModal()">+ Add Resource</button>
+    <div class="user-menu" id="user-menu">
+      <button class="user-avatar-btn" id="user-avatar-btn" onclick="toggleUserMenu()" aria-haspopup="true" aria-expanded="false">
+        <span id="user-label" class="user-label"></span>
+        <svg class="chevron-icon" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+          <path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <div class="user-dropdown hidden" id="user-dropdown" role="menu">
+        <div class="user-dropdown-header">
+          <div class="user-dropdown-name" id="user-dropdown-name"></div>
+          <div class="user-dropdown-email" id="user-dropdown-email"></div>
+        </div>
+        <div class="user-dropdown-divider"></div>
+        <button class="user-dropdown-item" role="menuitem" onclick="signOut()">Sign Out</button>
+      </div>
+    </div>
+  </div>
 </header>
 
 <nav class="tabs">
   <button class="tab active" data-tab="overview" onclick="switchTab('overview')">Overview</button>
   <button class="tab" data-tab="resources" onclick="switchTab('resources')">Resources</button>
-  <button class="tab" data-tab="admin" onclick="switchTab('admin')">Admin</button>
+  <button class="tab" id="nav-admin" data-tab="admin" onclick="switchTab('admin')" style="display:none">Admin</button>
   <button class="tab" data-tab="docs" onclick="switchTab('docs')">Docs</button>
 </nav>
 
@@ -67,20 +85,142 @@
 
   <!-- Admin tab -->
   <div id="tab-admin" class="tab-pane">
-    <div class="about-panel">
-      <h2>Admin</h2>
-      <p class="about-lead">Configuration and administration settings for your Tribal instance.</p>
 
-      <h3>Coming Soon</h3>
-      <p>The Admin panel will provide controls for:</p>
-      <ul>
-        <li>Notification policies (reminder intervals, escalation)</li>
-        <li>Organisation timezone settings</li>
-        <li>Deletion permissions and confirmation requirements</li>
-        <li>Admin notifications and alert routing</li>
-        <li>Audit log access</li>
-      </ul>
+    <!-- Non-admin message -->
+    <div id="admin-no-access" class="about-panel" style="display:none">
+      <h2>Admin</h2>
+      <p class="about-lead">You do not have administrator access to this Tribal instance.</p>
     </div>
+
+    <!-- Admin content (shown only to admins) -->
+    <div id="admin-content" style="display:none">
+
+      <!-- Notification Settings -->
+      <div class="admin-card">
+        <div class="admin-card-header">
+          <h3>Notification Settings</h3>
+          <p class="admin-card-desc">Configure when Slack reminders are sent for expiring resources.</p>
+        </div>
+        <div class="admin-card-body">
+          <div class="admin-form-row">
+            <div class="admin-form-group">
+              <label for="adm-reminder-days">Reminder Days</label>
+              <input type="text" id="adm-reminder-days" placeholder="e.g. 30, 14, 7, 3" />
+              <span class="admin-field-hint">Comma-separated days before expiration to send a reminder.</span>
+            </div>
+            <div class="admin-form-group">
+              <label for="adm-notify-hour">Notification Hour (UTC)</label>
+              <select id="adm-notify-hour"></select>
+              <span class="admin-field-hint">Reminders are dispatched once per day at this hour (UTC).</span>
+            </div>
+          </div>
+          <div id="adm-settings-msg" class="admin-msg"></div>
+        </div>
+        <div class="admin-card-footer">
+          <button class="btn-primary" onclick="saveAdminSettings()">Save Settings</button>
+        </div>
+      </div>
+
+      <!-- Users -->
+      <div class="admin-card">
+        <div class="admin-card-header">
+          <h3>Users</h3>
+          <p class="admin-card-desc">Manage account access and administrator privileges.</p>
+        </div>
+        <div class="admin-card-body" style="padding:0">
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="admin-users-body">
+                <tr><td colspan="4" class="loading">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reports -->
+      <div class="admin-card">
+        <div class="admin-card-header">
+          <h3>Reports</h3>
+          <p class="admin-card-desc">Download CSV reports for sharing or offline review.</p>
+        </div>
+        <div class="admin-card-body">
+          <div class="admin-report-row">
+            <div class="admin-report-item">
+              <div class="admin-report-name">Upcoming Expiry</div>
+              <div class="admin-report-desc">All resources sorted by expiration date.</div>
+              <a class="btn-secondary btn-sm admin-report-btn" href="/admin/reports/upcoming" download>Download CSV</a>
+            </div>
+            <div class="admin-report-item">
+              <div class="admin-report-name">Recent Changes</div>
+              <div class="admin-report-desc">Audit log entries from the last 30 days.</div>
+              <a class="btn-secondary btn-sm admin-report-btn" href="/admin/reports/recent-changes" download>Download CSV</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Audit Log -->
+      <div class="admin-card">
+        <div class="admin-card-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+          <div>
+            <h3>Audit Log</h3>
+            <p class="admin-card-desc">Recent resource activity across all users.</p>
+          </div>
+          <button class="btn-secondary btn-sm" onclick="loadAuditLog()">Refresh</button>
+        </div>
+        <div class="admin-card-body" style="padding:0">
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Date / Time</th>
+                  <th>User</th>
+                  <th>Action</th>
+                  <th>Resource</th>
+                </tr>
+              </thead>
+              <tbody id="admin-audit-body">
+                <tr><td colspan="4" class="loading">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Coming Soon: Member Invites -->
+      <div class="admin-card admin-card-future">
+        <div class="admin-card-header">
+          <h3>Member Invites <span class="badge-future">Coming Soon</span></h3>
+          <p class="admin-card-desc">Invite users by email. Requires email or Slack integration — planned for a future release.</p>
+        </div>
+      </div>
+
+      <!-- Coming Soon: Team Management -->
+      <div class="admin-card admin-card-future">
+        <div class="admin-card-header">
+          <h3>Team Management <span class="badge-future">Coming Soon</span></h3>
+          <p class="admin-card-desc">Create teams, assign members, and route notifications per team. Requires multi-tenancy (Phase 1).</p>
+        </div>
+      </div>
+
+      <!-- Coming Soon: Org Settings -->
+      <div class="admin-card admin-card-future">
+        <div class="admin-card-header">
+          <h3>Organisation Settings <span class="badge-future">Coming Soon</span></h3>
+          <p class="admin-card-desc">Configure org name, slug, Entra group mapping, and deletion policies. Requires multi-tenancy (Phase 1).</p>
+        </div>
+      </div>
+
+    </div><!-- /admin-content -->
   </div>
 
   <!-- Docs tab -->

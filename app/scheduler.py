@@ -1,23 +1,31 @@
-from datetime import date
+from datetime import date, datetime
 
 import httpx
 
 from .database import SessionLocal
-from .models import ReminderLog, Resource
+from .models import AdminSettings, ReminderLog, Resource
 
-REMINDER_DAYS = [30, 14, 7, 3]
+_DEFAULT_REMINDER_DAYS = [30, 14, 7, 3]
+_DEFAULT_NOTIFY_HOUR = 9
 
 
 async def check_reminders():
     db = SessionLocal()
     try:
+        settings = db.get(AdminSettings, 1)
+        reminder_days = settings.reminder_days if settings else _DEFAULT_REMINDER_DAYS
+        notify_hour = settings.notify_hour if settings else _DEFAULT_NOTIFY_HOUR
+
+        if datetime.now().hour != notify_hour:
+            return
+
         resources = db.query(Resource).all()
         today = date.today()
 
         for resource in resources:
             days_until = (resource.expiration_date - today).days
 
-            if days_until not in REMINDER_DAYS:
+            if days_until not in reminder_days:
                 continue
 
             existing = (

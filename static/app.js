@@ -1,3 +1,67 @@
+// ── Auth + user menu ──────────────────────────────────────────────────────────
+let _currentUser = null;
+
+async function loadUser() {
+  try {
+    const res = await fetch("/auth/me");
+    if (res.status === 401) { window.location.href = "/login"; return; }
+    if (!res.ok) return;
+    _currentUser = await res.json();
+    const label = _currentUser.display_name || _currentUser.email;
+    document.getElementById("user-label").textContent = label;
+    document.getElementById("user-dropdown-name").textContent = _currentUser.display_name || label;
+    document.getElementById("user-dropdown-email").textContent = _currentUser.email;
+    // Show admin tab only for admins
+    if (_currentUser.is_admin) {
+      document.getElementById("nav-admin").style.display = "";
+    }
+  } catch {}
+}
+
+async function signOut() {
+  closeUserMenu();
+  await fetch("/auth/logout", { method: "POST" }).catch(() => {});
+  window.location.href = "/login";
+}
+
+function toggleUserMenu() {
+  const dropdown = document.getElementById("user-dropdown");
+  const btn = document.getElementById("user-avatar-btn");
+  const isOpen = !dropdown.classList.contains("hidden");
+  if (isOpen) {
+    dropdown.classList.add("hidden");
+    btn.setAttribute("aria-expanded", "false");
+  } else {
+    dropdown.classList.remove("hidden");
+    btn.setAttribute("aria-expanded", "true");
+  }
+}
+
+function closeUserMenu() {
+  document.getElementById("user-dropdown").classList.add("hidden");
+  document.getElementById("user-avatar-btn").setAttribute("aria-expanded", "false");
+}
+
+// Close dropdown when clicking outside
+document.addEventListener("click", e => {
+  const menu = document.getElementById("user-menu");
+  if (menu && !menu.contains(e.target)) closeUserMenu();
+});
+
+// Intercept 401 responses from API calls and redirect to login.
+const _origFetch = window.fetch;
+window.fetch = async function(...args) {
+  const res = await _origFetch(...args);
+  if (res.status === 401) {
+    const url = typeof args[0] === "string" ? args[0] : args[0]?.url ?? "";
+    // Only redirect for app API calls, not for the auth endpoints themselves.
+    if (!url.startsWith("/auth/")) {
+      window.location.href = "/login";
+    }
+  }
+  return res;
+};
+
 // ── State ─────────────────────────────────────────────────────────────────────
 let resources = [];
 let eventsByDate = {};
@@ -18,6 +82,7 @@ const MONTH_NAMES = ["January","February","March","April","May","June",
   const now = new Date();
   calYear = now.getFullYear();
   calMonth = now.getMonth();
+  loadUser();
   loadData();
 })();
 
@@ -48,6 +113,7 @@ function switchTab(name) {
   document.querySelectorAll(".tab-pane").forEach(p => {
     p.classList.toggle("active", p.id === "tab-" + name);
   });
+  if (name === "admin") loadAdminTab();
 }
 
 // ── Date helpers ──────────────────────────────────────────────────────────────
@@ -682,5 +748,170 @@ function esc(str) {
 document.addEventListener("keydown", e => {
   if (e.key === "Escape") {
     closeModal(); closeDetailModal(); closeDatelistModal(); closeDeleteModal();
+    closeUserMenu();
   }
 });
+
+// ── Admin tab ─────────────────────────────────────────────────────────────────
+
+function loadAdminTab() {
+  if (!_currentUser) return;
+  if (!_currentUser.is_admin) {
+    document.getElementById("admin-no-access").style.display = "";
+    document.getElementById("admin-content").style.display = "none";
+    return;
+  }
+  document.getElementById("admin-no-access").style.display = "none";
+  document.getElementById("admin-content").style.display = "";
+  loadAdminSettings();
+  loadAdminUsers();
+  loadAuditLog();
+}
+
+// ── Notification settings ─────────────────────────────────────────────────────
+async function loadAdminSettings() {
+  const hourSel = document.getElementById("adm-notify-hour");
+  if (!hourSel.options.length) {
+    for (let h = 0; h < 24; h++) {
+      const opt = document.createElement("option");
+      opt.value = h;
+      const suffix = h < 12 ? "AM" : "PM";
+      const display = h === 0 ? "12:00 AM" : h < 12 ? `${h}:00 AM` : h === 12 ? "12:00 PM" : `${h - 12}:00 PM`;
+      opt.textContent = display;
+      hourSel.appendChild(opt);
+    }
+  }
+  try {
+    const res = await fetch("/admin/settings");
+    if (!res.ok) return;
+    const s = await res.json();
+    document.getElementById("adm-reminder-days").value = s.reminder_days.join(", ");
+    hourSel.value = s.notify_hour;
+  } catch {}
+}
+
+async function saveAdminSettings() {
+  const msgEl = document.getElementById("adm-settings-msg");
+  msgEl.textContent = "";
+  msgEl.className = "admin-msg";
+
+  const raw = document.getElementById("adm-reminder-days").value;
+  const days = raw.split(",").map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
+  const hour = parseInt(document.getElementById("adm-notify-hour").value, 10);
+
+  if (!days.length) {
+    msgEl.textContent = "Enter at least one reminder day.";
+    msgEl.className = "admin-msg error";
+    return;
+  }
+
+  try {
+    const res = await fetch("/admin/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reminder_days: days, notify_hour: hour }),
+    });
+    if (res.ok) {
+      msgEl.textContent = "Settings saved.";
+      msgEl.className = "admin-msg success";
+    } else {
+      const err = await res.json().catch(() => ({}));
+      msgEl.textContent = err.detail || "Failed to save settings.";
+      msgEl.className = "admin-msg error";
+    }
+  } catch {
+    msgEl.textContent = "Network error.";
+    msgEl.className = "admin-msg error";
+  }
+}
+
+// ── Users ─────────────────────────────────────────────────────────────────────
+async function loadAdminUsers() {
+  const tbody = document.getElementById("admin-users-body");
+  tbody.innerHTML = `<tr><td colspan="4" class="loading">Loading…</td></tr>`;
+  try {
+    const res = await fetch("/admin/users");
+    if (!res.ok) { tbody.innerHTML = `<tr><td colspan="4" class="loading">Failed to load users.</td></tr>`; return; }
+    const users = await res.json();
+    if (!users.length) {
+      tbody.innerHTML = `<tr><td colspan="4" class="loading">No users found.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = users.map(u => `
+      <tr>
+        <td>${esc(u.display_name || "—")}</td>
+        <td>${esc(u.email)}</td>
+        <td>${u.is_admin ? '<span class="badge-admin">Admin</span>' : '<span class="badge-member">Member</span>'}</td>
+        <td class="actions" style="gap:6px">
+          ${u.id !== _currentUser.id ? `
+            <button class="btn-secondary btn-sm" onclick="toggleUserAdmin(${u.id}, ${u.is_admin})">
+              ${u.is_admin ? "Remove Admin" : "Make Admin"}
+            </button>
+            <button class="btn-danger btn-sm" onclick="deleteAdminUser(${u.id}, '${esc(u.email)}')">Delete</button>
+          ` : '<span style="color:var(--text-mut);font-size:12px">You</span>'}
+        </td>
+      </tr>
+    `).join("");
+  } catch {
+    tbody.innerHTML = `<tr><td colspan="4" class="loading">Network error.</td></tr>`;
+  }
+}
+
+async function toggleUserAdmin(userId, currentIsAdmin) {
+  const res = await fetch(`/admin/users/${userId}/role?is_admin=${!currentIsAdmin}`, { method: "PUT" });
+  if (res.ok) {
+    showToast(currentIsAdmin ? "Admin access removed." : "User promoted to admin.");
+    loadAdminUsers();
+  } else {
+    const err = await res.json().catch(() => ({}));
+    showToast(err.detail || "Failed to update role.");
+  }
+}
+
+async function deleteAdminUser(userId, email) {
+  if (!confirm(`Delete user "${email}"? This cannot be undone.`)) return;
+  const res = await fetch(`/admin/users/${userId}`, { method: "DELETE" });
+  if (res.ok) {
+    showToast("User deleted.");
+    loadAdminUsers();
+  } else {
+    const err = await res.json().catch(() => ({}));
+    showToast(err.detail || "Failed to delete user.");
+  }
+}
+
+// ── Audit log ─────────────────────────────────────────────────────────────────
+const _ACTION_LABELS = {
+  "resource.create": "Created",
+  "resource.update": "Updated",
+  "resource.delete": "Deleted",
+  "resource.cert_upload": "Cert Uploaded",
+};
+
+async function loadAuditLog() {
+  const tbody = document.getElementById("admin-audit-body");
+  tbody.innerHTML = `<tr><td colspan="4" class="loading">Loading…</td></tr>`;
+  try {
+    const res = await fetch("/admin/audit-log?limit=100");
+    if (!res.ok) { tbody.innerHTML = `<tr><td colspan="4" class="loading">Failed to load audit log.</td></tr>`; return; }
+    const entries = await res.json();
+    if (!entries.length) {
+      tbody.innerHTML = `<tr><td colspan="4" class="loading">No audit entries yet. Actions on resources will appear here.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = entries.map(e => {
+      const dt = new Date(e.created_at + "Z");
+      const fmt = dt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+        + " " + dt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+      const action = _ACTION_LABELS[e.action] || e.action;
+      return `<tr>
+        <td style="white-space:nowrap;color:var(--text-sec)">${esc(fmt)}</td>
+        <td style="color:var(--text-sec)">${esc(e.user_email || "system")}</td>
+        <td>${esc(action)}</td>
+        <td>${esc(e.resource_name || "—")}</td>
+      </tr>`;
+    }).join("");
+  } catch {
+    tbody.innerHTML = `<tr><td colspan="4" class="loading">Network error.</td></tr>`;
+  }
+}
