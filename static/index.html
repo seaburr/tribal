@@ -39,7 +39,7 @@
 <nav class="tabs">
   <button class="tab active" data-tab="overview" onclick="switchTab('overview')">Overview</button>
   <button class="tab" data-tab="resources" onclick="switchTab('resources')">Resources</button>
-  <button class="tab" id="nav-admin" data-tab="admin" onclick="switchTab('admin')" style="display:none">Admin</button>
+  <button class="tab" data-tab="admin" onclick="switchTab('admin')">Admin</button>
   <button class="tab" data-tab="docs" onclick="switchTab('docs')">Docs</button>
 </nav>
 
@@ -53,8 +53,9 @@
       <div class="calendar-panel">
         <div class="cal-header">
           <button class="cal-nav" onclick="changeMonth(-1)">&#8592;</button>
-          <div style="display:flex;align-items:center;gap:10px">
+          <div style="display:flex;align-items:center;gap:8px">
             <span class="cal-title" id="cal-title"></span>
+            <button class="cal-today-btn" onclick="goToCurrentMonth()">Current Month</button>
             <button class="cal-today-btn" id="cal-view-toggle" onclick="toggleYearView()">Year View</button>
           </div>
           <button class="cal-nav" onclick="changeMonth(1)">&#8594;</button>
@@ -108,12 +109,19 @@
             <div class="admin-form-group">
               <label for="adm-reminder-days">Reminder Days</label>
               <input type="text" id="adm-reminder-days" placeholder="e.g. 30, 14, 7, 3" />
-              <span class="admin-field-hint">Comma-separated days before expiration to send a reminder.</span>
+              <span class="admin-field-hint">Comma-separated days before expiration to send a reminder. Values must be 1–365.</span>
             </div>
             <div class="admin-form-group">
               <label for="adm-notify-hour">Notification Hour (UTC)</label>
               <select id="adm-notify-hour"></select>
               <span class="admin-field-hint">Reminders are dispatched once per day at this hour (UTC).</span>
+            </div>
+          </div>
+          <div class="admin-form-row">
+            <div class="admin-form-group" style="flex:1">
+              <label for="adm-slack-webhook">Admin Slack Webhook</label>
+              <input type="text" id="adm-slack-webhook" placeholder="https://hooks.slack.com/services/…" />
+              <span class="admin-field-hint">Optional. Receives admin-level notifications (e.g. user activity alerts). Separate from per-resource webhooks.</span>
             </div>
           </div>
           <div id="adm-settings-msg" class="admin-msg"></div>
@@ -142,6 +150,32 @@
               </thead>
               <tbody id="admin-users-body">
                 <tr><td colspan="4" class="loading">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- API Keys -->
+      <div class="admin-card">
+        <div class="admin-card-header">
+          <h3>API Keys</h3>
+          <p class="admin-card-desc">All active API keys across all users. Admins can revoke any key.</p>
+        </div>
+        <div class="admin-card-body" style="padding:0">
+          <div class="admin-table-wrap" id="admin-all-keys-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Owner</th>
+                  <th>Prefix</th>
+                  <th>Last Used</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="admin-all-keys-body">
+                <tr><td colspan="5" class="loading">Loading…</td></tr>
               </tbody>
             </table>
           </div>
@@ -434,43 +468,36 @@
 
 <div id="toast" class="toast"></div>
 
-<!-- ── API Keys Modal ──────────────────────────────────────────────────────── -->
-<div id="api-keys-overlay" class="modal-overlay hidden" onclick="closeApiKeysModal(event)">
-  <div class="modal-box" style="max-width:560px">
+<!-- API Keys modal (personal keys) -->
+<div id="api-keys-modal" class="modal-overlay hidden">
+  <div class="modal" role="dialog" aria-modal="true" style="max-width:560px">
     <div class="modal-header">
-      <h2 class="modal-title">API Keys</h2>
-      <button class="modal-close" onclick="closeApiKeysModal()">&times;</button>
+      <h2>API Keys</h2>
+      <button class="btn-icon" onclick="closeApiKeysModal()" aria-label="Close">&times;</button>
     </div>
-    <p style="color:var(--muted);font-size:0.85rem;margin-bottom:1rem">
-      API keys authenticate programmatic access (e.g. a Terraform provider) with your account permissions.
-      A key is shown only once — copy it before closing.
-    </p>
-
-    <div id="api-keys-list"></div>
-
-    <div id="api-key-create-form" style="margin-top:1rem">
-      <div style="display:flex;gap:8px">
+    <div class="modal-body">
+      <p style="color:var(--muted);font-size:0.85rem;margin-bottom:1rem">
+        API keys authenticate programmatic access with your account permissions. A key is shown only once.
+      </p>
+      <div id="api-keys-list"></div>
+      <div style="display:flex;gap:8px;margin-top:1rem">
         <input id="api-key-name" class="form-input" placeholder="Key name (e.g. Terraform)" style="flex:1" />
         <button class="btn-primary" onclick="createApiKey()">Generate</button>
       </div>
-    </div>
-
-    <!-- shown once after creation -->
-    <div id="api-key-reveal" class="hidden" style="margin-top:1rem">
-      <div class="api-key-reveal-box">
-        <div style="font-size:0.8rem;color:var(--muted);margin-bottom:6px">
-          Copy this key now — it will not be shown again.
-        </div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <code id="api-key-value" class="api-key-code"></code>
-          <button class="btn-secondary" onclick="copyApiKey()">Copy</button>
+      <div id="api-key-reveal" class="hidden" style="margin-top:1rem">
+        <div class="api-key-reveal-box">
+          <div style="font-size:0.8rem;color:var(--muted);margin-bottom:6px">Copy this key now — it will not be shown again.</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <code id="api-key-value" class="api-key-code"></code>
+            <button class="btn-secondary" onclick="copyApiKey()">Copy</button>
+          </div>
         </div>
       </div>
     </div>
   </div>
 </div>
 
-<footer class="app-footer">© 2026 Seaburr</footer>
+<footer class="app-footer">© 2026 seaburr</footer>
 
 <script src="/static/app.js"></script>
 </body>

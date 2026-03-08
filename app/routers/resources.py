@@ -1,5 +1,4 @@
 from datetime import datetime, timezone
-from typing import Optional
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
@@ -7,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from .. import models, schemas
 from ..database import get_db
-from ..dependencies import get_current_user, get_optional_user
+from ..dependencies import get_current_user
 from ..cert_utils import extract_expiry_from_pem
 from ..scheduler import send_deletion_notification
 
@@ -34,7 +33,10 @@ def _audit(db: Session, action: str, resource: models.Resource, user: Optional[m
 
 
 @router.post("/webhook-test", status_code=204)
-async def test_webhook(req: schemas.WebhookTestRequest):
+async def test_webhook(
+    req: schemas.WebhookTestRequest,
+    _: models.User = Depends(get_current_user),
+):
     payload = {"text": "This is a test message from Tribal."}
     try:
         async with httpx.AsyncClient() as client:
@@ -57,7 +59,7 @@ def list_resources(
 def create_resource(
     resource: schemas.ResourceCreate,
     db: Session = Depends(get_db),
-    current_user: Optional[models.User] = Depends(get_optional_user),
+    current_user: models.User = Depends(get_current_user),
 ):
     db_resource = models.Resource(**resource.model_dump())
     db.add(db_resource)
@@ -84,7 +86,7 @@ def update_resource(
     resource_id: int,
     updates: schemas.ResourceUpdate,
     db: Session = Depends(get_db),
-    current_user: Optional[models.User] = Depends(get_optional_user),
+    current_user: models.User = Depends(get_current_user),
 ):
     resource = db.query(models.Resource).filter(models.Resource.id == resource_id).first()
     if not resource:
@@ -105,7 +107,7 @@ def update_resource(
 async def delete_resource(
     resource_id: int,
     db: Session = Depends(get_db),
-    current_user: Optional[models.User] = Depends(get_optional_user),
+    current_user: models.User = Depends(get_current_user),
 ):
     resource = db.query(models.Resource).filter(models.Resource.id == resource_id).first()
     if not resource:
@@ -121,7 +123,7 @@ async def upload_certificate(
     resource_id: int,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    current_user: Optional[models.User] = Depends(get_optional_user),
+    current_user: models.User = Depends(get_current_user),
 ):
     resource = db.query(models.Resource).filter(models.Resource.id == resource_id).first()
     if not resource:

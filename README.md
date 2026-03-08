@@ -192,4 +192,24 @@ Feedback from the first round of testing that needs to be addressed:
 
 ### Iteration 8
 
-* Put the "Today" button back that was removed previously but call it "Current Month".
+* Put the "Today" button back that was removed from calender.
+* API key modal does not match the modals used elsewhere (Translucent, X is too small and background is white, etc.)
+* API keys should be manageable from the Admin page for all users.
+* API prefix shown should be shortened to tribal_sk_XXXX (4 characters).
+* Reminder Days field should validate input.
+* Add "Admin Slack Webhook" field on admin page.
+* API key modal shows generated API key after closing modal. 
+* Invalid API keys appear to be able to authenticate with REST API.
+
+
+### Iteration 9
+
+* Put the generation of API keys back in the user drop down in the top right corner. All users can generate API keys.
+* On Admin page, API keys section should be below "Users" and use the same admin-card div.
+* "Copy this key now — it will not be shown again." text and "Copy" button should only be shown after a new API key is generated.
+* On Admin page, the creator/owner of the API key should be included in the table.
+* Notification Settings still does not verify Reminder Days input and/or does not return error state to user in UI.
+* Upcoming expiry report should only contain things that have expired or expire within 30 days.
+* Copyright on landing page and in app should be "seaburr" all lowercase.
+* Give a minor update to the landing page showcasing the changes we've made.
+* Move the "Open App" button to the top right and rename it "Login".

@@ -1,10 +1,18 @@
 #!/usr/bin/env python3
 """
-Seed script: creates 20 demo resources against dev.tribal-app.xyz.
+Seed script: creates demo resources against a Tribal instance.
+
 Usage:
-    python seed.py              # targets dev.tribal-app.xyz
-    BASE_URL=http://localhost:8000 python seed.py
+    python seed.py                                         # targets dev.tribal-app.xyz, no auth
+    python seed.py --url http://localhost:8000             # custom URL
+    python seed.py --api-key tribal_sk_abc123...           # authenticate with an API key
+    python seed.py --url http://localhost:8000 --api-key tribal_sk_abc123...
+
+Environment variable equivalents (flags take precedence):
+    BASE_URL    Target base URL
+    API_KEY     Tribal API key
 """
+import argparse
 import os
 import random
 import sys
@@ -12,8 +20,20 @@ from datetime import date, timedelta
 
 import httpx
 
-BASE_URL = os.environ.get("BASE_URL", "https://dev.tribal-app.xyz").rstrip("/")
+
+def _parse_args():
+    parser = argparse.ArgumentParser(description="Seed demo resources into a Tribal instance.")
+    parser.add_argument("--url", default=None, help="Base URL (default: $BASE_URL or https://dev.tribal-app.xyz)")
+    parser.add_argument("--api-key", default=None, dest="api_key", help="Tribal API key for Bearer auth (default: $API_KEY)")
+    return parser.parse_args()
+
+
+args = _parse_args()
+BASE_URL = (args.url or os.environ.get("BASE_URL", "https://dev.tribal-app.xyz")).rstrip("/")
+API_KEY = args.api_key or os.environ.get("API_KEY", "")
 API = f"{BASE_URL}/api/resources/"
+
+HEADERS = {"Authorization": f"Bearer {API_KEY}"} if API_KEY else {}
 
 RESOURCES = [
     {
@@ -238,7 +258,8 @@ def main():
     shared_expiry = today + timedelta(days=random.randint(14, 150))
 
     total = len(RESOURCES)
-    print(f"Seeding {total} resources → {API}\n")
+    auth_note = f"  (API key: {API_KEY[:18]}...)" if API_KEY else "  (no API key — ensure you have a valid session or the server allows unauthenticated access)"
+    print(f"Seeding {total} resources → {API}{auth_note}\n")
 
     for i, resource in enumerate(RESOURCES):
         resource = {k: v for k, v in resource.items() if k not in ("_shared_expiry", "_days_offset")}
@@ -252,7 +273,7 @@ def main():
         payload = {**resource, "expiration_date": expiry.isoformat()}
 
         try:
-            resp = httpx.post(API, json=payload, timeout=15, follow_redirects=True)
+            resp = httpx.post(API, json=payload, headers=HEADERS, timeout=15, follow_redirects=True)
             resp.raise_for_status()
             rid = resp.json()["id"]
             shared_note = " ← shared date" if expiry == shared_expiry else ""

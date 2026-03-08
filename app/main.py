@@ -32,6 +32,12 @@ def _run_migrations():
                 conn.execute(text("ALTER TABLE resources ADD COLUMN type VARCHAR NOT NULL DEFAULT 'Other'"))
                 conn.commit()
 
+        if "admin_settings" in tables:
+            existing = {c["name"] for c in inspector.get_columns("admin_settings")}
+            if "slack_webhook" not in existing:
+                conn.execute(text("ALTER TABLE admin_settings ADD COLUMN slack_webhook VARCHAR"))
+                conn.commit()
+
         if "users" in tables:
             existing = {c["name"] for c in inspector.get_columns("users")}
             if "is_admin" not in existing:

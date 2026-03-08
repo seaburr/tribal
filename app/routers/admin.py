@@ -41,6 +41,7 @@ def update_settings(updates: schemas.AdminSettingsUpdate, db: Session = Depends(
     settings = _get_or_create_settings(db)
     settings.reminder_days = sorted(set(updates.reminder_days), reverse=True)
     settings.notify_hour = updates.notify_hour
+    settings.slack_webhook = updates.slack_webhook or None
     settings.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(settings)
@@ -110,16 +111,55 @@ def get_audit_log(
     )
 
 
+# ── API Keys (admin view) ──────────────────────────────────────────────────────
+
+@router.get("/api-keys", response_model=list[schemas.ApiKeyAdminResponse])
+def list_all_api_keys(db: Session = Depends(get_db)):
+    keys = (
+        db.query(models.ApiKey, models.User.email)
+        .join(models.User, models.ApiKey.user_id == models.User.id)
+        .filter(models.ApiKey.revoked_at.is_(None))
+        .order_by(models.ApiKey.created_at.desc())
+        .all()
+    )
+    results = []
+    for key, email in keys:
+        results.append(schemas.ApiKeyAdminResponse(
+            id=key.id,
+            name=key.name,
+            key_prefix=key.key_prefix,
+            created_at=key.created_at,
+            last_used_at=key.last_used_at,
+            revoked_at=key.revoked_at,
+            user_email=email,
+        ))
+    return results
+
+
+@router.delete("/api-keys/{key_id}", status_code=204)
+def revoke_any_api_key(key_id: int, db: Session = Depends(get_db)):
+    from datetime import datetime, timezone
+    api_key = db.get(models.ApiKey, key_id)
+    if not api_key:
+        raise HTTPException(status_code=404, detail="API key not found.")
+    if api_key.revoked_at:
+        raise HTTPException(status_code=400, detail="Key is already revoked.")
+    api_key.revoked_at = datetime.now(timezone.utc)
+    db.commit()
+
+
 # ── Reports ───────────────────────────────────────────────────────────────────
 
 @router.get("/reports/upcoming")
 def report_upcoming(db: Session = Depends(get_db)):
+    today = date.today()
+    cutoff = today + timedelta(days=30)
     resources = (
         db.query(models.Resource)
+        .filter(models.Resource.expiration_date <= cutoff)
         .order_by(models.Resource.expiration_date)
         .all()
     )
-    today = date.today()
 
     output = io.StringIO()
     writer = csv.writer(output)

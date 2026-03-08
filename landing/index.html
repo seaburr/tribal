@@ -22,27 +22,67 @@
     }
 
     html, body {
-      height: 100%;
       background: var(--bg);
       color: var(--text);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       line-height: 1.6;
+      min-height: 100vh;
     }
 
-    body {
+    /* ── Top nav ── */
+    .top-nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.9rem 2rem;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    .nav-brand img { height: 28px; width: 28px; object-fit: contain; }
+
+    .btn-login {
+      background: var(--blue);
+      color: #fff;
+      font-size: 0.875rem;
+      font-weight: 600;
+      padding: 0.45rem 1.25rem;
+      border-radius: 6px;
+      text-decoration: none;
+      transition: background 0.15s;
+    }
+
+    .btn-login:hover { background: var(--blue-dk); }
+
+    /* ── Hero ── */
+    .hero {
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      padding: 2rem;
       text-align: center;
+      padding: 8rem 2rem 4rem;
     }
 
     .logo {
-      width: 125px;
-      height: 125px;
-      margin-bottom: 1.5rem;
+      width: 100px;
+      height: 100px;
+      margin-bottom: 1.25rem;
     }
 
     h1 {
@@ -53,44 +93,10 @@
     }
 
     .tagline {
-      font-size: 1.2rem;
+      font-size: 1.15rem;
       color: var(--text-sec);
-      max-width: 480px;
-      margin-bottom: 2.5rem;
-    }
-
-    .features {
-      display: flex;
-      gap: 1.5rem;
-      flex-wrap: wrap;
-      justify-content: center;
-      margin-bottom: 2.5rem;
-      max-width: 680px;
-    }
-
-    .feature {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 1rem 1.25rem;
-      width: 200px;
-      text-align: left;
-    }
-
-    .feature-icon {
-      font-size: 1.5rem;
-      margin-bottom: 0.5rem;
-    }
-
-    .feature h3 {
-      font-size: 0.875rem;
-      font-weight: 600;
-      margin-bottom: 0.25rem;
-    }
-
-    .feature p {
-      font-size: 0.8rem;
-      color: var(--text-sec);
+      max-width: 500px;
+      margin-bottom: 2rem;
     }
 
     .pill-row {
@@ -98,7 +104,7 @@
       gap: 0.5rem;
       flex-wrap: wrap;
       justify-content: center;
-      margin-bottom: 2.5rem;
+      margin-bottom: 3rem;
     }
 
     .pill {
@@ -110,41 +116,82 @@
       color: var(--text-sec);
     }
 
-    .cta {
-      display: inline-block;
-      background: var(--blue);
-      color: #fff;
-      font-size: 1rem;
+    /* ── Features ── */
+    .features {
+      display: flex;
+      gap: 1.25rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      padding: 0 2rem 4rem;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .feature {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.25rem 1.5rem;
+      width: 240px;
+      text-align: left;
+    }
+
+    .feature-icon {
+      font-size: 1.4rem;
+      margin-bottom: 0.6rem;
+    }
+
+    .feature h3 {
+      font-size: 0.9rem;
       font-weight: 600;
-      padding: 0.75rem 2rem;
-      border-radius: 8px;
-      text-decoration: none;
-      transition: background 0.15s;
+      margin-bottom: 0.3rem;
     }
 
-    .cta:hover {
-      background: var(--blue-dk);
+    .feature p {
+      font-size: 0.8rem;
+      color: var(--text-sec);
     }
 
+    /* ── Footer ── */
     footer {
-      position: fixed;
-      bottom: 1.25rem;
+      text-align: center;
+      padding: 1.5rem;
       font-size: 0.75rem;
       color: var(--text-sec);
+      border-top: 1px solid var(--border);
+    }
+
+    @media (max-width: 480px) {
+      h1 { font-size: 2rem; }
+      .top-nav { padding: 0.75rem 1rem; }
+      .hero { padding-top: 6rem; }
     }
   </style>
 </head>
 <body>
-  <img src="tribal_logo.png" alt="Tribal logo" class="logo" />
-  <h1>Tribal</h1>
-  <p class="tagline">Track and rotate certificates, API keys, SSH keys, and other credentials — before they expire.</p>
 
-  <div class="pill-row">
-    <span class="pill">Certificates</span>
-    <span class="pill">API Keys</span>
-    <span class="pill">SSH Keys</span>
-    <span class="pill">Slack Reminders</span>
-    <span class="pill">Calendar View</span>
+  <nav class="top-nav">
+    <a class="nav-brand" href="#">
+      <img src="tribal_logo.png" alt="Tribal logo" />
+      Tribal
+    </a>
+    <a href="https://dev.tribal-app.xyz" class="btn-login">Login</a>
+  </nav>
+
+  <div class="hero">
+    <img src="tribal_logo.png" alt="Tribal logo" class="logo" />
+    <h1>Tribal</h1>
+    <p class="tagline">Track and rotate certificates, API keys, SSH keys, and other credentials — before they expire.</p>
+
+    <div class="pill-row">
+      <span class="pill">Certificates</span>
+      <span class="pill">API Keys</span>
+      <span class="pill">SSH Keys</span>
+      <span class="pill">Slack Reminders</span>
+      <span class="pill">Calendar View</span>
+      <span class="pill">Multi-user</span>
+      <span class="pill">REST API</span>
+    </div>
   </div>
 
   <div class="features">
@@ -156,17 +203,31 @@
     <div class="feature">
       <div class="feature-icon">🔔</div>
       <h3>Slack Reminders</h3>
-      <p>Automatic alerts at 30, 14, 7, and 3 days before expiration.</p>
+      <p>Automatic alerts at configurable intervals before expiration — never miss a rotation.</p>
     </div>
     <div class="feature">
       <div class="feature-icon">🔐</div>
       <h3>Cert Upload</h3>
-      <p>Upload a PEM or CRT file and let Tribal extract the expiry date for you.</p>
+      <p>Upload a PEM or CRT file and let Tribal extract the expiry date automatically.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">👥</div>
+      <h3>Multi-user</h3>
+      <p>Team accounts with admin and member roles. Audit log tracks every change.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">🔑</div>
+      <h3>API Access</h3>
+      <p>REST API with API key auth. Build Terraform providers or automate credential tracking.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">⚙️</div>
+      <h3>Admin Panel</h3>
+      <p>Configure notification schedules, manage users, download reports, and review audit logs.</p>
     </div>
   </div>
 
-  <a href="https://dev.tribal-app.xyz" class="cta">Open App</a>
+  <footer>&copy; 2026 seaburr</footer>
 
-  <footer>&copy; 2026 Tribal</footer>
 </body>
 </html>

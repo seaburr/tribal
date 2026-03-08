@@ -29,6 +29,7 @@ class UserResponse(BaseModel):
 class AdminSettingsResponse(BaseModel):
     reminder_days: list[int]
     notify_hour: int
+    slack_webhook: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
@@ -36,6 +37,7 @@ class AdminSettingsResponse(BaseModel):
 class AdminSettingsUpdate(BaseModel):
     reminder_days: list[int]
     notify_hour: int
+    slack_webhook: Optional[str] = None
 
 
 class AuditLogEntry(BaseModel):
@@ -68,6 +70,11 @@ class ApiKeyResponse(BaseModel):
 class ApiKeyCreatedResponse(ApiKeyResponse):
     """Returned once on creation — includes the full plaintext key."""
     full_key: str
+
+
+class ApiKeyAdminResponse(ApiKeyResponse):
+    """Used by admin endpoint — includes owner email."""
+    user_email: str
 
 
 def _parse_date(v):

@@ -10,7 +10,7 @@ from ..dependencies import get_current_user
 
 router = APIRouter(prefix="/api/keys", tags=["api-keys"])
 
-_PREFIX_DISPLAY_LEN = 8  # chars shown after "tribal_sk_" in the UI
+_PREFIX_DISPLAY_LEN = 4  # chars shown after "tribal_sk_" in the UI
 
 
 @router.get("/", response_model=list[schemas.ApiKeyResponse])
@@ -69,10 +69,11 @@ def revoke_key(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    api_key = db.query(models.ApiKey).filter(
-        models.ApiKey.id == key_id,
-        models.ApiKey.user_id == current_user.id,
-    ).first()
+    # Admins can revoke any key; regular users only their own
+    query = db.query(models.ApiKey).filter(models.ApiKey.id == key_id)
+    if not current_user.is_admin:
+        query = query.filter(models.ApiKey.user_id == current_user.id)
+    api_key = query.first()
     if not api_key:
         raise HTTPException(status_code=404, detail="API key not found.")
     if api_key.revoked_at:

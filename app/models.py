@@ -27,6 +27,7 @@ class AdminSettings(Base):
     id = Column(Integer, primary_key=True, default=1)
     reminder_days = Column(JSON, nullable=False, default=lambda: [30, 14, 7, 3])
     notify_hour = Column(Integer, nullable=False, default=9)
+    slack_webhook = Column(String, nullable=True)
     updated_at = Column(DateTime, default=_utcnow)
 
 

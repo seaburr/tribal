@@ -11,10 +11,6 @@ async function loadUser() {
     document.getElementById("user-label").textContent = label;
     document.getElementById("user-dropdown-name").textContent = _currentUser.display_name || label;
     document.getElementById("user-dropdown-email").textContent = _currentUser.email;
-    // Show admin tab only for admins
-    if (_currentUser.is_admin) {
-      document.getElementById("nav-admin").style.display = "";
-    }
   } catch {}
 }
 
@@ -62,19 +58,19 @@ window.fetch = async function(...args) {
   return res;
 };
 
-// ── API Keys ───────────────────────────────────────────────────────────────────
+// ── API Keys (personal modal) ─────────────────────────────────────────────────
 
 function openApiKeysModal() {
   closeUserMenu();
   document.getElementById("api-key-reveal").classList.add("hidden");
   document.getElementById("api-key-name").value = "";
-  document.getElementById("api-keys-overlay").classList.remove("hidden");
+  document.getElementById("api-keys-modal").classList.remove("hidden");
   loadApiKeys();
 }
 
-function closeApiKeysModal(e) {
-  if (e && e.target !== document.getElementById("api-keys-overlay")) return;
-  document.getElementById("api-keys-overlay").classList.add("hidden");
+function closeApiKeysModal() {
+  document.getElementById("api-keys-modal").classList.add("hidden");
+  document.getElementById("api-key-reveal").classList.add("hidden");
 }
 
 async function loadApiKeys() {
@@ -95,7 +91,7 @@ async function loadApiKeys() {
             <td>${esc(k.name)}</td>
             <td><code style="font-size:0.8rem">${esc(k.key_prefix)}</code></td>
             <td style="color:var(--muted);font-size:0.8rem">${k.last_used_at ? new Date(k.last_used_at).toLocaleDateString() : "Never"}</td>
-            <td><button class="btn-danger" style="font-size:0.75rem;padding:4px 10px" onclick="revokeApiKey(${k.id})">Revoke</button></td>
+            <td><button class="btn-danger btn-sm" onclick="revokeApiKey(${k.id})">Revoke</button></td>
           </tr>`).join("")}
       </tbody>
     </table>`;
@@ -121,13 +117,43 @@ async function revokeApiKey(id) {
   if (!confirm("Revoke this API key? Any integrations using it will stop working.")) return;
   const res = await fetch(`/api/keys/${id}`, { method: "DELETE" });
   if (!res.ok) { showToast("Failed to revoke key."); return; }
-  loadApiKeys();
   document.getElementById("api-key-reveal").classList.add("hidden");
+  loadApiKeys();
 }
 
 function copyApiKey() {
   const val = document.getElementById("api-key-value").textContent;
   navigator.clipboard.writeText(val).then(() => showToast("Copied to clipboard."));
+}
+
+// ── API Keys (admin view on Admin tab) ────────────────────────────────────────
+
+async function loadAdminApiKeys() {
+  const tbody = document.getElementById("admin-all-keys-body");
+  if (!tbody) return;
+  tbody.innerHTML = `<tr><td colspan="5" class="loading">Loading…</td></tr>`;
+  const res = await fetch("/admin/api-keys");
+  if (!res.ok) { tbody.innerHTML = `<tr><td colspan="5" class="loading">Failed to load.</td></tr>`; return; }
+  const keys = await res.json();
+  if (!keys.length) {
+    tbody.innerHTML = `<tr><td colspan="5" class="loading">No active API keys.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = keys.map(k => `
+    <tr>
+      <td>${esc(k.name)}</td>
+      <td style="color:var(--muted);font-size:0.8rem">${esc(k.user_email)}</td>
+      <td><code style="font-size:0.8rem">${esc(k.key_prefix)}</code></td>
+      <td style="color:var(--muted);font-size:0.8rem">${k.last_used_at ? new Date(k.last_used_at).toLocaleDateString() : "Never"}</td>
+      <td><button class="btn-danger btn-sm" onclick="revokeAdminApiKey(${k.id})">Revoke</button></td>
+    </tr>`).join("");
+}
+
+async function revokeAdminApiKey(id) {
+  if (!confirm("Revoke this API key? Any integrations using it will stop working.")) return;
+  const res = await fetch(`/admin/api-keys/${id}`, { method: "DELETE" });
+  if (!res.ok) { showToast("Failed to revoke key."); return; }
+  loadAdminApiKeys();
 }
 
 // ── State ─────────────────────────────────────────────────────────────────────
@@ -318,6 +344,15 @@ function renderYearView() {
 
   html += '</div>'; // year-grid
   document.getElementById("cal-body").innerHTML = html;
+}
+
+function goToCurrentMonth() {
+  const now = new Date();
+  calYear = now.getFullYear();
+  calMonth = now.getMonth();
+  calViewMode = 'month';
+  document.getElementById("cal-view-toggle").textContent = "Year View";
+  renderCalendar();
 }
 
 function toggleYearView() {
@@ -805,10 +840,10 @@ function esc(str) {
 }
 
 // ── Modal overlay / keyboard close ────────────────────────────────────────────
-["modal","detail-modal","datelist-modal","delete-modal"].forEach(id => {
+["modal","detail-modal","datelist-modal","delete-modal","api-keys-modal"].forEach(id => {
   document.getElementById(id).addEventListener("click", function(e) {
     if (e.target === this) {
-      closeModal(); closeDetailModal(); closeDatelistModal(); closeDeleteModal();
+      closeModal(); closeDetailModal(); closeDatelistModal(); closeDeleteModal(); closeApiKeysModal();
     }
   });
 });
@@ -816,6 +851,7 @@ function esc(str) {
 document.addEventListener("keydown", e => {
   if (e.key === "Escape") {
     closeModal(); closeDetailModal(); closeDatelistModal(); closeDeleteModal();
+    closeApiKeysModal();
     closeUserMenu();
   }
 });
@@ -833,6 +869,7 @@ function loadAdminTab() {
   document.getElementById("admin-content").style.display = "";
   loadAdminSettings();
   loadAdminUsers();
+  loadAdminApiKeys();
   loadAuditLog();
 }
 
@@ -855,6 +892,7 @@ async function loadAdminSettings() {
     const s = await res.json();
     document.getElementById("adm-reminder-days").value = s.reminder_days.join(", ");
     hourSel.value = s.notify_hour;
+    document.getElementById("adm-slack-webhook").value = s.slack_webhook || "";
   } catch {}
 }
 
@@ -864,11 +902,18 @@ async function saveAdminSettings() {
   msgEl.className = "admin-msg";
 
   const raw = document.getElementById("adm-reminder-days").value;
-  const days = raw.split(",").map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
+  const tokens = raw.split(",").map(s => s.trim()).filter(s => s.length > 0);
+  const days = tokens.map(s => parseInt(s, 10));
   const hour = parseInt(document.getElementById("adm-notify-hour").value, 10);
+  const slackWebhook = document.getElementById("adm-slack-webhook").value.trim() || null;
 
-  if (!days.length) {
+  if (!tokens.length) {
     msgEl.textContent = "Enter at least one reminder day.";
+    msgEl.className = "admin-msg error";
+    return;
+  }
+  if (days.some(d => isNaN(d) || d < 1 || d > 365)) {
+    msgEl.textContent = "All reminder days must be whole numbers between 1 and 365.";
     msgEl.className = "admin-msg error";
     return;
   }
@@ -877,7 +922,7 @@ async function saveAdminSettings() {
     const res = await fetch("/admin/settings", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ reminder_days: days, notify_hour: hour }),
+      body: JSON.stringify({ reminder_days: days, notify_hour: hour, slack_webhook: slackWebhook }),
     });
     if (res.ok) {
       msgEl.textContent = "Settings saved.";
