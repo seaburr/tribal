@@ -91,6 +91,7 @@ header .tagline { color: var(--text-mut); font-size: 13px; flex: 1; }
   overflow: hidden;
 }
 .user-dropdown.hidden { display: none; }
+.hidden { display: none !important; }
 
 .user-dropdown-header { padding: 12px 14px 10px; }
 .user-dropdown-name { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
