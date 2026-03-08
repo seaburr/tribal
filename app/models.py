@@ -50,7 +50,7 @@ class ApiKey(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     name = Column(String, nullable=False)
-    key_prefix = Column(String, nullable=False)  # first 8 chars after "tribal_sk_" — shown in UI
+    key_prefix = Column(String, nullable=False)  # first 4 chars after "tribal_sk_" — shown in UI
     key_hash = Column(String, nullable=False, unique=True)  # SHA-256 of full key
     created_at = Column(DateTime, default=_utcnow)
     last_used_at = Column(DateTime, nullable=True)
@@ -72,6 +72,7 @@ class Resource(Base):
     public_key_pem = Column(Text, nullable=True)
     created_at = Column(DateTime, default=_utcnow)
     updated_at = Column(DateTime, default=_utcnow)
+    deleted_at = Column(DateTime, nullable=True, default=None)
 
 
 class ReminderLog(Base):

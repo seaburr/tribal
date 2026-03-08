@@ -18,16 +18,20 @@ ALLOWED_EXTENSIONS = {".pem", ".crt", ".cer"}
 PRIVATE_KEY_MARKERS = ["PRIVATE KEY", "RSA PRIVATE", "EC PRIVATE", "ENCRYPTED PRIVATE", "DSA PRIVATE"]
 
 
+def _active(db: Session):
+    """Base query for non-deleted resources."""
+    return db.query(models.Resource).filter(models.Resource.deleted_at.is_(None))
+
+
 def _audit(db: Session, action: str, resource: models.Resource, user: Optional[models.User], detail: Optional[dict] = None, via: str = "ui"):
     try:
-        entry = models.AuditLog(
+        db.add(models.AuditLog(
             user_email=user.email if user else None,
             resource_id=resource.id,
             resource_name=resource.name,
             action=action,
             detail={**(detail or {}), "via": via},
-        )
-        db.add(entry)
+        ))
         db.commit()
     except Exception:
         pass  # audit logging must never break the main flow
@@ -53,7 +57,7 @@ def list_resources(
     db: Session = Depends(get_db),
     _: models.User = Depends(get_current_user),
 ):
-    return db.query(models.Resource).order_by(models.Resource.expiration_date).all()
+    return _active(db).order_by(models.Resource.expiration_date).all()
 
 
 @router.post("/", response_model=schemas.ResourceResponse, status_code=201)
@@ -77,7 +81,7 @@ def get_resource(
     db: Session = Depends(get_db),
     _: models.User = Depends(get_current_user),
 ):
-    resource = db.query(models.Resource).filter(models.Resource.id == resource_id).first()
+    resource = _active(db).filter(models.Resource.id == resource_id).first()
     if not resource:
         raise HTTPException(status_code=404, detail="Resource not found")
     return resource
@@ -91,7 +95,7 @@ def update_resource(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    resource = db.query(models.Resource).filter(models.Resource.id == resource_id).first()
+    resource = _active(db).filter(models.Resource.id == resource_id).first()
     if not resource:
         raise HTTPException(status_code=404, detail="Resource not found")
 
@@ -113,12 +117,12 @@ async def delete_resource(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    resource = db.query(models.Resource).filter(models.Resource.id == resource_id).first()
+    resource = _active(db).filter(models.Resource.id == resource_id).first()
     if not resource:
         raise HTTPException(status_code=404, detail="Resource not found")
     _audit(db, "resource.delete", resource, current_user, {"type": resource.type, "dri": resource.dri}, via=getattr(request.state, "auth_via", "ui"))
     await send_deletion_notification(resource)
-    db.delete(resource)
+    resource.deleted_at = datetime.now(timezone.utc)
     db.commit()
 
 
@@ -130,7 +134,7 @@ async def upload_certificate(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    resource = db.query(models.Resource).filter(models.Resource.id == resource_id).first()
+    resource = _active(db).filter(models.Resource.id == resource_id).first()
     if not resource:
         raise HTTPException(status_code=404, detail="Resource not found")
 

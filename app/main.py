@@ -32,6 +32,9 @@ def _run_migrations():
             if "type" not in existing:
                 conn.execute(text("ALTER TABLE resources ADD COLUMN type VARCHAR NOT NULL DEFAULT 'Other'"))
                 conn.commit()
+            if "deleted_at" not in existing:
+                conn.execute(text("ALTER TABLE resources ADD COLUMN deleted_at DATETIME"))
+                conn.commit()
 
         if "admin_settings" in tables:
             existing = {c["name"] for c in inspector.get_columns("admin_settings")}

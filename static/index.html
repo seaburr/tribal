@@ -126,7 +126,11 @@
           <div class="admin-form-row">
             <div class="admin-form-group">
               <label for="adm-slack-webhook">Admin Slack Webhook</label>
-              <input type="text" id="adm-slack-webhook" placeholder="https://hooks.slack.com/services/…" />
+              <div class="webhook-row">
+                <input type="text" id="adm-slack-webhook" placeholder="https://hooks.slack.com/services/…" />
+                <button type="button" class="btn-test" onclick="testAdminWebhook()">Send Test</button>
+              </div>
+              <div id="admin-webhook-test-status" class="webhook-test-status"></div>
               <span class="admin-field-hint">Optional. Receives admin-level notifications. Separate from per-resource webhooks.</span>
             </div>
             <div class="admin-form-group">
@@ -240,6 +244,35 @@
               </thead>
               <tbody id="admin-audit-body">
                 <tr><td colspan="4" class="loading">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Deleted Resources -->
+      <div class="admin-card">
+        <div class="admin-card-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+          <div>
+            <h3>Deleted Resources</h3>
+            <p class="admin-card-desc">Resources that have been deleted. Restore them to make them active again.</p>
+          </div>
+          <button class="btn-secondary btn-sm" onclick="loadDeletedResources()">Refresh</button>
+        </div>
+        <div class="admin-card-body" style="padding:0">
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Type</th>
+                  <th>DRI</th>
+                  <th>Deleted</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="admin-deleted-body">
+                <tr><td colspan="5" class="loading">Loading…</td></tr>
               </tbody>
             </table>
           </div>

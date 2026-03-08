@@ -229,3 +229,11 @@ Feedback from the first round of testing that needs to be addressed:
 * For performance, can we run 2 server processes within each instance of the application? If this could cause issues with the scheduler, hold off for now. We need to discuss that further (perhaps a different service that handles actually performing the "jobs") but not now.
 * Let's switch to logging in JSON format.
 * Put "Alert admins when a resource is overdue" across from "Admin Slack Webhook" field rather than below it.
+
+### Iteration 12
+
+* Add "Send Test" functionality for Admin Slack Webhook. The message should say "This is a test message from Tribal for the admin Slack webhook."
+* Audit log should include User events for things like: User created. User Deleted. User logged in. API key created. API key deleted.
+* Audit log in the UI should cap out at last 25 events. CSV report should stay as-is.
+* Admins should be able to recover a deleted resource.
+* In the Slack reminders, send the "Generation / Rotation Instructions" and ensure any links in the text are clickable from Slack.

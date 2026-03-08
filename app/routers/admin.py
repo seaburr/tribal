@@ -2,11 +2,13 @@ import csv
 import io
 from datetime import date, datetime, timedelta, timezone
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from .. import models, schemas
+from ..audit import write_audit
 from ..database import get_db
 from ..dependencies import get_current_user, require_admin
 
@@ -22,6 +24,18 @@ def _get_or_create_settings(db: Session) -> models.AdminSettings:
         db.commit()
         db.refresh(settings)
     return settings
+
+
+@router.post("/webhook-test", status_code=204)
+async def test_admin_webhook(req: schemas.WebhookTestRequest):
+    payload = {"text": "This is a test message from Tribal for the admin Slack webhook."}
+    try:
+        async with httpx.AsyncClient() as client:
+            r = await client.post(req.webhook_url, json=payload, timeout=10)
+            if r.status_code >= 400:
+                raise HTTPException(status_code=400, detail=f"Webhook returned HTTP {r.status_code}. Check the URL and try again.")
+    except httpx.RequestError as e:
+        raise HTTPException(status_code=400, detail=f"Could not reach webhook: {e}")
 
 
 @router.get("/settings", response_model=schemas.AdminSettingsResponse)
@@ -90,15 +104,42 @@ def delete_user(
     target = db.get(models.User, user_id)
     if not target:
         raise HTTPException(status_code=404, detail="User not found.")
+    write_audit(db, "user.delete", user_email=current_user.email, detail={"deleted_user": target.email})
     db.delete(target)
     db.commit()
 
 
 # ── Audit log ─────────────────────────────────────────────────────────────────
 
+@router.get("/resources/deleted", response_model=list[schemas.DeletedResourceResponse])
+def list_deleted_resources(db: Session = Depends(get_db)):
+    return (
+        db.query(models.Resource)
+        .filter(models.Resource.deleted_at.isnot(None))
+        .order_by(models.Resource.deleted_at.desc())
+        .all()
+    )
+
+
+@router.post("/resources/{resource_id}/restore", response_model=schemas.ResourceResponse)
+def restore_resource(resource_id: int, db: Session = Depends(get_db)):
+    resource = (
+        db.query(models.Resource)
+        .filter(models.Resource.id == resource_id, models.Resource.deleted_at.isnot(None))
+        .first()
+    )
+    if not resource:
+        raise HTTPException(status_code=404, detail="Deleted resource not found.")
+    resource.deleted_at = None
+    resource.updated_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(resource)
+    return resource
+
+
 @router.get("/audit-log", response_model=list[schemas.AuditLogEntry])
 def get_audit_log(
-    limit: int = 100,
+    limit: int = 25,
     offset: int = 0,
     db: Session = Depends(get_db),
 ):

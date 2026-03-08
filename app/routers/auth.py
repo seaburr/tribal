@@ -5,6 +5,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from .. import models, schemas
+from ..audit import write_audit
 from ..auth import create_access_token, hash_password, verify_password
 from ..database import get_db
 from ..dependencies import get_current_user
@@ -43,6 +44,7 @@ def register(req: schemas.RegisterRequest, request: Request, db: Session = Depen
     db.add(user)
     db.commit()
     db.refresh(user)
+    write_audit(db, "user.create", user_email=user.email, detail={"is_admin": user.is_admin})
     token = create_access_token(user.id)
     response = JSONResponse(
         status_code=201,
@@ -58,6 +60,7 @@ async def login(req: schemas.LoginRequest, request: Request, db: Session = Depen
     if not user or not verify_password(req.password, user.hashed_password):
         await asyncio.sleep(1)  # slow brute-force
         raise HTTPException(status_code=401, detail="Incorrect email or password.")
+    write_audit(db, "user.login", user_email=user.email)
     token = create_access_token(user.id)
     response = JSONResponse(
         content={"id": user.id, "email": user.email, "display_name": user.display_name}

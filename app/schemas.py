@@ -149,3 +149,7 @@ class ResourceResponse(BaseModel):
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class DeletedResourceResponse(ResourceResponse):
+    deleted_at: datetime

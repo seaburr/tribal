@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from .. import models, schemas
+from ..audit import write_audit
 from ..auth import generate_api_key, hash_api_key
 from ..database import get_db
 from ..dependencies import get_current_user
@@ -51,6 +52,7 @@ def create_key(
     db.add(api_key)
     db.commit()
     db.refresh(api_key)
+    write_audit(db, "api_key.create", user_email=current_user.email, detail={"key_name": api_key.name, "key_prefix": api_key.key_prefix})
 
     return schemas.ApiKeyCreatedResponse(
         id=api_key.id,
@@ -80,4 +82,5 @@ def revoke_key(
         raise HTTPException(status_code=400, detail="Key is already revoked.")
 
     api_key.revoked_at = datetime.now(timezone.utc)
+    write_audit(db, "api_key.delete", user_email=current_user.email, detail={"key_name": api_key.name, "key_prefix": api_key.key_prefix})
     db.commit()

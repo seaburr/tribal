@@ -869,6 +869,7 @@ function loadAdminTab() {
   loadAdminSettings();
   loadAdminUsers();
   loadAdminApiKeys();
+  loadDeletedResources();
   loadAuditLog();
 }
 
@@ -896,6 +897,36 @@ async function loadAdminSettings() {
     document.getElementById("adm-slack-webhook").value = s.slack_webhook || "";
     document.getElementById("adm-alert-on-overdue").checked = s.alert_on_overdue || false;
   } catch {}
+}
+
+async function testAdminWebhook() {
+  const url = document.getElementById("adm-slack-webhook").value.trim();
+  const statusEl = document.getElementById("admin-webhook-test-status");
+  if (!url) {
+    statusEl.textContent = "Enter a webhook URL first.";
+    statusEl.className = "webhook-test-status error";
+    return;
+  }
+  statusEl.textContent = "Sending…";
+  statusEl.className = "webhook-test-status";
+  try {
+    const res = await fetch("/admin/webhook-test", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ webhook_url: url }),
+    });
+    if (res.ok) {
+      statusEl.textContent = "Test message sent successfully.";
+      statusEl.className = "webhook-test-status success";
+    } else {
+      const err = await res.json().catch(() => ({}));
+      statusEl.textContent = err.detail || "Test failed.";
+      statusEl.className = "webhook-test-status error";
+    }
+  } catch {
+    statusEl.textContent = "Network error.";
+    statusEl.className = "webhook-test-status error";
+  }
 }
 
 async function saveAdminSettings() {
@@ -990,19 +1021,63 @@ async function deleteAdminUser(userId, email) {
   }
 }
 
+// ── Deleted resources ─────────────────────────────────────────────────────────
+
+async function loadDeletedResources() {
+  const tbody = document.getElementById("admin-deleted-body");
+  if (!tbody) return;
+  tbody.innerHTML = `<tr><td colspan="5" class="loading">Loading…</td></tr>`;
+  try {
+    const res = await fetch("/admin/resources/deleted");
+    if (!res.ok) { tbody.innerHTML = `<tr><td colspan="5" class="loading">Failed to load.</td></tr>`; return; }
+    const items = await res.json();
+    if (!items.length) {
+      tbody.innerHTML = `<tr><td colspan="5" class="loading">No deleted resources.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = items.map(r => `
+      <tr>
+        <td>${esc(r.name)}</td>
+        <td style="color:var(--text-sec)">${esc(r.type)}</td>
+        <td style="color:var(--text-sec)">${esc(r.dri)}</td>
+        <td style="color:var(--text-sec);font-size:0.8rem">${new Date(r.deleted_at + "Z").toLocaleDateString()}</td>
+        <td><button class="btn-secondary btn-sm" onclick="restoreResource(${r.id})">Restore</button></td>
+      </tr>`).join("");
+  } catch {
+    tbody.innerHTML = `<tr><td colspan="5" class="loading">Network error.</td></tr>`;
+  }
+}
+
+async function restoreResource(id) {
+  const res = await fetch(`/admin/resources/${id}/restore`, { method: "POST" });
+  if (res.ok) {
+    showToast("Resource restored.");
+    loadDeletedResources();
+    await loadData();
+  } else {
+    const err = await res.json().catch(() => ({}));
+    showToast(err.detail || "Failed to restore resource.");
+  }
+}
+
 // ── Audit log ─────────────────────────────────────────────────────────────────
 const _ACTION_LABELS = {
   "resource.create": "Created",
   "resource.update": "Updated",
   "resource.delete": "Deleted",
   "resource.cert_upload": "Cert Uploaded",
+  "user.create": "User Registered",
+  "user.delete": "User Deleted",
+  "user.login": "Logged In",
+  "api_key.create": "API Key Created",
+  "api_key.delete": "API Key Revoked",
 };
 
 async function loadAuditLog() {
   const tbody = document.getElementById("admin-audit-body");
   tbody.innerHTML = `<tr><td colspan="4" class="loading">Loading…</td></tr>`;
   try {
-    const res = await fetch("/admin/audit-log?limit=100");
+    const res = await fetch("/admin/audit-log?limit=25");
     if (!res.ok) { tbody.innerHTML = `<tr><td colspan="4" class="loading">Failed to load audit log.</td></tr>`; return; }
     const entries = await res.json();
     if (!entries.length) {

@@ -1,4 +1,5 @@
 import logging
+import re
 from datetime import date, datetime
 
 import httpx
@@ -9,6 +10,12 @@ from .models import AdminSettings, ReminderLog, Resource
 logger = logging.getLogger(__name__)
 
 _DEFAULT_REMINDER_DAYS = [30, 14, 7, 3]
+_URL_RE = re.compile(r'(https?://[^\s<>]+)')
+
+
+def _slackify_links(text: str) -> str:
+    """Wrap bare URLs in Slack mrkdwn <url> format so they render as clickable links."""
+    return _URL_RE.sub(r'<\1>', text)
 _DEFAULT_NOTIFY_HOUR = 9
 
 _TRIBAL_FOOTER = {
@@ -189,7 +196,7 @@ async def _send_slack_reminder(resource: Resource, days_until: int):
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": f"*Rotation Instructions:*\n{resource.generation_instructions}",
+                "text": f"*Rotation Instructions:*\n{_slackify_links(resource.generation_instructions)}",
             },
         },
     ]
