@@ -291,7 +291,36 @@
         <li>Provides a visual calendar to see what's expiring and when</li>
       </ul>
 
-      <p class="about-footer">More information coming soon.</p>
+      <h3>Terraform Provider</h3>
+      <p>Manage Tribal resources via the UI or alongside your other IaC resources using the official Terraform provider. Define credentials as code, keep them version-controlled, and let Terraform handle drift detection.</p>
+      <ul>
+        <li><code>tribal_resource</code> — create and manage tracked credentials (certificates, API keys, SSH keys, etc.)</li>
+        <li><code>tribal_admin_settings</code> — configure org-wide notification schedules and Slack webhooks</li>
+      </ul>
+
+      <p>Configure the provider with your API key (generate one under <strong>Admin &rarr; API Keys</strong>):</p>
+      <pre><code>terraform {
+  required_providers {
+    tribal = {
+      source = "registry.terraform.io/cberndt/tribal"
+    }
+  }
+}
+
+provider "tribal" {
+  # host defaults to TRIBAL_HOST env var
+  # api_key defaults to TRIBAL_API_KEY env var
+}
+
+resource "tribal_resource" "prod_cert" {
+  name                    = "api.example.com TLS Certificate"
+  dri                     = "infra@example.com"
+  type                    = "Certificate"
+  expiration_date         = "2026-09-15"
+  purpose                 = "TLS certificate for api.example.com"
+  generation_instructions = "Run certbot renew or use ACM auto-renewal"
+  slack_webhook           = "https://hooks.slack.com/services/..."
+}</code></pre>
     </div>
   </div>
 

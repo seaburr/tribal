@@ -986,6 +986,32 @@ textarea { resize: vertical; min-height: 80px; }
   color: var(--text-mut) !important;
 }
 
+.about-panel pre {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 14px 16px;
+  margin-top: 12px;
+  overflow-x: auto;
+}
+
+.about-panel pre code {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 12px;
+  color: var(--text-sec);
+  white-space: pre;
+}
+
+.about-panel p code {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 5px;
+  color: var(--blue);
+}
+
 /* ── Loading ───────────────────────────────────────────────────────────────── */
 .loading { color: var(--text-mut); padding: 24px; text-align: center; }
 
