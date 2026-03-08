@@ -12,12 +12,14 @@ _COOKIE = "session"
 
 
 def _user_from_request(request: Request, db: Session) -> Optional[models.User]:
-    """Resolves a user from either a session cookie or a Bearer API key."""
+    """Resolves a user from either a session cookie or a Bearer API key.
+    Sets request.state.auth_via to 'ui' or 'api' accordingly."""
     # 1. Session cookie
     token = request.cookies.get(_COOKIE)
     if token:
         user_id = decode_access_token(token)
         if user_id:
+            request.state.auth_via = "ui"
             return db.get(models.User, user_id)
 
     # 2. Bearer API key
@@ -36,6 +38,7 @@ def _user_from_request(request: Request, db: Session) -> Optional[models.User]:
         if api_key:
             api_key.last_used_at = datetime.now(timezone.utc)
             db.commit()
+            request.state.auth_via = "api"
             return db.get(models.User, api_key.user_id)
 
     return None

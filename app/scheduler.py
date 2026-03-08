@@ -1,3 +1,4 @@
+import logging
 from datetime import date, datetime
 
 import httpx
@@ -5,62 +6,127 @@ import httpx
 from .database import SessionLocal
 from .models import AdminSettings, ReminderLog, Resource
 
+logger = logging.getLogger(__name__)
+
 _DEFAULT_REMINDER_DAYS = [30, 14, 7, 3]
 _DEFAULT_NOTIFY_HOUR = 9
 
+_TRIBAL_FOOTER = {
+    "type": "context",
+    "elements": [{"type": "mrkdwn", "text": "Sent by *Tribal* — expiration & rotation tracker"}],
+}
+
 
 async def check_reminders():
+    logger.info("check_reminders: starting")
     db = SessionLocal()
     try:
         settings = db.get(AdminSettings, 1)
         reminder_days = settings.reminder_days if settings else _DEFAULT_REMINDER_DAYS
         notify_hour = settings.notify_hour if settings else _DEFAULT_NOTIFY_HOUR
+        alert_on_overdue = settings.alert_on_overdue if settings else False
+        admin_webhook = settings.slack_webhook if settings else None
 
-        if datetime.now().hour != notify_hour:
+        current_hour = datetime.now().hour
+        if current_hour != notify_hour:
+            logger.info("check_reminders: outside notify_hour=%d (current=%d), skipping", notify_hour, current_hour)
             return
 
         resources = db.query(Resource).all()
         today = date.today()
+        logger.info("check_reminders: evaluating %d resources", len(resources))
 
         for resource in resources:
             days_until = (resource.expiration_date - today).days
 
-            if days_until not in reminder_days:
-                continue
-
-            existing = (
-                db.query(ReminderLog)
-                .filter(
-                    ReminderLog.resource_id == resource.id,
-                    ReminderLog.expiration_date == resource.expiration_date,
-                    ReminderLog.days_before == days_until,
+            if days_until in reminder_days:
+                existing = (
+                    db.query(ReminderLog)
+                    .filter(
+                        ReminderLog.resource_id == resource.id,
+                        ReminderLog.expiration_date == resource.expiration_date,
+                        ReminderLog.days_before == days_until,
+                    )
+                    .first()
                 )
-                .first()
-            )
+                if not existing:
+                    logger.info("check_reminders: sending reminder for %r (%d days)", resource.name, days_until)
+                    await _send_slack_reminder(resource, days_until)
+                    db.add(ReminderLog(
+                        resource_id=resource.id,
+                        expiration_date=resource.expiration_date,
+                        days_before=days_until,
+                    ))
+                    db.commit()
 
-            if existing:
-                continue
+            if alert_on_overdue and admin_webhook and days_until < 0:
+                # days_before=-1 is the sentinel for "overdue alert sent"
+                existing = (
+                    db.query(ReminderLog)
+                    .filter(
+                        ReminderLog.resource_id == resource.id,
+                        ReminderLog.expiration_date == resource.expiration_date,
+                        ReminderLog.days_before == -1,
+                    )
+                    .first()
+                )
+                if not existing:
+                    logger.info("check_reminders: sending overdue alert for %r", resource.name)
+                    await _send_overdue_alert(resource, admin_webhook)
+                    db.add(ReminderLog(
+                        resource_id=resource.id,
+                        expiration_date=resource.expiration_date,
+                        days_before=-1,
+                    ))
+                    db.commit()
 
-            await _send_slack_reminder(resource, days_until)
-
-            log = ReminderLog(
-                resource_id=resource.id,
-                expiration_date=resource.expiration_date,
-                days_before=days_until,
-            )
-            db.add(log)
-            db.commit()
+        logger.info("check_reminders: complete")
+    except Exception:
+        logger.exception("check_reminders: unhandled error")
     finally:
         db.close()
 
 
-async def send_deletion_notification(resource: Resource):
+async def _send_overdue_alert(resource: Resource, admin_webhook: str):
+    expiry_str = resource.expiration_date.strftime("%m/%d/%Y")
+    days_overdue = (date.today() - resource.expiration_date).days
     payload = {
-        "text": f"Resource *{resource.name}* has been deleted from Tribal.",
+        "text": f":rotating_light: OVERDUE: {resource.name} expired {days_overdue}d ago ({expiry_str})",
         "blocks": [
             {
                 "type": "header",
-                "text": {"type": "plain_text", "text": f"{resource.name} has been deleted"},
+                "text": {"type": "plain_text", "text": f":rotating_light: OVERDUE: {resource.name}"},
+            },
+            {
+                "type": "section",
+                "fields": [
+                    {"type": "mrkdwn", "text": f"*Expired:*\n{expiry_str}"},
+                    {"type": "mrkdwn", "text": f"*Days overdue:*\n{days_overdue}"},
+                    {"type": "mrkdwn", "text": f"*Type:*\n{resource.type}"},
+                    {"type": "mrkdwn", "text": f"*DRI:*\n{resource.dri}"},
+                ],
+            },
+            {
+                "type": "section",
+                "text": {"type": "mrkdwn", "text": f"*Purpose:*\n{resource.purpose}"},
+            },
+            _TRIBAL_FOOTER,
+        ],
+    }
+    try:
+        async with httpx.AsyncClient() as client:
+            await client.post(admin_webhook, json=payload, timeout=10)
+    except Exception:
+        logger.exception("Failed to send overdue alert for resource %d", resource.id)
+
+
+async def send_deletion_notification(resource: Resource):
+    payload = {
+        "text": f":wastebasket: {resource.name} has been deleted from Tribal.",
+        "blocks": [
+            {
+                "type": "header",
+                "text": {"type": "plain_text", "text": f":wastebasket: {resource.name} deleted"},
             },
             {
                 "type": "section",
@@ -76,31 +142,42 @@ async def send_deletion_notification(resource: Resource):
                     "text": "This resource has been removed from Tribal. No further reminders will be sent.",
                 },
             },
+            _TRIBAL_FOOTER,
         ],
     }
     try:
         async with httpx.AsyncClient() as client:
             await client.post(resource.slack_webhook, json=payload, timeout=10)
     except Exception:
-        pass
+        logger.exception("Failed to send deletion notification for resource %d", resource.id)
 
 
 async def _send_slack_reminder(resource: Resource, days_until: int):
-    urgency = "URGENT: " if days_until <= 7 else ""
     expiry_str = resource.expiration_date.strftime("%m/%d/%Y")
+
+    if days_until <= 3:
+        urgency_prefix = ":rotating_light: URGENT: "
+        color_emoji = ":red_circle:"
+    elif days_until <= 7:
+        urgency_prefix = ":warning: "
+        color_emoji = ":large_orange_circle:"
+    else:
+        urgency_prefix = ""
+        color_emoji = ":large_yellow_circle:"
+
+    header_text = f"{urgency_prefix}{resource.name} expires in {days_until} day{'s' if days_until != 1 else ''}"
 
     blocks = [
         {
             "type": "header",
-            "text": {
-                "type": "plain_text",
-                "text": f"{urgency}{resource.name} expires in {days_until} days",
-            },
+            "text": {"type": "plain_text", "text": header_text},
         },
         {
             "type": "section",
             "fields": [
-                {"type": "mrkdwn", "text": f"*Expiration:*\n{expiry_str}"},
+                {"type": "mrkdwn", "text": f"*Expiration:*\n{color_emoji} {expiry_str}"},
+                {"type": "mrkdwn", "text": f"*Days remaining:*\n{days_until}"},
+                {"type": "mrkdwn", "text": f"*Type:*\n{resource.type}"},
                 {"type": "mrkdwn", "text": f"*DRI:*\n{resource.dri}"},
             ],
         },
@@ -112,24 +189,24 @@ async def _send_slack_reminder(resource: Resource, days_until: int):
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": f"*Generation Instructions:*\n{resource.generation_instructions}",
+                "text": f"*Rotation Instructions:*\n{resource.generation_instructions}",
             },
         },
     ]
 
     if resource.secret_manager_link:
-        blocks.append(
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f"*Secret Manager:* <{resource.secret_manager_link}|View>",
-                },
-            }
-        )
+        blocks.append({
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f"*Secret Manager:* <{resource.secret_manager_link}|View>",
+            },
+        })
+
+    blocks.append(_TRIBAL_FOOTER)
 
     payload = {
-        "text": f"{urgency}{resource.name} expires in {days_until} days ({expiry_str})",
+        "text": f"{urgency_prefix}{resource.name} expires in {days_until} day{'s' if days_until != 1 else ''} ({expiry_str})",
         "blocks": blocks,
     }
 
@@ -137,4 +214,4 @@ async def _send_slack_reminder(resource: Resource, days_until: int):
         async with httpx.AsyncClient() as client:
             await client.post(resource.slack_webhook, json=payload, timeout=10)
     except Exception:
-        pass
+        logger.exception("Failed to send Slack reminder for resource %d", resource.id)

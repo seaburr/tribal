@@ -30,6 +30,7 @@ class AdminSettingsResponse(BaseModel):
     reminder_days: list[int]
     notify_hour: int
     slack_webhook: Optional[str] = None
+    alert_on_overdue: bool = False
 
     model_config = {"from_attributes": True}
 
@@ -38,6 +39,7 @@ class AdminSettingsUpdate(BaseModel):
     reminder_days: list[int]
     notify_hour: int
     slack_webhook: Optional[str] = None
+    alert_on_overdue: bool = False
 
 
 class AuditLogEntry(BaseModel):

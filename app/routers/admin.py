@@ -42,6 +42,7 @@ def update_settings(updates: schemas.AdminSettingsUpdate, db: Session = Depends(
     settings.reminder_days = sorted(set(updates.reminder_days), reverse=True)
     settings.notify_hour = updates.notify_hour
     settings.slack_webhook = updates.slack_webhook or None
+    settings.alert_on_overdue = updates.alert_on_overdue
     settings.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(settings)

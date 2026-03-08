@@ -7,9 +7,8 @@ async function loadUser() {
     if (res.status === 401) { window.location.href = "/login"; return; }
     if (!res.ok) return;
     _currentUser = await res.json();
-    const label = _currentUser.display_name || _currentUser.email;
-    document.getElementById("user-label").textContent = label;
-    document.getElementById("user-dropdown-name").textContent = _currentUser.display_name || label;
+    document.getElementById("user-label").textContent = "Account";
+    document.getElementById("user-dropdown-name").textContent = _currentUser.display_name || _currentUser.email;
     document.getElementById("user-dropdown-email").textContent = _currentUser.email;
   } catch {}
 }
@@ -890,9 +889,12 @@ async function loadAdminSettings() {
     const res = await fetch("/admin/settings");
     if (!res.ok) return;
     const s = await res.json();
-    document.getElementById("adm-reminder-days").value = s.reminder_days.join(", ");
+    document.querySelectorAll("#adm-reminder-days input[type=checkbox]").forEach(cb => {
+      cb.checked = s.reminder_days.includes(parseInt(cb.value, 10));
+    });
     hourSel.value = s.notify_hour;
     document.getElementById("adm-slack-webhook").value = s.slack_webhook || "";
+    document.getElementById("adm-alert-on-overdue").checked = s.alert_on_overdue || false;
   } catch {}
 }
 
@@ -901,19 +903,14 @@ async function saveAdminSettings() {
   msgEl.textContent = "";
   msgEl.className = "admin-msg";
 
-  const raw = document.getElementById("adm-reminder-days").value;
-  const tokens = raw.split(",").map(s => s.trim()).filter(s => s.length > 0);
-  const days = tokens.map(s => parseInt(s, 10));
+  const days = Array.from(document.querySelectorAll("#adm-reminder-days input[type=checkbox]:checked"))
+    .map(cb => parseInt(cb.value, 10));
   const hour = parseInt(document.getElementById("adm-notify-hour").value, 10);
   const slackWebhook = document.getElementById("adm-slack-webhook").value.trim() || null;
+  const alertOnOverdue = document.getElementById("adm-alert-on-overdue").checked;
 
-  if (!tokens.length) {
-    msgEl.textContent = "Enter at least one reminder day.";
-    msgEl.className = "admin-msg error";
-    return;
-  }
-  if (days.some(d => isNaN(d) || d < 1 || d > 365)) {
-    msgEl.textContent = "All reminder days must be whole numbers between 1 and 365.";
+  if (!days.length) {
+    msgEl.textContent = "Select at least one reminder day.";
     msgEl.className = "admin-msg error";
     return;
   }
@@ -922,7 +919,7 @@ async function saveAdminSettings() {
     const res = await fetch("/admin/settings", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ reminder_days: days, notify_hour: hour, slack_webhook: slackWebhook }),
+      body: JSON.stringify({ reminder_days: days, notify_hour: hour, slack_webhook: slackWebhook, alert_on_overdue: alertOnOverdue }),
     });
     if (res.ok) {
       msgEl.textContent = "Settings saved.";

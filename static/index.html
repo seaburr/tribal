@@ -107,9 +107,15 @@
         <div class="admin-card-body">
           <div class="admin-form-row">
             <div class="admin-form-group">
-              <label for="adm-reminder-days">Reminder Days</label>
-              <input type="text" id="adm-reminder-days" placeholder="e.g. 30, 14, 7, 3" />
-              <span class="admin-field-hint">Comma-separated days before expiration to send a reminder. Values must be 1–365.</span>
+              <label>Reminder Days</label>
+              <div class="checkbox-group" id="adm-reminder-days">
+                <label class="checkbox-label"><input type="checkbox" value="30" /> 30 days</label>
+                <label class="checkbox-label"><input type="checkbox" value="14" /> 14 days</label>
+                <label class="checkbox-label"><input type="checkbox" value="7" />  7 days</label>
+                <label class="checkbox-label"><input type="checkbox" value="3" />  3 days</label>
+                <label class="checkbox-label"><input type="checkbox" value="1" />  1 day</label>
+              </div>
+              <span class="admin-field-hint">Days before expiration to send a Slack reminder.</span>
             </div>
             <div class="admin-form-group">
               <label for="adm-notify-hour">Notification Hour (UTC)</label>
@@ -118,10 +124,18 @@
             </div>
           </div>
           <div class="admin-form-row">
-            <div class="admin-form-group" style="flex:1">
+            <div class="admin-form-group">
               <label for="adm-slack-webhook">Admin Slack Webhook</label>
               <input type="text" id="adm-slack-webhook" placeholder="https://hooks.slack.com/services/…" />
-              <span class="admin-field-hint">Optional. Receives admin-level notifications (e.g. user activity alerts). Separate from per-resource webhooks.</span>
+              <span class="admin-field-hint">Optional. Receives admin-level notifications. Separate from per-resource webhooks.</span>
+            </div>
+            <div class="admin-form-group">
+              <label style="font-weight:500">Overdue Alerts</label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="adm-alert-on-overdue" />
+                Alert admins when a resource is overdue
+              </label>
+              <span class="admin-field-hint">Sends a one-time alert to the Admin Slack Webhook when a resource passes its expiration date.</span>
             </div>
           </div>
           <div id="adm-settings-msg" class="admin-msg"></div>

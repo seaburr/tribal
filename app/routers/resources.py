@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
 from sqlalchemy.orm import Session
 
 from .. import models, schemas
@@ -18,14 +18,14 @@ ALLOWED_EXTENSIONS = {".pem", ".crt", ".cer"}
 PRIVATE_KEY_MARKERS = ["PRIVATE KEY", "RSA PRIVATE", "EC PRIVATE", "ENCRYPTED PRIVATE", "DSA PRIVATE"]
 
 
-def _audit(db: Session, action: str, resource: models.Resource, user: Optional[models.User], detail: Optional[dict] = None):
+def _audit(db: Session, action: str, resource: models.Resource, user: Optional[models.User], detail: Optional[dict] = None, via: str = "ui"):
     try:
         entry = models.AuditLog(
             user_email=user.email if user else None,
             resource_id=resource.id,
             resource_name=resource.name,
             action=action,
-            detail=detail,
+            detail={**(detail or {}), "via": via},
         )
         db.add(entry)
         db.commit()
@@ -58,6 +58,7 @@ def list_resources(
 
 @router.post("/", response_model=schemas.ResourceResponse, status_code=201)
 def create_resource(
+    request: Request,
     resource: schemas.ResourceCreate,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
@@ -66,7 +67,7 @@ def create_resource(
     db.add(db_resource)
     db.commit()
     db.refresh(db_resource)
-    _audit(db, "resource.create", db_resource, current_user, {"type": db_resource.type})
+    _audit(db, "resource.create", db_resource, current_user, {"type": db_resource.type}, via=getattr(request.state, "auth_via", "ui"))
     return db_resource
 
 
@@ -84,6 +85,7 @@ def get_resource(
 
 @router.put("/{resource_id}", response_model=schemas.ResourceResponse)
 def update_resource(
+    request: Request,
     resource_id: int,
     updates: schemas.ResourceUpdate,
     db: Session = Depends(get_db),
@@ -100,12 +102,13 @@ def update_resource(
     resource.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(resource)
-    _audit(db, "resource.update", resource, current_user, {"updated_fields": list(update_data.keys())})
+    _audit(db, "resource.update", resource, current_user, {"updated_fields": list(update_data.keys())}, via=getattr(request.state, "auth_via", "ui"))
     return resource
 
 
 @router.delete("/{resource_id}", status_code=204)
 async def delete_resource(
+    request: Request,
     resource_id: int,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
@@ -113,7 +116,7 @@ async def delete_resource(
     resource = db.query(models.Resource).filter(models.Resource.id == resource_id).first()
     if not resource:
         raise HTTPException(status_code=404, detail="Resource not found")
-    _audit(db, "resource.delete", resource, current_user, {"type": resource.type, "dri": resource.dri})
+    _audit(db, "resource.delete", resource, current_user, {"type": resource.type, "dri": resource.dri}, via=getattr(request.state, "auth_via", "ui"))
     await send_deletion_notification(resource)
     db.delete(resource)
     db.commit()
@@ -121,6 +124,7 @@ async def delete_resource(
 
 @router.post("/{resource_id}/certificate", response_model=schemas.ResourceResponse)
 async def upload_certificate(
+    request: Request,
     resource_id: int,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
@@ -159,5 +163,5 @@ async def upload_certificate(
     resource.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(resource)
-    _audit(db, "resource.cert_upload", resource, current_user, {"expiration_date": expiry.isoformat()})
+    _audit(db, "resource.cert_upload", resource, current_user, {"expiration_date": expiry.isoformat()}, via=getattr(request.state, "auth_via", "ui"))
     return resource

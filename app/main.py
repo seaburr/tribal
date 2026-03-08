@@ -38,6 +38,9 @@ def _run_migrations():
             if "slack_webhook" not in existing:
                 conn.execute(text("ALTER TABLE admin_settings ADD COLUMN slack_webhook VARCHAR"))
                 conn.commit()
+            if "alert_on_overdue" not in existing:
+                conn.execute(text("ALTER TABLE admin_settings ADD COLUMN alert_on_overdue BOOLEAN NOT NULL DEFAULT 0"))
+                conn.commit()
 
         if "users" in tables:
             existing = {c["name"] for c in inspector.get_columns("users")}

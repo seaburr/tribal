@@ -1,0 +1,27 @@
+{
+    "version": 1,
+    "disable_existing_loggers": false,
+    "formatters": {
+        "json": {
+            "()": "app.logging_config.JSONFormatter"
+        }
+    },
+    "handlers": {
+        "default": {
+            "class": "logging.StreamHandler",
+            "formatter": "json",
+            "stream": "ext://sys.stdout"
+        }
+    },
+    "loggers": {
+        "uvicorn": {"handlers": ["default"], "level": "INFO", "propagate": false},
+        "uvicorn.error": {"level": "INFO", "propagate": true},
+        "uvicorn.access": {"handlers": ["default"], "level": "INFO", "propagate": false},
+        "apscheduler": {"handlers": ["default"], "level": "INFO", "propagate": false},
+        "app": {"handlers": ["default"], "level": "INFO", "propagate": false}
+    },
+    "root": {
+        "handlers": ["default"],
+        "level": "INFO"
+    }
+}

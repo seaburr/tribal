@@ -213,3 +213,19 @@ Feedback from the first round of testing that needs to be addressed:
 * Copyright on landing page and in app should be "seaburr" all lowercase.
 * Give a minor update to the landing page showcasing the changes we've made.
 * Move the "Open App" button to the top right and rename it "Login".
+
+### Iteration 10
+
+* The user-label on the user-avatar-btn should say "Account" instead of the users name.
+* The "Reminders Day" should be removed and replaced with 5 check boxes: 30, 14, 7, 3, 1 with the checked defaults of "30, 14, 3, 1". Switching to this removes form validation need and ensures that the options given are valid.
+* Under Notification Setting add checkbox and associated code to support a "Alert admins when a resource is overdue." Default this to unchecked. If a resource has expired, the admins should be alerted to this condition.
+
+
+### Iteration 11
+
+* Build out the Slack notification template and let's do some testing.
+* Plan out how we could build a Terraform provider that would allow for the management of these resouces via Terraform. I would want within the application additional metadata so that if something is updated via API this is noted in the audit data versus updated via UI. Perhaps the auth method used can answer "Updated via UI." or "Updated via API."
+* I do not see logs that the scheduler is running in Digital Ocean but I see them when the application is running via Docker Compose. Is that a logging config difference or is there something enabling/disabling that functionality internally?
+* For performance, can we run 2 server processes within each instance of the application? If this could cause issues with the scheduler, hold off for now. We need to discuss that further (perhaps a different service that handles actually performing the "jobs") but not now.
+* Let's switch to logging in JSON format.
+* Put "Alert admins when a resource is overdue" across from "Admin Slack Webhook" field rather than below it.
