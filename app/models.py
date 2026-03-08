@@ -1,4 +1,8 @@
-from datetime import datetime
+from datetime import datetime, timezone
+
+
+def _utcnow():
+    return datetime.now(timezone.utc)
 
 from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, Integer, JSON, String, Text
 
@@ -13,7 +17,7 @@ class User(Base):
     display_name = Column(String, nullable=True)
     hashed_password = Column(String, nullable=False)
     is_admin = Column(Boolean, nullable=False, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=_utcnow)
 
 
 class AdminSettings(Base):
@@ -23,7 +27,7 @@ class AdminSettings(Base):
     id = Column(Integer, primary_key=True, default=1)
     reminder_days = Column(JSON, nullable=False, default=lambda: [30, 14, 7, 3])
     notify_hour = Column(Integer, nullable=False, default=9)
-    updated_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=_utcnow)
 
 
 class AuditLog(Base):
@@ -35,7 +39,20 @@ class AuditLog(Base):
     resource_name = Column(String, nullable=True) # denormalized so it survives deletion
     action = Column(String, nullable=False)       # e.g. resource.create / resource.update / resource.delete
     detail = Column(JSON, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=_utcnow)
+
+
+class ApiKey(Base):
+    __tablename__ = "api_keys"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String, nullable=False)
+    key_prefix = Column(String, nullable=False)  # first 8 chars after "tribal_sk_" — shown in UI
+    key_hash = Column(String, nullable=False, unique=True)  # SHA-256 of full key
+    created_at = Column(DateTime, default=_utcnow)
+    last_used_at = Column(DateTime, nullable=True)
+    revoked_at = Column(DateTime, nullable=True)
 
 
 class Resource(Base):
@@ -51,8 +68,8 @@ class Resource(Base):
     slack_webhook = Column(String, nullable=False)
     type = Column(String, nullable=False, server_default="Other")
     public_key_pem = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=_utcnow)
+    updated_at = Column(DateTime, default=_utcnow)
 
 
 class ReminderLog(Base):
@@ -62,4 +79,4 @@ class ReminderLog(Base):
     resource_id = Column(Integer, ForeignKey("resources.id", ondelete="CASCADE"), nullable=False)
     expiration_date = Column(Date, nullable=False)
     days_before = Column(Integer, nullable=False)
-    sent_at = Column(DateTime, default=datetime.utcnow)
+    sent_at = Column(DateTime, default=_utcnow)

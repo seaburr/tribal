@@ -1,6 +1,6 @@
 import csv
 import io
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
@@ -41,7 +41,7 @@ def update_settings(updates: schemas.AdminSettingsUpdate, db: Session = Depends(
     settings = _get_or_create_settings(db)
     settings.reminder_days = sorted(set(updates.reminder_days), reverse=True)
     settings.notify_hour = updates.notify_hour
-    settings.updated_at = datetime.utcnow()
+    settings.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(settings)
     return settings
@@ -147,7 +147,7 @@ def report_upcoming(db: Session = Depends(get_db)):
 
 @router.get("/reports/recent-changes")
 def report_recent_changes(days: int = 30, db: Session = Depends(get_db)):
-    since = datetime.utcnow() - timedelta(days=days)
+    since = datetime.now(timezone.utc) - timedelta(days=days)
     entries = (
         db.query(models.AuditLog)
         .filter(models.AuditLog.created_at >= since)

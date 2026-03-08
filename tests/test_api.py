@@ -222,3 +222,96 @@ def test_certificate_upload_resource_not_found(client):
         files={"file": ("cert.pem", b"data", "application/octet-stream")},
     )
     assert r.status_code == 404
+
+
+# ── API Keys ──────────────────────────────────────────────────────────────────
+
+def test_create_api_key(client):
+    r = client.post("/api/keys/", json={"name": "Test Key"})
+    assert r.status_code == 201
+    data = r.json()
+    assert data["name"] == "Test Key"
+    assert data["full_key"].startswith("tribal_sk_")
+    assert "full_key" in data
+    assert data["revoked_at"] is None
+
+
+def test_list_api_keys(client):
+    client.post("/api/keys/", json={"name": "Key A"})
+    client.post("/api/keys/", json={"name": "Key B"})
+    r = client.get("/api/keys/")
+    assert r.status_code == 200
+    names = [k["name"] for k in r.json()]
+    assert "Key A" in names and "Key B" in names
+
+
+def test_revoke_api_key(client):
+    r = client.post("/api/keys/", json={"name": "To Revoke"})
+    key_id = r.json()["id"]
+    r = client.delete(f"/api/keys/{key_id}")
+    assert r.status_code == 204
+    # Should no longer appear in list
+    keys = client.get("/api/keys/").json()
+    assert not any(k["id"] == key_id for k in keys)
+
+
+def test_revoke_api_key_not_found(client):
+    r = client.delete("/api/keys/9999")
+    assert r.status_code == 404
+
+
+def test_api_key_bearer_auth(client):
+    """A valid API key sent as a Bearer token should authenticate all endpoints."""
+    r = client.post("/api/keys/", json={"name": "Bearer Test"})
+    raw_key = r.json()["full_key"]
+
+    # Create a fresh client with NO session cookie, authenticating via Bearer only.
+    with TestClient(app, follow_redirects=False) as anon:
+        r = anon.get("/api/resources/", headers={"Authorization": f"Bearer {raw_key}"})
+        assert r.status_code == 200
+
+        r = anon.post(
+            "/api/resources/",
+            json=SAMPLE,
+            headers={"Authorization": f"Bearer {raw_key}"},
+        )
+        assert r.status_code == 201
+        resource_id = r.json()["id"]
+
+        r = anon.get(f"/api/resources/{resource_id}", headers={"Authorization": f"Bearer {raw_key}"})
+        assert r.status_code == 200
+
+        r = anon.put(
+            f"/api/resources/{resource_id}",
+            json={"name": "Updated via API key"},
+            headers={"Authorization": f"Bearer {raw_key}"},
+        )
+        assert r.status_code == 200
+        assert r.json()["name"] == "Updated via API key"
+
+        with patch("app.routers.resources.send_deletion_notification", new=AsyncMock()):
+            r = anon.delete(f"/api/resources/{resource_id}", headers={"Authorization": f"Bearer {raw_key}"})
+        assert r.status_code == 204
+
+
+def test_revoked_api_key_rejected(client):
+    """A revoked API key must be rejected."""
+    r = client.post("/api/keys/", json={"name": "Revoke Me"})
+    data = r.json()
+    raw_key = data["full_key"]
+    client.delete(f"/api/keys/{data['id']}")
+
+    with TestClient(app, follow_redirects=False) as anon:
+        r = anon.get("/api/resources/", headers={"Authorization": f"Bearer {raw_key}"})
+        assert r.status_code in (401, 303)
+
+
+def test_invalid_bearer_token_rejected(client):
+    with TestClient(app, follow_redirects=False) as anon:
+        r = anon.get("/api/resources/", headers={"Authorization": "Bearer tribal_sk_notarealkey"})
+        assert r.status_code in (401, 303)
+
+
+def test_create_api_key_empty_name(client):
+    r = client.post("/api/keys/", json={"name": "  "})
+    assert r.status_code == 422

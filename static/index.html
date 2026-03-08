@@ -28,6 +28,8 @@
           <div class="user-dropdown-email" id="user-dropdown-email"></div>
         </div>
         <div class="user-dropdown-divider"></div>
+        <button class="user-dropdown-item" role="menuitem" onclick="openApiKeysModal()">API Keys</button>
+        <div class="user-dropdown-divider"></div>
         <button class="user-dropdown-item" role="menuitem" onclick="signOut()">Sign Out</button>
       </div>
     </div>
@@ -431,6 +433,44 @@
 </div>
 
 <div id="toast" class="toast"></div>
+
+<!-- ── API Keys Modal ──────────────────────────────────────────────────────── -->
+<div id="api-keys-overlay" class="modal-overlay hidden" onclick="closeApiKeysModal(event)">
+  <div class="modal-box" style="max-width:560px">
+    <div class="modal-header">
+      <h2 class="modal-title">API Keys</h2>
+      <button class="modal-close" onclick="closeApiKeysModal()">&times;</button>
+    </div>
+    <p style="color:var(--muted);font-size:0.85rem;margin-bottom:1rem">
+      API keys authenticate programmatic access (e.g. a Terraform provider) with your account permissions.
+      A key is shown only once — copy it before closing.
+    </p>
+
+    <div id="api-keys-list"></div>
+
+    <div id="api-key-create-form" style="margin-top:1rem">
+      <div style="display:flex;gap:8px">
+        <input id="api-key-name" class="form-input" placeholder="Key name (e.g. Terraform)" style="flex:1" />
+        <button class="btn-primary" onclick="createApiKey()">Generate</button>
+      </div>
+    </div>
+
+    <!-- shown once after creation -->
+    <div id="api-key-reveal" class="hidden" style="margin-top:1rem">
+      <div class="api-key-reveal-box">
+        <div style="font-size:0.8rem;color:var(--muted);margin-bottom:6px">
+          Copy this key now — it will not be shown again.
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <code id="api-key-value" class="api-key-code"></code>
+          <button class="btn-secondary" onclick="copyApiKey()">Copy</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer class="app-footer">© 2026 Seaburr</footer>
 
 <script src="/static/app.js"></script>
 </body>

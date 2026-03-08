@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 import httpx
@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from .. import models, schemas
 from ..database import get_db
-from ..dependencies import get_optional_user
+from ..dependencies import get_current_user, get_optional_user
 from ..cert_utils import extract_expiry_from_pem
 from ..scheduler import send_deletion_notification
 
@@ -46,7 +46,10 @@ async def test_webhook(req: schemas.WebhookTestRequest):
 
 
 @router.get("/", response_model=list[schemas.ResourceResponse])
-def list_resources(db: Session = Depends(get_db)):
+def list_resources(
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_user),
+):
     return db.query(models.Resource).order_by(models.Resource.expiration_date).all()
 
 
@@ -65,7 +68,11 @@ def create_resource(
 
 
 @router.get("/{resource_id}", response_model=schemas.ResourceResponse)
-def get_resource(resource_id: int, db: Session = Depends(get_db)):
+def get_resource(
+    resource_id: int,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_user),
+):
     resource = db.query(models.Resource).filter(models.Resource.id == resource_id).first()
     if not resource:
         raise HTTPException(status_code=404, detail="Resource not found")
@@ -87,7 +94,7 @@ def update_resource(
     for field, value in update_data.items():
         setattr(resource, field, value)
 
-    resource.updated_at = datetime.utcnow()
+    resource.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(resource)
     _audit(db, "resource.update", resource, current_user, {"updated_fields": list(update_data.keys())})
@@ -146,7 +153,7 @@ async def upload_certificate(
 
     resource.public_key_pem = text
     resource.expiration_date = expiry
-    resource.updated_at = datetime.utcnow()
+    resource.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(resource)
     _audit(db, "resource.cert_upload", resource, current_user, {"expiration_date": expiry.isoformat()})

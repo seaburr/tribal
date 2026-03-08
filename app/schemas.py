@@ -50,6 +50,26 @@ class AuditLogEntry(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class ApiKeyCreate(BaseModel):
+    name: str
+
+
+class ApiKeyResponse(BaseModel):
+    id: int
+    name: str
+    key_prefix: str
+    created_at: datetime
+    last_used_at: Optional[datetime]
+    revoked_at: Optional[datetime]
+
+    model_config = {"from_attributes": True}
+
+
+class ApiKeyCreatedResponse(ApiKeyResponse):
+    """Returned once on creation — includes the full plaintext key."""
+    full_key: str
+
+
 def _parse_date(v):
     if v is None:
         return v

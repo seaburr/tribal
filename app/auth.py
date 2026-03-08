@@ -1,3 +1,4 @@
+import hashlib
 import logging
 import os
 import secrets
@@ -43,3 +44,15 @@ def decode_access_token(token: str) -> int | None:
         return int(payload["sub"])
     except Exception:
         return None
+
+
+_API_KEY_PREFIX = "tribal_sk_"
+
+
+def generate_api_key() -> str:
+    """Return a new plaintext API key. Store only the hash, never this value."""
+    return _API_KEY_PREFIX + secrets.token_hex(32)
+
+
+def hash_api_key(raw_key: str) -> str:
+    return hashlib.sha256(raw_key.encode()).hexdigest()

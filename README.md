@@ -24,6 +24,58 @@ The expiry/rotation should be available in a date picker or with the choice to e
 * FastAPI
 * SQLite (for now)
 
+## Running Locally
+
+### Quick start
+
+Requires Docker and Docker Compose.
+
+```bash
+# Build the image
+docker compose build
+
+# Start the app (accessible at http://localhost:8000)
+docker compose up
+```
+
+On first launch, the database is created automatically. Open `http://localhost:8000` in your browser and register an account — the first account created becomes an admin.
+
+To stop:
+
+```bash
+docker compose down
+```
+
+### Running tests
+
+```bash
+docker compose build           # ensure the image is up to date
+docker compose run --rm --no-deps tribal python -m pytest tests/ -q
+```
+
+All 20 tests should pass. Tests use an in-memory SQLite database and do not require the app to be running.
+
+### Local environment variables
+
+By default no environment variables are required — a random `JWT_SECRET` is generated at startup (sessions will be lost on restart). To pin it for local dev:
+
+```bash
+# .env (not committed)
+JWT_SECRET=your-hex-secret-here
+```
+
+Pass it to Docker Compose via:
+
+```yaml
+# docker-compose.yml env_file or environment block
+environment:
+  JWT_SECRET: "${JWT_SECRET}"
+```
+
+Or export it before running `docker compose up`.
+
+---
+
 ## Deploying / Standup
 
 Tribal is deployed to DigitalOcean App Platform via Terraform (state managed in Terraform Cloud under the `seaburr` org, workspace `tribal-app`). The container image is built and pushed to the DO Container Registry by GitHub Actions; App Platform redeploys automatically when a new `latest` tag is detected.

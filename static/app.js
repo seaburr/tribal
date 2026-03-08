@@ -62,6 +62,74 @@ window.fetch = async function(...args) {
   return res;
 };
 
+// ── API Keys ───────────────────────────────────────────────────────────────────
+
+function openApiKeysModal() {
+  closeUserMenu();
+  document.getElementById("api-key-reveal").classList.add("hidden");
+  document.getElementById("api-key-name").value = "";
+  document.getElementById("api-keys-overlay").classList.remove("hidden");
+  loadApiKeys();
+}
+
+function closeApiKeysModal(e) {
+  if (e && e.target !== document.getElementById("api-keys-overlay")) return;
+  document.getElementById("api-keys-overlay").classList.add("hidden");
+}
+
+async function loadApiKeys() {
+  const res = await fetch("/api/keys/");
+  if (!res.ok) return;
+  const keys = await res.json();
+  const list = document.getElementById("api-keys-list");
+  if (keys.length === 0) {
+    list.innerHTML = '<p style="color:var(--muted);font-size:0.85rem">No active API keys.</p>';
+    return;
+  }
+  list.innerHTML = `
+    <table class="admin-table" style="margin-bottom:0">
+      <thead><tr><th>Name</th><th>Prefix</th><th>Last used</th><th></th></tr></thead>
+      <tbody>
+        ${keys.map(k => `
+          <tr>
+            <td>${esc(k.name)}</td>
+            <td><code style="font-size:0.8rem">${esc(k.key_prefix)}</code></td>
+            <td style="color:var(--muted);font-size:0.8rem">${k.last_used_at ? new Date(k.last_used_at).toLocaleDateString() : "Never"}</td>
+            <td><button class="btn-danger" style="font-size:0.75rem;padding:4px 10px" onclick="revokeApiKey(${k.id})">Revoke</button></td>
+          </tr>`).join("")}
+      </tbody>
+    </table>`;
+}
+
+async function createApiKey() {
+  const name = document.getElementById("api-key-name").value.trim();
+  if (!name) { showToast("Enter a name for the key."); return; }
+  const res = await fetch("/api/keys/", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name }),
+  });
+  if (!res.ok) { showToast("Failed to create key."); return; }
+  const data = await res.json();
+  document.getElementById("api-key-name").value = "";
+  document.getElementById("api-key-value").textContent = data.full_key;
+  document.getElementById("api-key-reveal").classList.remove("hidden");
+  loadApiKeys();
+}
+
+async function revokeApiKey(id) {
+  if (!confirm("Revoke this API key? Any integrations using it will stop working.")) return;
+  const res = await fetch(`/api/keys/${id}`, { method: "DELETE" });
+  if (!res.ok) { showToast("Failed to revoke key."); return; }
+  loadApiKeys();
+  document.getElementById("api-key-reveal").classList.add("hidden");
+}
+
+function copyApiKey() {
+  const val = document.getElementById("api-key-value").textContent;
+  navigator.clipboard.writeText(val).then(() => showToast("Copied to clipboard."));
+}
+
 // ── State ─────────────────────────────────────────────────────────────────────
 let resources = [];
 let eventsByDate = {};

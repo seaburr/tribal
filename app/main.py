@@ -14,6 +14,7 @@ from .models import Base
 from .routers import resources
 from .routers import auth as auth_router
 from .routers import admin as admin_router
+from .routers import keys as keys_router
 from .scheduler import check_reminders
 
 Path("data").mkdir(exist_ok=True)
@@ -71,19 +72,27 @@ async def _auth_middleware(request: Request, call_next):
     if any(path.startswith(p) for p in _AUTH_EXEMPT_PREFIXES):
         return await call_next(request)
 
+    # 1. Session cookie
     token = request.cookies.get("session")
-    if not token or decode_access_token(token) is None:
-        if request.method == "GET":
-            return RedirectResponse(url="/login", status_code=303)
-        return JSONResponse(status_code=401, content={"detail": "Not authenticated"})
+    if token and decode_access_token(token) is not None:
+        return await call_next(request)
 
-    return await call_next(request)
+    # 2. Bearer API key — pass through; the route dependency validates the key
+    #    and returns 401 (not a redirect) for invalid/revoked keys, which is
+    #    the correct behaviour for programmatic clients.
+    if request.headers.get("Authorization", "").startswith("Bearer "):
+        return await call_next(request)
+
+    if request.method == "GET":
+        return RedirectResponse(url="/login", status_code=303)
+    return JSONResponse(status_code=401, content={"detail": "Not authenticated"})
 
 
 # ── Routes ────────────────────────────────────────────────────────────────────
 app.include_router(resources.router)
 app.include_router(auth_router.router)
 app.include_router(admin_router.router)
+app.include_router(keys_router.router)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
