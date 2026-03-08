@@ -5,6 +5,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from prometheus_fastapi_instrumentator import Instrumentator
 
 from sqlalchemy import inspect, text
 
@@ -63,11 +64,12 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Tribal", lifespan=lifespan)
+Instrumentator().instrument(app).expose(app, include_in_schema=False)
 
 # ── Auth middleware ────────────────────────────────────────────────────────────
 # Paths that do NOT require a valid session cookie.
 _AUTH_EXEMPT_PREFIXES = ("/auth/",)
-_AUTH_EXEMPT_EXACT = {"/login", "/healthz", "/static/tribal_logo.png", "/static/favicon.ico"}
+_AUTH_EXEMPT_EXACT = {"/login", "/healthz", "/metrics", "/static/tribal_logo.png", "/static/favicon.ico"}
 
 
 @app.middleware("http")

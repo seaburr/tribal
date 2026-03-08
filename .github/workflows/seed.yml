@@ -1,4 +1,4 @@
-name: seed demo data
+name: Seed Sample Data
 
 on:
   workflow_dispatch:
@@ -7,6 +7,10 @@ on:
         description: "Target URL (e.g. https://dev.tribal-app.xyz)"
         required: false
         default: "https://dev.tribal-app.xyz"
+      api_key:
+        description: "API key for authentication with target instance."
+        required: true
+        default: ""
 
 jobs:
   seed:
@@ -16,7 +20,7 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.14"
 
       - name: Install dependencies
         run: |
@@ -26,4 +30,4 @@ jobs:
       - name: Run seed script
         env:
           BASE_URL: ${{ inputs.base_url }}
-        run: python seed.py
+        run: python seed.py --api-key "::add-mask::${{ inputs.api_key }}"

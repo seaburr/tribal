@@ -38,7 +38,7 @@ resource "digitalocean_app" "tribal" {
     }
 
     service {
-      name               = "api"
+      name               = "tribal-app"
       instance_count     = 1
       instance_size_slug = var.instance_size_slug
       http_port          = 8000
