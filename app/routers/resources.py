@@ -37,6 +37,14 @@ def _audit(db: Session, action: str, resource: models.Resource, user: Optional[m
         pass  # audit logging must never break the main flow
 
 
+@router.get("/teams", response_model=list[schemas.TeamResponse])
+def list_teams(
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_user),
+):
+    return db.query(models.Team).order_by(models.Team.name).all()
+
+
 @router.post("/webhook-test", status_code=204)
 async def test_webhook(
     req: schemas.WebhookTestRequest,
@@ -67,7 +75,13 @@ def create_resource(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    db_resource = models.Resource(**resource.model_dump())
+    data = resource.model_dump()
+    # Auto-assign the singleton team if one exists and none was specified
+    if not data.get("team_id"):
+        team = db.query(models.Team).first()
+        if team:
+            data["team_id"] = team.id
+    db_resource = models.Resource(**data)
     db.add(db_resource)
     db.commit()
     db.refresh(db_resource)

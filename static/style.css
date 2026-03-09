@@ -52,7 +52,7 @@ header .logo {
 header h1 { font-size: 17px; font-weight: 700; letter-spacing: -.3px; }
 header .tagline { color: var(--text-mut); font-size: 13px; flex: 1; }
 
-.header-actions { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.header-actions { display: flex; align-items: center; gap: 12px; flex-shrink: 0; margin-left: auto; }
 
 /* ── User menu / dropdown ──────────────────────────────────────────────────── */
 .user-menu { position: relative; }
@@ -200,6 +200,16 @@ header .tagline { color: var(--text-mut); font-size: 13px; flex: 1; }
   font-weight: 600;
   background: rgba(100,116,139,.2);
   color: var(--text-sec);
+}
+.badge-creator {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(168,85,247,.15);
+  color: #c084fc;
+  margin-left: 4px;
 }
 .badge-future {
   display: inline-block;

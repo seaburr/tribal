@@ -315,3 +315,95 @@ def test_invalid_bearer_token_rejected(client):
 def test_create_api_key_empty_name(client):
     r = client.post("/api/keys/", json={"name": "  "})
     assert r.status_code == 422
+
+
+# ── Account creator protection (Iteration 13) ─────────────────────────────────
+
+@pytest.fixture
+def client_with_creator(tmp_path):
+    """Two-admin fixture: 'creator' is the account creator, 'admin2' is a regular admin."""
+    db_url = f"sqlite:///{tmp_path / 'test.db'}"
+    engine = create_engine(db_url, connect_args={"check_same_thread": False})
+    Base.metadata.create_all(bind=engine)
+    Session = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+    def override_get_db():
+        db = Session()
+        try:
+            yield db
+        finally:
+            db.close()
+
+    app.dependency_overrides[get_db] = override_get_db
+
+    db = Session()
+    creator = User(
+        email="creator@example.com",
+        hashed_password=hash_password("testpassword"),
+        is_admin=True,
+        is_account_creator=True,
+    )
+    admin2 = User(
+        email="admin2@example.com",
+        hashed_password=hash_password("testpassword"),
+        is_admin=True,
+        is_account_creator=False,
+    )
+    regular = User(
+        email="other@example.com",
+        hashed_password=hash_password("testpassword"),
+        is_admin=False,
+        is_account_creator=False,
+    )
+    db.add(creator)
+    db.add(admin2)
+    db.add(regular)
+    db.commit()
+    creator_id = creator.id
+    regular_id = regular.id
+    db.close()
+
+    # Log in as admin2 (a regular admin, not the creator)
+    with TestClient(app, follow_redirects=False) as c:
+        r = c.post("/auth/login", json={"email": "admin2@example.com", "password": "testpassword"})
+        assert r.status_code == 200
+        yield c, creator_id, regular_id
+
+    app.dependency_overrides.clear()
+    Base.metadata.drop_all(bind=engine)
+
+
+def test_account_creator_flag_in_user_list(client_with_creator):
+    c, creator_id, other_id = client_with_creator
+    r = c.get("/admin/users")
+    assert r.status_code == 200
+    users = {u["id"]: u for u in r.json()}
+    assert users[creator_id]["is_account_creator"] is True
+    assert users[other_id]["is_account_creator"] is False
+
+
+def test_cannot_revoke_admin_from_account_creator(client_with_creator):
+    c, creator_id, _ = client_with_creator
+    r = c.put(f"/admin/users/{creator_id}/role?is_admin=false")
+    assert r.status_code == 400
+    assert "account creator" in r.json()["detail"].lower()
+
+
+def test_cannot_delete_account_creator(client_with_creator):
+    c, creator_id, _ = client_with_creator
+    r = c.delete(f"/admin/users/{creator_id}")
+    assert r.status_code == 400
+    assert "account creator" in r.json()["detail"].lower()
+
+
+def test_role_change_audited(client_with_creator):
+    c, _, other_id = client_with_creator
+    r = c.put(f"/admin/users/{other_id}/role?is_admin=true")
+    assert r.status_code == 200
+
+    audit = c.get("/admin/audit-log").json()
+    role_events = [e for e in audit if e["action"] == "user.role_change"]
+    assert role_events, "Expected a user.role_change audit entry"
+    detail = role_events[0]["detail"]
+    assert detail["action"] == "granted"
+    assert detail["new_role"] == "admin"

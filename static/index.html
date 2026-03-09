@@ -12,7 +12,6 @@
 <header>
   <img src="/static/tribal_logo.png" alt="" class="logo" />
   <h1>Tribal</h1>
-  <p class="tagline">Stay on top of expiration dates and rotation processes for certs, API keys, and more.</p>
   <div class="header-actions">
     <button class="btn-primary" onclick="openModal()">+ Add Resource</button>
     <div class="user-menu" id="user-menu">
@@ -287,19 +286,21 @@
         </div>
       </div>
 
-      <!-- Coming Soon: Team Management -->
-      <div class="admin-card admin-card-future">
+      <!-- Team -->
+      <div class="admin-card">
         <div class="admin-card-header">
-          <h3>Team Management <span class="badge-future">Coming Soon</span></h3>
-          <p class="admin-card-desc">Create teams, assign members, and route notifications per team. Requires multi-tenancy (Phase 1).</p>
+          <h3>Team</h3>
+          <p class="admin-card-desc">Your team name identifies your organisation in Tribal. All resources are automatically associated with your team.</p>
         </div>
-      </div>
-
-      <!-- Coming Soon: Org Settings -->
-      <div class="admin-card admin-card-future">
-        <div class="admin-card-header">
-          <h3>Organisation Settings <span class="badge-future">Coming Soon</span></h3>
-          <p class="admin-card-desc">Configure org name, slug, Entra group mapping, and deletion policies. Requires multi-tenancy (Phase 1).</p>
+        <div class="admin-card-body">
+          <div class="admin-form-group">
+            <label for="adm-team-name">Team Name</label>
+            <input type="text" id="adm-team-name" placeholder="e.g. Platform, Security, Acme Corp…" />
+          </div>
+          <div id="adm-team-msg" class="admin-msg"></div>
+        </div>
+        <div class="admin-card-footer">
+          <button class="btn-primary" onclick="saveTeamName()">Save Settings</button>
         </div>
       </div>
 
@@ -569,6 +570,27 @@ resource "tribal_resource" "prod_cert" {
           </div>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Team setup modal — shown to admins when no team has been named yet -->
+<div id="team-setup-modal" class="modal-overlay hidden">
+  <div class="modal" role="dialog" aria-modal="true" style="max-width:440px">
+    <div class="modal-header">
+      <h2>Welcome to Tribal</h2>
+    </div>
+    <div class="modal-body">
+      <p style="color:var(--text-sec);margin-bottom:1.2rem">Before you get started, give your team a name. This will identify your organisation's resources throughout Tribal.</p>
+      <div class="form-group">
+        <label for="setup-team-name">Team Name</label>
+        <input type="text" id="setup-team-name" placeholder="e.g. Platform, Security, Acme Corp…" autofocus />
+        <span style="font-size:12px;color:var(--text-mut);margin-top:4px;display:block">Don't worry, this can be changed later.</span>
+      </div>
+      <div id="setup-team-error" class="error-msg" style="margin-top:8px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-primary" onclick="submitTeamSetup()">Get Started</button>
     </div>
   </div>
 </div>

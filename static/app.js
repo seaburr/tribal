@@ -7,7 +7,7 @@ async function loadUser() {
     if (res.status === 401) { window.location.href = "/login"; return; }
     if (!res.ok) return;
     _currentUser = await res.json();
-    document.getElementById("user-label").textContent = "Account";
+    document.getElementById("user-label").textContent = "≡";
     document.getElementById("user-dropdown-name").textContent = _currentUser.display_name || _currentUser.email;
     document.getElementById("user-dropdown-email").textContent = _currentUser.email;
   } catch {}
@@ -157,6 +157,7 @@ async function revokeAdminApiKey(id) {
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let resources = [];
+let _teams = [];   // [{id, name}] — loaded once on loadData and on modal open
 let eventsByDate = {};
 let calYear, calMonth;
 let calViewMode = 'month'; // 'month' | 'year'
@@ -171,20 +172,26 @@ const MONTH_NAMES = ["January","February","March","April","May","June",
                      "July","August","September","October","November","December"];
 
 // ── Init ──────────────────────────────────────────────────────────────────────
-(function init() {
+(async function init() {
   const now = new Date();
   calYear = now.getFullYear();
   calMonth = now.getMonth();
-  loadUser();
-  loadData();
+  await loadUser();
+  await loadData();
+  _checkTeamSetup();
 })();
 
 async function loadData() {
   try {
-    const res = await fetch("/api/resources/");
-    resources = await res.json();
+    const [resRes, teamRes] = await Promise.all([
+      fetch("/api/resources/"),
+      fetch("/api/resources/teams"),
+    ]);
+    resources = resRes.ok ? await resRes.json() : [];
+    _teams = teamRes.ok ? await teamRes.json() : [];
   } catch (e) {
     resources = [];
+    _teams = [];
   }
 
   eventsByDate = {};
@@ -595,6 +602,7 @@ async function openModal(id = null) {
   setTimeout(() => document.getElementById("f-name").focus(), 50);
 }
 
+
 function closeModal() {
   document.getElementById("modal").classList.add("hidden");
   editingId = null;
@@ -868,6 +876,7 @@ function loadAdminTab() {
   document.getElementById("admin-content").style.display = "";
   loadAdminSettings();
   loadAdminUsers();
+  loadAdminTeams();  // populates the team rename field
   loadAdminApiKeys();
   loadDeletedResources();
   loadAuditLog();
@@ -966,6 +975,93 @@ async function saveAdminSettings() {
   }
 }
 
+// ── Team (singleton) ──────────────────────────────────────────────────────────
+async function loadAdminTeams() {
+  // Populate the rename field in the Admin > Team card
+  if (!_teams.length) {
+    try {
+      const res = await fetch("/admin/teams");
+      if (res.ok) _teams = await res.json();
+    } catch {}
+  }
+  const input = document.getElementById("adm-team-name");
+  if (input && _teams.length) input.value = _teams[0].name;
+}
+
+async function saveTeamName() {
+  const input = document.getElementById("adm-team-name");
+  const msgEl = document.getElementById("adm-team-msg");
+  const name = input.value.trim();
+  msgEl.textContent = "";
+  msgEl.className = "admin-msg";
+  if (!name) { msgEl.textContent = "Team name cannot be empty."; msgEl.className = "admin-msg error"; return; }
+
+  if (_teams.length) {
+    // Rename existing team
+    const res = await fetch(`/admin/teams/${_teams[0].id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    });
+    if (res.ok) {
+      _teams[0].name = name;
+      msgEl.textContent = "Team name updated.";
+      msgEl.className = "admin-msg success";
+    } else {
+      const err = await res.json().catch(() => ({}));
+      msgEl.textContent = err.detail || "Failed to update.";
+      msgEl.className = "admin-msg error";
+    }
+  } else {
+    // Create (shouldn't normally be reached from Admin since setup modal handles this)
+    const res = await fetch("/admin/teams", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    });
+    if (res.ok) {
+      _teams = [await res.json()];
+      msgEl.textContent = "Team created.";
+      msgEl.className = "admin-msg success";
+    } else {
+      const err = await res.json().catch(() => ({}));
+      msgEl.textContent = err.detail || "Failed to create team.";
+      msgEl.className = "admin-msg error";
+    }
+  }
+}
+
+// ── Team setup modal (shown on first login when no team exists) ────────────────
+function _checkTeamSetup() {
+  if (!_currentUser || !_currentUser.is_admin) return;
+  if (_teams.length === 0) {
+    document.getElementById("team-setup-modal").classList.remove("hidden");
+    setTimeout(() => document.getElementById("setup-team-name").focus(), 100);
+  }
+}
+
+async function submitTeamSetup() {
+  const input = document.getElementById("setup-team-name");
+  const errEl = document.getElementById("setup-team-error");
+  const name = input.value.trim();
+  errEl.textContent = "";
+  if (!name) { errEl.textContent = "Please enter a team name."; return; }
+
+  const res = await fetch("/admin/teams", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name }),
+  });
+  if (res.ok) {
+    _teams = [await res.json()];
+    document.getElementById("team-setup-modal").classList.add("hidden");
+    showToast(`Team "${name}" created. Welcome to Tribal!`);
+  } else {
+    const err = await res.json().catch(() => ({}));
+    errEl.textContent = err.detail || "Failed to create team.";
+  }
+}
+
 // ── Users ─────────────────────────────────────────────────────────────────────
 async function loadAdminUsers() {
   const tbody = document.getElementById("admin-users-body");
@@ -982,14 +1078,17 @@ async function loadAdminUsers() {
       <tr>
         <td>${esc(u.display_name || "—")}</td>
         <td>${esc(u.email)}</td>
-        <td>${u.is_admin ? '<span class="badge-admin">Admin</span>' : '<span class="badge-member">Member</span>'}</td>
+        <td>
+          ${u.is_admin ? '<span class="badge-admin">Admin</span>' : '<span class="badge-member">Member</span>'}
+          ${u.is_account_creator ? '<span class="badge-creator" title="Account creator — admin rights and account are permanent">Creator</span>' : ''}
+        </td>
         <td class="actions" style="gap:6px">
-          ${u.id !== _currentUser.id ? `
-            <button class="btn-secondary btn-sm" onclick="toggleUserAdmin(${u.id}, ${u.is_admin})">
-              ${u.is_admin ? "Remove Admin" : "Make Admin"}
-            </button>
-            <button class="btn-danger btn-sm" onclick="deleteAdminUser(${u.id}, '${esc(u.email)}')">Delete</button>
-          ` : '<span style="color:var(--text-mut);font-size:12px">You</span>'}
+          ${u.id === _currentUser.id
+            ? '<span style="color:var(--text-mut);font-size:12px">You</span>'
+            : u.is_account_creator
+              ? '<span style="color:var(--text-mut);font-size:12px">Protected</span>'
+              : `<button class="btn-secondary btn-sm" onclick="toggleUserAdmin(${u.id}, ${u.is_admin})">${u.is_admin ? "Remove Admin" : "Make Admin"}</button>
+            <button class="btn-danger btn-sm" onclick="deleteAdminUser(${u.id}, '${esc(u.email)}')">Delete</button>`}
         </td>
       </tr>
     `).join("");

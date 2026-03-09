@@ -35,6 +35,9 @@ def _run_migrations():
             if "deleted_at" not in existing:
                 conn.execute(text("ALTER TABLE resources ADD COLUMN deleted_at DATETIME"))
                 conn.commit()
+            if "team_id" not in existing:
+                conn.execute(text("ALTER TABLE resources ADD COLUMN team_id INTEGER REFERENCES teams(id) ON DELETE SET NULL"))
+                conn.commit()
 
         if "admin_settings" in tables:
             existing = {c["name"] for c in inspector.get_columns("admin_settings")}
@@ -43,6 +46,9 @@ def _run_migrations():
                 conn.commit()
             if "alert_on_overdue" not in existing:
                 conn.execute(text("ALTER TABLE admin_settings ADD COLUMN alert_on_overdue BOOLEAN NOT NULL DEFAULT 0"))
+                conn.commit()
+            if "org_name" not in existing:
+                conn.execute(text("ALTER TABLE admin_settings ADD COLUMN org_name VARCHAR"))
                 conn.commit()
 
         if "users" in tables:
@@ -55,6 +61,12 @@ def _run_migrations():
                 if result[0] == 0:
                     conn.execute(text("UPDATE users SET is_admin = 1 WHERE id = (SELECT MIN(id) FROM users)"))
                     conn.commit()
+            if "is_account_creator" not in existing:
+                conn.execute(text("ALTER TABLE users ADD COLUMN is_account_creator BOOLEAN NOT NULL DEFAULT 0"))
+                conn.commit()
+                # Mark the oldest user as the account creator
+                conn.execute(text("UPDATE users SET is_account_creator = 1 WHERE id = (SELECT MIN(id) FROM users)"))
+                conn.commit()
 
 
 _run_migrations()

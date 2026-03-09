@@ -53,6 +53,7 @@ def update_settings(updates: schemas.AdminSettingsUpdate, db: Session = Depends(
         raise HTTPException(status_code=422, detail="Notify hour must be between 0 and 23.")
 
     settings = _get_or_create_settings(db)
+    settings.org_name = updates.org_name.strip() if updates.org_name and updates.org_name.strip() else None
     settings.reminder_days = sorted(set(updates.reminder_days), reverse=True)
     settings.notify_hour = updates.notify_hour
     settings.slack_webhook = updates.slack_webhook or None
@@ -61,6 +62,56 @@ def update_settings(updates: schemas.AdminSettingsUpdate, db: Session = Depends(
     db.commit()
     db.refresh(settings)
     return settings
+
+
+# ── Team (singleton) ───────────────────────────────────────────────────────────
+
+@router.get("/teams", response_model=list[schemas.TeamResponse])
+def list_teams(db: Session = Depends(get_db)):
+    """Returns 0 or 1 team — there is only ever one team in the system."""
+    return db.query(models.Team).all()
+
+
+@router.post("/teams", response_model=schemas.TeamResponse, status_code=201)
+def create_team(
+    req: schemas.TeamCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """Create the singleton team. Returns 409 if one already exists."""
+    name = req.name.strip()
+    if not name:
+        raise HTTPException(status_code=422, detail="Team name cannot be empty.")
+    if db.query(models.Team).first():
+        raise HTTPException(status_code=409, detail="A team already exists. Use PUT /admin/teams/{id} to rename it.")
+    team = models.Team(name=name)
+    db.add(team)
+    db.commit()
+    db.refresh(team)
+    write_audit(db, "team.create", user_email=current_user.email, detail={"team_name": name})
+    return team
+
+
+@router.put("/teams/{team_id}", response_model=schemas.TeamResponse)
+def rename_team(
+    team_id: int,
+    req: schemas.TeamCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """Rename the singleton team."""
+    name = req.name.strip()
+    if not name:
+        raise HTTPException(status_code=422, detail="Team name cannot be empty.")
+    team = db.get(models.Team, team_id)
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found.")
+    old_name = team.name
+    team.name = name
+    db.commit()
+    db.refresh(team)
+    write_audit(db, "team.rename", user_email=current_user.email, detail={"old_name": old_name, "new_name": name})
+    return team
 
 
 # ── Users ─────────────────────────────────────────────────────────────────────
@@ -81,11 +132,28 @@ def set_user_admin(
     if not target:
         raise HTTPException(status_code=404, detail="User not found.")
 
+    # Account creator's admin rights are permanent
+    if target.is_account_creator and not is_admin:
+        raise HTTPException(status_code=400, detail="Cannot revoke admin rights from the account creator.")
+
     # Prevent demoting the last admin
     if target.is_admin and not is_admin:
         admin_count = db.query(models.User).filter(models.User.is_admin == True).count()
         if admin_count <= 1:
             raise HTTPException(status_code=400, detail="Cannot remove the last admin.")
+
+    if target.is_admin != is_admin:
+        action_label = "granted" if is_admin else "revoked"
+        write_audit(
+            db,
+            "user.role_change",
+            user_email=current_user.email,
+            detail={
+                "target_user": target.email,
+                "action": action_label,
+                "new_role": "admin" if is_admin else "member",
+            },
+        )
 
     target.is_admin = is_admin
     db.commit()
@@ -104,6 +172,8 @@ def delete_user(
     target = db.get(models.User, user_id)
     if not target:
         raise HTTPException(status_code=404, detail="User not found.")
+    if target.is_account_creator:
+        raise HTTPException(status_code=400, detail="Cannot delete the account creator.")
     write_audit(db, "user.delete", user_email=current_user.email, detail={"deleted_user": target.email})
     db.delete(target)
     db.commit()

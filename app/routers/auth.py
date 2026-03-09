@@ -30,7 +30,11 @@ def _set_auth_cookie(response: Response, token: str, request: Request) -> None:
 @router.post("/register", response_model=schemas.UserResponse, status_code=201)
 def register(req: schemas.RegisterRequest, request: Request, db: Session = Depends(get_db)):
     if len(req.password) < 8:
-        raise HTTPException(status_code=422, detail="Password must be at least 8 characters.")
+        raise HTTPException(status_code=422, detail="Password must be at least 8 characters, include a number, and include a special character.")
+    if not any(c.isdigit() for c in req.password):
+        raise HTTPException(status_code=422, detail="Password must be at least 8 characters, include a number, and include a special character.")
+    if not any(c in r"""!@#$%^&*()_+-=[]{}|;':",.<>?/`~\\""" for c in req.password):
+        raise HTTPException(status_code=422, detail="Password must be at least 8 characters, include a number, and include a special character.")
     email = req.email.lower().strip()
     if db.query(models.User).filter(models.User.email == email).first():
         raise HTTPException(status_code=409, detail="An account with that email already exists.")
@@ -40,6 +44,7 @@ def register(req: schemas.RegisterRequest, request: Request, db: Session = Depen
         display_name=req.display_name.strip() if req.display_name else None,
         hashed_password=hash_password(req.password),
         is_admin=is_first_user,
+        is_account_creator=is_first_user,
     )
     db.add(user)
     db.commit()

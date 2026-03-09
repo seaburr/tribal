@@ -237,3 +237,16 @@ Feedback from the first round of testing that needs to be addressed:
 * Audit log in the UI should cap out at last 25 events. CSV report should stay as-is.
 * Admins should be able to recover a deleted resource.
 * In the Slack reminders, send the "Generation / Rotation Instructions" and ensure any links in the text are clickable from Slack.
+
+## Iteration 13
+
+* The initial user/admin should NOT be allowed to have his admin credentials revoked. Mark this user as the "account creator" and prevent deletion and removal of permissions.
+* Elevating or revoking a users Admin rights should go into the audit log including the actor who performed the action.
+* Remove the tag-line "Stay on top of expiration dates and rotation processes for certs, API keys, and more."
+* Compress the header slightly so it consumes less vertical screen space.
+* Change the "User" text to a Hamburger icon like unicode character U+2261/
+* On the login page, add a link to the home page (https://tribal-app.xyz/)
+* Remove the password complexity requirements from the account creation page but instead reject a password which does not meet complexity requirements with error text. 
+* Update password complexity requirements to be: At least 8 characters, one number, and one special character. Enforce this check.
+* Go ahead implement the team. When the first user creates their account, ask them to name the team. For now, everything (users, api keys, resources, admin config, etc.) will be associated to this one team but this opens the door to making the application multi-tenant.
+* Team name can be modified from the admin page.

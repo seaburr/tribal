@@ -17,6 +17,7 @@ class User(Base):
     display_name = Column(String, nullable=True)
     hashed_password = Column(String, nullable=False)
     is_admin = Column(Boolean, nullable=False, default=False)
+    is_account_creator = Column(Boolean, nullable=False, default=False)
     created_at = Column(DateTime, default=_utcnow)
 
 
@@ -25,11 +26,20 @@ class AdminSettings(Base):
     __tablename__ = "admin_settings"
 
     id = Column(Integer, primary_key=True, default=1)
+    org_name = Column(String, nullable=True)
     reminder_days = Column(JSON, nullable=False, default=lambda: [30, 14, 7, 3])
     notify_hour = Column(Integer, nullable=False, default=9)
     slack_webhook = Column(String, nullable=True)
     alert_on_overdue = Column(Boolean, nullable=False, default=False)
     updated_at = Column(DateTime, default=_utcnow)
+
+
+class Team(Base):
+    __tablename__ = "teams"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False, unique=True)
+    created_at = Column(DateTime, default=_utcnow)
 
 
 class AuditLog(Base):
@@ -69,6 +79,7 @@ class Resource(Base):
     secret_manager_link = Column(String, nullable=True)
     slack_webhook = Column(String, nullable=False)
     type = Column(String, nullable=False, server_default="Other")
+    team_id = Column(Integer, ForeignKey("teams.id", ondelete="SET NULL"), nullable=True)
     public_key_pem = Column(Text, nullable=True)
     created_at = Column(DateTime, default=_utcnow)
     updated_at = Column(DateTime, default=_utcnow)

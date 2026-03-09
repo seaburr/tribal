@@ -22,11 +22,13 @@ class UserResponse(BaseModel):
     email: str
     display_name: Optional[str]
     is_admin: bool = False
+    is_account_creator: bool = False
 
     model_config = {"from_attributes": True}
 
 
 class AdminSettingsResponse(BaseModel):
+    org_name: Optional[str] = None
     reminder_days: list[int]
     notify_hour: int
     slack_webhook: Optional[str] = None
@@ -36,10 +38,23 @@ class AdminSettingsResponse(BaseModel):
 
 
 class AdminSettingsUpdate(BaseModel):
+    org_name: Optional[str] = None
     reminder_days: list[int]
     notify_hour: int
     slack_webhook: Optional[str] = None
     alert_on_overdue: bool = False
+
+
+class TeamCreate(BaseModel):
+    name: str
+
+
+class TeamResponse(BaseModel):
+    id: int
+    name: str
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
 
 
 class AuditLogEntry(BaseModel):
@@ -111,6 +126,7 @@ class ResourceCreate(BaseModel):
     generation_instructions: str
     secret_manager_link: Optional[str] = None
     slack_webhook: str
+    team_id: Optional[int] = None
 
     @field_validator("expiration_date", mode="before")
     @classmethod
@@ -127,6 +143,7 @@ class ResourceUpdate(BaseModel):
     generation_instructions: Optional[str] = None
     secret_manager_link: Optional[str] = None
     slack_webhook: Optional[str] = None
+    team_id: Optional[int] = None
 
     @field_validator("expiration_date", mode="before")
     @classmethod
@@ -144,6 +161,7 @@ class ResourceResponse(BaseModel):
     generation_instructions: str
     secret_manager_link: Optional[str]
     slack_webhook: str
+    team_id: Optional[int] = None
     public_key_pem: Optional[str]
     created_at: datetime
     updated_at: datetime
