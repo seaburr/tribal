@@ -68,6 +68,8 @@ jobs:
           context: .
           push: true
           tags: registry.digitalocean.com/seaburr/tribal:latest
+          build-args: |
+            BUILD_SHA=${{ github.sha }}
           # tags: |
           #   registry.digitalocean.com/seaburr/tribal:${{ needs.tag.outputs.new_tag }}
           #   registry.digitalocean.com/seaburr/tribal:latest
