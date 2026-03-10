@@ -1,33 +1,26 @@
 services:
-  mysql:
+  mysql-test:
     image: mysql:8
     environment:
       MYSQL_ROOT_PASSWORD: tribal
-      MYSQL_DATABASE: tribal
+      MYSQL_DATABASE: tribal_test
       MYSQL_USER: tribal
       MYSQL_PASSWORD: tribal
     ports:
-      - "3306:3306"
-    volumes:
-      - mysql-data:/var/lib/mysql
+      - "3307:3306"
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "tribal", "-ptribal"]
       interval: 5s
       timeout: 5s
       retries: 10
 
-  tribal:
+  test-runner:
     build: .
-    ports:
-      - "8000:8000"
     environment:
-      DATABASE_URL: "mysql+pymysql://tribal:tribal@mysql/tribal"
+      DATABASE_URL: "mysql+pymysql://tribal:tribal@mysql-test/tribal_test"
     depends_on:
-      mysql:
+      mysql-test:
         condition: service_healthy
-    volumes:
-      - tribal-data:/app/data
-
-volumes:
-  mysql-data:
-  tribal-data:
+    entrypoint: >
+      sh -c "alembic upgrade head &&
+             python -m pytest tests/ -v --tb=short"

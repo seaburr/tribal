@@ -13,9 +13,9 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
-    email = Column(String, unique=True, nullable=False, index=True)
-    display_name = Column(String, nullable=True)
-    hashed_password = Column(String, nullable=False)
+    email = Column(String(255), unique=True, nullable=False, index=True)
+    display_name = Column(String(255), nullable=True)
+    hashed_password = Column(String(255), nullable=False)
     is_admin = Column(Boolean, nullable=False, default=False)
     is_account_creator = Column(Boolean, nullable=False, default=False)
     created_at = Column(DateTime, default=_utcnow)
@@ -26,10 +26,10 @@ class AdminSettings(Base):
     __tablename__ = "admin_settings"
 
     id = Column(Integer, primary_key=True, default=1)
-    org_name = Column(String, nullable=True)
+    org_name = Column(String(255), nullable=True)
     reminder_days = Column(JSON, nullable=False, default=lambda: [30, 14, 7, 3])
     notify_hour = Column(Integer, nullable=False, default=9)
-    slack_webhook = Column(String, nullable=True)
+    slack_webhook = Column(String(500), nullable=True)
     alert_on_overdue = Column(Boolean, nullable=False, default=False)
     updated_at = Column(DateTime, default=_utcnow)
 
@@ -38,7 +38,7 @@ class Team(Base):
     __tablename__ = "teams"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False, unique=True)
+    name = Column(String(255), nullable=False, unique=True)
     created_at = Column(DateTime, default=_utcnow)
 
 
@@ -46,10 +46,10 @@ class AuditLog(Base):
     __tablename__ = "audit_logs"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_email = Column(String, nullable=True)   # null for system actions
-    resource_id = Column(Integer, nullable=True)  # nullable — resource may be deleted later
-    resource_name = Column(String, nullable=True) # denormalized so it survives deletion
-    action = Column(String, nullable=False)       # e.g. resource.create / resource.update / resource.delete
+    user_email = Column(String(255), nullable=True)
+    resource_id = Column(Integer, nullable=True)
+    resource_name = Column(String(255), nullable=True)
+    action = Column(String(64), nullable=False)
     detail = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=_utcnow)
 
@@ -59,9 +59,9 @@ class ApiKey(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    name = Column(String, nullable=False)
-    key_prefix = Column(String, nullable=False)  # first 4 chars after "tribal_sk_" — shown in UI
-    key_hash = Column(String, nullable=False, unique=True)  # SHA-256 of full key
+    name = Column(String(255), nullable=False)
+    key_prefix = Column(String(32), nullable=False)
+    key_hash = Column(String(64), nullable=False, unique=True)
     created_at = Column(DateTime, default=_utcnow)
     last_used_at = Column(DateTime, nullable=True)
     revoked_at = Column(DateTime, nullable=True)
@@ -71,14 +71,14 @@ class Resource(Base):
     __tablename__ = "resources"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False)
-    dri = Column(String, nullable=False)
+    name = Column(String(255), nullable=False)
+    dri = Column(String(255), nullable=False)
     expiration_date = Column(Date, nullable=False)
     purpose = Column(Text, nullable=False)
     generation_instructions = Column(Text, nullable=False)
-    secret_manager_link = Column(String, nullable=True)
-    slack_webhook = Column(String, nullable=False)
-    type = Column(String, nullable=False, server_default="Other")
+    secret_manager_link = Column(String(1000), nullable=True)
+    slack_webhook = Column(String(500), nullable=False)
+    type = Column(String(50), nullable=False, server_default="Other")
     team_id = Column(Integer, ForeignKey("teams.id", ondelete="SET NULL"), nullable=True)
     public_key_pem = Column(Text, nullable=True)
     created_at = Column(DateTime, default=_utcnow)

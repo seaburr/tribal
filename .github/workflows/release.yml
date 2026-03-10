@@ -21,10 +21,18 @@ jobs:
           pip install -r requirements.txt
 
       - name: Import check
-        run: python -c "from app.main import app; print('Import OK')"
+        env:
+          DATABASE_URL: "sqlite:///./data/tribal.db"
+        run: |
+          mkdir -p data
+          python -c "from app.main import app; print('Import OK')"
 
       - name: Run tests
-        run: pytest tests/ -v
+        env:
+          DATABASE_URL: "sqlite:///./data/tribal.db"
+        run: |
+          mkdir -p data
+          pytest tests/ -v --ignore=tests/test_mysql.py
 
   # tag:
   #   needs: test

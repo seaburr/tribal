@@ -66,9 +66,26 @@ resource "digitalocean_app" "tribal" {
         type  = "SECRET"
       }
 
+      env {
+        key   = "DB_SSL_REQUIRE"
+        value = "true"
+        scope = "RUN_TIME"
+        type  = "GENERAL"
+      }
+
+      env {
+        key   = "DATABASE_URL"
+        value = var.database_url
+        scope = "RUN_TIME"
+        type  = "SECRET"
+      }
+
+      # When a managed DO MySQL cluster is provisioned, replace var.database_url with:
+      # value = digitalocean_database_cluster.tribal_db.private_uri
+
       # env {
-      #   key   = "DATABASE_URL"
-      #   value = digitalocean_database_cluster.tribal_db.private_uri
+      #   key   = "DB_SSL_CA"
+      #   value = file("path/to/ca-certificate.crt")
       #   scope = "RUN_TIME"
       #   type  = "SECRET"
       # }

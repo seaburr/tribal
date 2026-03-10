@@ -27,3 +27,10 @@ variable "db_size_slug" {
   type        = string
   default     = "db-s-1vcpu-1gb"
 }
+
+variable "database_url" {
+  description = "Database connection URL. Defaults to SQLite; override with a MySQL URL via TF_VAR_database_url or Terraform Cloud."
+  type        = string
+  sensitive   = true
+  default     = "sqlite:///./data/tribal.db"
+}

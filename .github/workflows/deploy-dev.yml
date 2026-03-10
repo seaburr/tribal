@@ -6,6 +6,7 @@ jobs:
   deploy:
     if: true
     runs-on: ubuntu-latest
+    environment: dev
     steps:
       - uses: actions/checkout@v4
 
@@ -22,4 +23,7 @@ jobs:
         working-directory: terraform
         env:
           TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
-        run: terraform apply -auto-approve -var="do_token=${{ secrets.DO_TOKEN }}"
+        run: |
+          terraform apply -auto-approve \
+            -var="do_token=${{ secrets.DO_TOKEN }}" \
+            -var="database_url=${{ secrets.DATABASE_URL }}"
