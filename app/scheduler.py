@@ -12,18 +12,18 @@ logger = logging.getLogger(__name__)
 _DEFAULT_REMINDER_DAYS = [30, 14, 7, 3]
 
 
-def _audit_notification(resource: Resource, action: str, detail: dict):
+def _audit_notification(resource_id: int, resource_name: str, action: str, detail: dict):
     db = SessionLocal()
     try:
         db.add(AuditLog(
-            resource_id=resource.id,
-            resource_name=resource.name,
+            resource_id=resource_id,
+            resource_name=resource_name,
             action=action,
             detail=detail,
         ))
         db.commit()
     except Exception:
-        logger.exception("Failed to write audit log for %s on resource %d", action, resource.id)
+        logger.exception("Failed to write audit log for %s on resource %d", action, resource_id)
     finally:
         db.close()
 _URL_RE = re.compile(r'(https?://[^\s<>]+)')
@@ -74,7 +74,7 @@ async def check_reminders():
                 )
                 if not existing:
                     logger.info("check_reminders: sending reminder for %r (%d days)", resource.name, days_until)
-                    await _send_slack_reminder(resource, days_until)
+                    await _send_slack_reminder(resource, days_until, db)
                     db.add(ReminderLog(
                         resource_id=resource.id,
                         expiration_date=resource.expiration_date,
@@ -95,7 +95,7 @@ async def check_reminders():
                 )
                 if not existing:
                     logger.info("check_reminders: sending overdue alert for %r", resource.name)
-                    await _send_overdue_alert(resource, admin_webhook)
+                    await _send_overdue_alert(resource, admin_webhook, db)
                     db.add(ReminderLog(
                         resource_id=resource.id,
                         expiration_date=resource.expiration_date,
@@ -110,7 +110,7 @@ async def check_reminders():
         db.close()
 
 
-async def _send_overdue_alert(resource: Resource, admin_webhook: str):
+async def _send_overdue_alert(resource: Resource, admin_webhook: str, db=None):
     expiry_str = resource.expiration_date.strftime("%m/%d/%Y")
     days_overdue = (date.today() - resource.expiration_date).days
     payload = {
@@ -156,7 +156,11 @@ async def _send_overdue_alert(resource: Resource, admin_webhook: str):
     try:
         async with httpx.AsyncClient() as client:
             await client.post(admin_webhook, json=payload, timeout=10)
-        _audit_notification(resource, "notification.overdue_alert", {"days_overdue": days_overdue, "expiration_date": expiry_str})
+        if db is not None:
+            db.add(AuditLog(resource_id=resource.id, resource_name=resource.name, action="notification.overdue_alert", detail={"days_overdue": days_overdue, "expiration_date": expiry_str}))
+            db.commit()
+        else:
+            _audit_notification(resource.id, resource.name, "notification.overdue_alert", {"days_overdue": days_overdue, "expiration_date": expiry_str})
     except Exception:
         logger.exception("Failed to send overdue alert for resource %d", resource.id)
 
@@ -193,12 +197,12 @@ async def send_deletion_notification(resource: Resource, deleted_by: str | None 
     try:
         async with httpx.AsyncClient() as client:
             await client.post(resource.slack_webhook, json=payload, timeout=10)
-        _audit_notification(resource, "notification.deletion", {"deleted_by": deleted_by})
+        _audit_notification(resource.id, resource.name, "notification.deletion", {"deleted_by": deleted_by})
     except Exception:
         logger.exception("Failed to send deletion notification for resource %d", resource.id)
 
 
-async def _send_slack_reminder(resource: Resource, days_until: int):
+async def _send_slack_reminder(resource: Resource, days_until: int, db=None):
     expiry_str = resource.expiration_date.strftime("%m/%d/%Y")
 
     if days_until <= 3:
@@ -259,6 +263,10 @@ async def _send_slack_reminder(resource: Resource, days_until: int):
     try:
         async with httpx.AsyncClient() as client:
             await client.post(resource.slack_webhook, json=payload, timeout=10)
-        _audit_notification(resource, "notification.reminder", {"days_until": days_until, "expiration_date": expiry_str})
+        if db is not None:
+            db.add(AuditLog(resource_id=resource.id, resource_name=resource.name, action="notification.reminder", detail={"days_until": days_until, "expiration_date": expiry_str}))
+            db.commit()
+        else:
+            _audit_notification(resource.id, resource.name, "notification.reminder", {"days_until": days_until, "expiration_date": expiry_str})
     except Exception:
         logger.exception("Failed to send Slack reminder for resource %d", resource.id)
