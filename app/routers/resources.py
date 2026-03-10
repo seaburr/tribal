@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from .. import models, schemas
 from ..database import get_db
 from ..dependencies import get_current_user
-from ..cert_utils import extract_expiry_from_pem
+from ..cert_utils import extract_expiry_from_pem, fetch_cert_expiry_from_endpoint
 from ..scheduler import send_deletion_notification
 
 router = APIRouter(prefix="/api/resources", tags=["resources"])
@@ -43,6 +43,32 @@ def list_teams(
     _: models.User = Depends(get_current_user),
 ):
     return db.query(models.Team).order_by(models.Team.name).all()
+
+
+@router.post("/cert-lookup", response_model=schemas.CertLookupResponse)
+async def lookup_cert_expiry(
+    req: schemas.CertLookupRequest,
+    _: models.User = Depends(get_current_user),
+):
+    """Connect to a TLS endpoint and return its certificate's expiry date."""
+    import socket
+    import ssl
+
+    try:
+        expiry = fetch_cert_expiry_from_endpoint(req.endpoint)
+        return {"expiration_date": expiry}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except socket.timeout:
+        raise HTTPException(status_code=400, detail="Connection timed out. Check the hostname and port.")
+    except socket.gaierror as e:
+        raise HTTPException(status_code=400, detail=f"Could not resolve hostname: {e}")
+    except ConnectionRefusedError:
+        raise HTTPException(status_code=400, detail="Connection refused. Is TLS running on that port?")
+    except ssl.SSLError as e:
+        raise HTTPException(status_code=400, detail=f"TLS error: {e}")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Could not retrieve certificate: {e}")
 
 
 @router.post("/webhook-test", status_code=204)

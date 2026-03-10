@@ -117,6 +117,14 @@ class WebhookTestRequest(BaseModel):
     webhook_url: str
 
 
+class CertLookupRequest(BaseModel):
+    endpoint: str
+
+
+class CertLookupResponse(BaseModel):
+    expiration_date: date
+
+
 class ResourceCreate(BaseModel):
     name: str
     dri: str

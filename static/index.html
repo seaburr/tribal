@@ -416,10 +416,11 @@ resource "tribal_resource" "prod_cert" {
         </div>
 
         <div id="cert-section" class="form-group cert-section" style="display:none">
-          <h4>Certificate <span class="optional">(optional)</span></h4>
-          <p>Upload a public certificate (.pem, .crt, .cer) to automatically extract the expiration date. Private keys are not accepted.</p>
-          <div class="cert-input-row">
-            <input type="file" id="f-cert-file" accept=".pem,.crt,.cer" onchange="if(editingId) uploadCertificate()" />
+          <h4>Certificate Expiry Detection <span class="optional">(optional)</span></h4>
+          <p>Enter the URL or hostname where this certificate is deployed to automatically detect its expiry date.</p>
+          <div class="cert-lookup-row">
+            <input type="text" id="f-cert-endpoint" placeholder="https://example.com or example.com:8443" />
+            <button type="button" class="btn-secondary" onclick="lookupCertExpiry()">Get Expiry</button>
           </div>
           <div id="cert-status" class="cert-status"></div>
         </div>

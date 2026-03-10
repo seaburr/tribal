@@ -612,7 +612,7 @@ function clearForm() {
   ["f-name","f-dri","f-date-picker","f-purpose","f-instructions","f-secret-link","f-webhook"]
     .forEach(id => { document.getElementById(id).value = ""; });
   document.getElementById("f-type").value = "";
-  document.getElementById("f-cert-file").value = "";
+  document.getElementById("f-cert-endpoint").value = "";
   document.getElementById("cert-status").textContent = "";
   document.getElementById("cert-status").className = "cert-status";
   document.getElementById("cert-section").style.display = "none";
@@ -669,8 +669,6 @@ async function saveResource(event) {
   const dateISO = document.getElementById("f-date-picker").value;
   if (!dateISO) { showError("Please select an expiration date."); return; }
 
-  const certFile = document.getElementById("f-cert-file").files[0];
-
   const payload = {
     name:                    document.getElementById("f-name").value.trim(),
     dri:                     document.getElementById("f-dri").value.trim(),
@@ -703,22 +701,6 @@ async function saveResource(event) {
 
     const saved = await res.json();
 
-    if (certFile) {
-      const formData = new FormData();
-      formData.append("file", certFile);
-      const certRes = await fetch(`/api/resources/${saved.id}/certificate`, {
-        method: "POST",
-        body: formData,
-      });
-      if (!certRes.ok) {
-        const err = await certRes.json();
-        closeModal();
-        await loadData();
-        showToast(`Saved, but certificate upload failed: ${err.detail}`);
-        return;
-      }
-    }
-
     closeModal();
     await loadData();
     showToast(editingId ? "Resource updated." : "Resource added.");
@@ -730,42 +712,41 @@ async function saveResource(event) {
   }
 }
 
-// ── Certificate upload (immediate when editing) ────────────────────────────────
-async function uploadCertificate() {
-  const fileInput = document.getElementById("f-cert-file");
-  const statusEl  = document.getElementById("cert-status");
-  const file = fileInput.files[0];
-  if (!file || !editingId) return;
+// ── Certificate expiry lookup ──────────────────────────────────────────────────
+async function lookupCertExpiry() {
+  const endpoint = document.getElementById("f-cert-endpoint").value.trim();
+  const statusEl = document.getElementById("cert-status");
 
-  statusEl.textContent = "Uploading…";
-  statusEl.className   = "cert-status";
+  if (!endpoint) {
+    statusEl.textContent = "Enter an endpoint URL or hostname first.";
+    statusEl.className = "cert-status error";
+    return;
+  }
 
-  const formData = new FormData();
-  formData.append("file", file);
+  statusEl.textContent = "Connecting…";
+  statusEl.className = "cert-status";
 
   try {
-    const res = await fetch(`/api/resources/${editingId}/certificate`, {
+    const res = await fetch("/api/resources/cert-lookup", {
       method: "POST",
-      body: formData,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ endpoint }),
     });
 
     if (!res.ok) {
       const err = await res.json();
-      statusEl.textContent = err.detail || "Upload failed.";
-      statusEl.className   = "cert-status error";
-      fileInput.value = "";
+      statusEl.textContent = err.detail || "Failed to retrieve certificate.";
+      statusEl.className = "cert-status error";
       return;
     }
 
-    const updated = await res.json();
-    document.getElementById("f-date-picker").value = updated.expiration_date;
-    statusEl.textContent = `Certificate uploaded — expiry set to ${isoToDisplay(updated.expiration_date)}`;
-    statusEl.className   = "cert-status success";
-    await loadData();
+    const data = await res.json();
+    document.getElementById("f-date-picker").value = data.expiration_date;
+    statusEl.textContent = `Expiry detected: ${isoToDisplay(data.expiration_date)}`;
+    statusEl.className = "cert-status success";
   } catch (e) {
-    statusEl.textContent = "Network error during upload.";
-    statusEl.className   = "cert-status error";
-    fileInput.value = "";
+    statusEl.textContent = "Network error. Please try again.";
+    statusEl.className = "cert-status error";
   }
 }
 

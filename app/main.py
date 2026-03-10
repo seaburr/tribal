@@ -5,8 +5,9 @@ from pathlib import Path
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI, Request
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
+from prometheus_client import CONTENT_TYPE_LATEST, REGISTRY, generate_latest
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from sqlalchemy import inspect, text
@@ -86,7 +87,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Tribal", lifespan=lifespan)
-Instrumentator().instrument(app).expose(app, include_in_schema=False)
+Instrumentator().instrument(app)  # .expose() intentionally omitted — see /metrics below
 
 # ── Auth middleware ────────────────────────────────────────────────────────────
 # Paths that do NOT require a valid session cookie.
@@ -141,6 +142,26 @@ def _versioned_html(path: str) -> HTMLResponse:
         content,
     )
     return HTMLResponse(content, headers={"Cache-Control": "no-cache, must-revalidate"})
+
+
+_CONST_LABELS = {"app_name": "tribal"}
+
+
+class _LabelledRegistry:
+    """Wraps a CollectorRegistry and injects constant labels into every sample."""
+
+    def collect(self):
+        for metric in REGISTRY.collect():
+            metric.samples = [
+                s._replace(labels={**s.labels, **_CONST_LABELS})
+                for s in metric.samples
+            ]
+            yield metric
+
+
+@app.get("/metrics", include_in_schema=False)
+def metrics():
+    return Response(generate_latest(_LabelledRegistry()), media_type=CONTENT_TYPE_LATEST)
 
 
 @app.get("/healthz", include_in_schema=False)
