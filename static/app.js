@@ -179,6 +179,10 @@ const MONTH_NAMES = ["January","February","March","April","May","June",
   await loadUser();
   await loadData();
   _checkTeamSetup();
+  const hash = window.location.hash.slice(1);
+  if (hash && ["overview", "resources", "admin", "docs"].includes(hash)) {
+    switchTab(hash);
+  }
 })();
 
 async function loadData() {
@@ -214,6 +218,7 @@ function switchTab(name) {
     p.classList.toggle("active", p.id === "tab-" + name);
   });
   if (name === "admin") loadAdminTab();
+  history.replaceState(null, "", "#" + name);
 }
 
 // ── Date helpers ──────────────────────────────────────────────────────────────
@@ -701,9 +706,11 @@ async function saveResource(event) {
 
     const saved = await res.json();
 
+    const wasEditing = !!editingId;
     closeModal();
     await loadData();
-    showToast(editingId ? "Resource updated." : "Resource added.");
+    showToast(wasEditing ? "Resource updated." : "Resource added.");
+    if (!wasEditing) switchTab("resources");
   } catch (e) {
     showError("Network error. Please try again.");
   } finally {
