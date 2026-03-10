@@ -4,10 +4,18 @@ set -e
 # Create data directory for SQLite (no-op for MySQL)
 mkdir -p data
 
+echo "Starting database migrations..."
+
 # Apply any pending Alembic migrations
 alembic upgrade head
 
-# Start the application
+# Starting the application
+echo ""
+echo "  _____    _ _          _ ";
+echo " |_   _| _(_) |__  __ _| |";
+echo "   | || '_| | '_ \\/ _\` | |";
+echo "   |_||_| |_|_.__/\\__,_|_|";
+echo "                          ";                       
 exec uvicorn app.main:app \
   --host 0.0.0.0 \
   --port 8000 \
