@@ -9,7 +9,7 @@ from .. import models, schemas
 from ..database import get_db
 from ..dependencies import get_current_user
 from ..cert_utils import extract_expiry_from_pem, fetch_cert_expiry_from_endpoint
-from ..scheduler import send_deletion_notification
+from ..scheduler import send_deletion_notification, _TRIBAL_FOOTER
 
 router = APIRouter(prefix="/api/resources", tags=["resources"])
 
@@ -76,7 +76,20 @@ async def test_webhook(
     req: schemas.WebhookTestRequest,
     _: models.User = Depends(get_current_user),
 ):
-    payload = {"text": "This is a test message from Tribal."}
+    payload = {
+        "text": "This is a test message from Tribal.",
+        "blocks": [
+            {
+                "type": "header",
+                "text": {"type": "plain_text", "text": ":white_check_mark: Tribal webhook test"},
+            },
+            {
+                "type": "section",
+                "text": {"type": "mrkdwn", "text": "Your webhook is configured correctly. Tribal will send reminders to this channel."},
+            },
+            _TRIBAL_FOOTER,
+        ],
+    }
     try:
         async with httpx.AsyncClient() as client:
             r = await client.post(req.webhook_url, json=payload, timeout=10)
@@ -161,7 +174,8 @@ async def delete_resource(
     if not resource:
         raise HTTPException(status_code=404, detail="Resource not found")
     _audit(db, "resource.delete", resource, current_user, {"type": resource.type, "dri": resource.dri}, via=getattr(request.state, "auth_via", "ui"))
-    await send_deletion_notification(resource)
+    deleted_by = current_user.display_name or current_user.email if current_user else None
+    await send_deletion_notification(resource, deleted_by=deleted_by)
     resource.deleted_at = datetime.now(timezone.utc)
     db.commit()
 

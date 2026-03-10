@@ -5,11 +5,27 @@ from datetime import date, datetime
 import httpx
 
 from .database import SessionLocal
-from .models import AdminSettings, ReminderLog, Resource
+from .models import AdminSettings, AuditLog, ReminderLog, Resource
 
 logger = logging.getLogger(__name__)
 
 _DEFAULT_REMINDER_DAYS = [30, 14, 7, 3]
+
+
+def _audit_notification(resource: Resource, action: str, detail: dict):
+    db = SessionLocal()
+    try:
+        db.add(AuditLog(
+            resource_id=resource.id,
+            resource_name=resource.name,
+            action=action,
+            detail=detail,
+        ))
+        db.commit()
+    except Exception:
+        logger.exception("Failed to write audit log for %s on resource %d", action, resource.id)
+    finally:
+        db.close()
 _URL_RE = re.compile(r'(https?://[^\s<>]+)')
 
 
@@ -20,7 +36,7 @@ _DEFAULT_NOTIFY_HOUR = 9
 
 _TRIBAL_FOOTER = {
     "type": "context",
-    "elements": [{"type": "mrkdwn", "text": "Sent by *Tribal* — expiration & rotation tracker"}],
+    "elements": [{"type": "mrkdwn", "text": "Sent by *Tribal* — The expiration & rotation tracker."}],
 }
 
 
@@ -115,19 +131,37 @@ async def _send_overdue_alert(resource: Resource, admin_webhook: str):
             },
             {
                 "type": "section",
-                "text": {"type": "mrkdwn", "text": f"*Purpose:*\n{resource.purpose}"},
+                "text": {"type": "mrkdwn", "text": f"*Purpose:*\n{_slackify_links(resource.purpose)}"},
             },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"*Rotation Instructions:*\n{_slackify_links(resource.generation_instructions)}",
+                },
+            },
+            *(
+                [{
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"*Secret Manager:* <{resource.secret_manager_link}|View>",
+                    },
+                }]
+                if resource.secret_manager_link else []
+            ),
             _TRIBAL_FOOTER,
         ],
     }
     try:
         async with httpx.AsyncClient() as client:
             await client.post(admin_webhook, json=payload, timeout=10)
+        _audit_notification(resource, "notification.overdue_alert", {"days_overdue": days_overdue, "expiration_date": expiry_str})
     except Exception:
         logger.exception("Failed to send overdue alert for resource %d", resource.id)
 
 
-async def send_deletion_notification(resource: Resource):
+async def send_deletion_notification(resource: Resource, deleted_by: str | None = None):
     payload = {
         "text": f":wastebasket: {resource.name} has been deleted from Tribal.",
         "blocks": [
@@ -140,6 +174,10 @@ async def send_deletion_notification(resource: Resource):
                 "fields": [
                     {"type": "mrkdwn", "text": f"*Type:*\n{resource.type}"},
                     {"type": "mrkdwn", "text": f"*DRI:*\n{resource.dri}"},
+                    *(
+                        [{"type": "mrkdwn", "text": f"*Deleted by:*\n{deleted_by}"}]
+                        if deleted_by else []
+                    ),
                 ],
             },
             {
@@ -155,6 +193,7 @@ async def send_deletion_notification(resource: Resource):
     try:
         async with httpx.AsyncClient() as client:
             await client.post(resource.slack_webhook, json=payload, timeout=10)
+        _audit_notification(resource, "notification.deletion", {"deleted_by": deleted_by})
     except Exception:
         logger.exception("Failed to send deletion notification for resource %d", resource.id)
 
@@ -190,7 +229,7 @@ async def _send_slack_reminder(resource: Resource, days_until: int):
         },
         {
             "type": "section",
-            "text": {"type": "mrkdwn", "text": f"*Purpose:*\n{resource.purpose}"},
+            "text": {"type": "mrkdwn", "text": f"*Purpose:*\n{_slackify_links(resource.purpose)}"},
         },
         {
             "type": "section",
@@ -220,5 +259,6 @@ async def _send_slack_reminder(resource: Resource, days_until: int):
     try:
         async with httpx.AsyncClient() as client:
             await client.post(resource.slack_webhook, json=payload, timeout=10)
+        _audit_notification(resource, "notification.reminder", {"days_until": days_until, "expiration_date": expiry_str})
     except Exception:
         logger.exception("Failed to send Slack reminder for resource %d", resource.id)
