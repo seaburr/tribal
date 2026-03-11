@@ -33,6 +33,7 @@ class AdminSettingsResponse(BaseModel):
     notify_hour: int
     slack_webhook: Optional[str] = None
     alert_on_overdue: bool = False
+    alert_on_delete: bool = False
 
     model_config = {"from_attributes": True}
 
@@ -43,6 +44,7 @@ class AdminSettingsUpdate(BaseModel):
     notify_hour: int
     slack_webhook: Optional[str] = None
     alert_on_overdue: bool = False
+    alert_on_delete: bool = False
 
 
 class TeamCreate(BaseModel):

@@ -9,7 +9,7 @@ from .. import models, schemas
 from ..database import get_db
 from ..dependencies import get_current_user
 from ..cert_utils import extract_expiry_from_pem, fetch_cert_expiry_from_endpoint
-from ..scheduler import send_deletion_notification, _TRIBAL_FOOTER
+from ..scheduler import send_deletion_notification, send_admin_deletion_notification, _TRIBAL_FOOTER
 
 router = APIRouter(prefix="/api/resources", tags=["resources"])
 
@@ -153,13 +153,18 @@ def update_resource(
         raise HTTPException(status_code=404, detail="Resource not found")
 
     update_data = updates.model_dump(exclude_unset=True)
+    # Only record fields whose values actually changed
+    changed_fields = [
+        field for field, new_val in update_data.items()
+        if str(getattr(resource, field, None)) != str(new_val)
+    ]
     for field, value in update_data.items():
         setattr(resource, field, value)
 
     resource.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(resource)
-    _audit(db, "resource.update", resource, current_user, {"updated_fields": list(update_data.keys())}, via=getattr(request.state, "auth_via", "ui"))
+    _audit(db, "resource.update", resource, current_user, {"updated_fields": changed_fields}, via=getattr(request.state, "auth_via", "ui"))
     return resource
 
 
@@ -176,6 +181,10 @@ async def delete_resource(
     _audit(db, "resource.delete", resource, current_user, {"type": resource.type, "dri": resource.dri}, via=getattr(request.state, "auth_via", "ui"))
     deleted_by = current_user.display_name or current_user.email if current_user else None
     await send_deletion_notification(resource, deleted_by=deleted_by)
+    # Notify admin webhook if alert_on_delete is enabled
+    admin_settings = db.get(models.AdminSettings, 1)
+    if admin_settings and admin_settings.alert_on_delete and admin_settings.slack_webhook:
+        await send_admin_deletion_notification(resource, admin_settings.slack_webhook, deleted_by=deleted_by)
     resource.deleted_at = datetime.now(timezone.utc)
     db.commit()
 

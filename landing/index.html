@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Tribal — Never Let a Credential Expire</title>
+  <title>Tribal — Credential Lifecycle Management</title>
   <link rel="icon" type="image/x-icon" href="favicon.ico" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -181,15 +181,15 @@
   <div class="hero">
     <img src="tribal_logo.png" alt="Tribal logo" class="logo" />
     <h1>Tribal</h1>
-    <p class="tagline">Track and rotate certificates, API keys, SSH keys, and other credentials — before they expire.</p>
+    <p class="tagline">Full audit visibility and automated Slack reminders for every certificate, API key, and secret your organization depends on.</p>
 
     <div class="pill-row">
-      <span class="pill">Certificates</span>
+      <span class="pill">TLS Certificates</span>
       <span class="pill">API Keys</span>
       <span class="pill">SSH Keys</span>
+      <span class="pill">Audit Logs</span>
       <span class="pill">Slack Reminders</span>
-      <span class="pill">Calendar View</span>
-      <span class="pill">Multi-user</span>
+      <span class="pill">Soft Deletes</span>
       <span class="pill">REST API</span>
       <span class="pill">Terraform Provider</span>
     </div>
@@ -197,39 +197,44 @@
 
   <div class="features">
     <div class="feature">
-      <div class="feature-icon">📅</div>
-      <h3>Calendar-first</h3>
-      <p>See all your expiring credentials at a glance in month or year view.</p>
+      <div class="feature-icon">🔐</div>
+      <h3>Certificate Intelligence</h3>
+      <p>Upload a PEM or CRT file — Tribal extracts the expiry date automatically. Or point it at a live TLS endpoint to fetch the cert directly.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">📋</div>
+      <h3>Full Audit Trail</h3>
+      <p>Every create, update, delete, cert upload, login, and role change is logged with the acting user, timestamp, and source (UI or API).</p>
     </div>
     <div class="feature">
       <div class="feature-icon">🔔</div>
-      <h3>Slack Reminders</h3>
-      <p>Automatic alerts at configurable intervals before expiration — never miss a rotation.</p>
+      <h3>Proactive Reminders</h3>
+      <p>Automatic Slack alerts at configurable intervals before expiration, with rotation instructions included so your team can act immediately.</p>
     </div>
     <div class="feature">
-      <div class="feature-icon">🔐</div>
-      <h3>Cert Upload</h3>
-      <p>Upload a PEM or CRT file and let Tribal extract the expiry date automatically.</p>
+      <div class="feature-icon">🔄</div>
+      <h3>Safe Deletion</h3>
+      <p>Deleted resources are soft-deleted and recoverable from the Admin panel. Deletion events notify both the owning team and admins via Slack.</p>
     </div>
     <div class="feature">
       <div class="feature-icon">👥</div>
-      <h3>Multi-user</h3>
-      <p>Team accounts with admin and member roles. Audit log tracks every change.</p>
+      <h3>Role-based Access</h3>
+      <p>Team accounts with admin and member roles. Admins control notification policies, manage users, and download audit reports.</p>
     </div>
     <div class="feature">
       <div class="feature-icon">🔑</div>
-      <h3>API Access</h3>
-      <p>REST API with API key auth. Automate credential tracking or integrate with your own tooling.</p>
+      <h3>API & Automation</h3>
+      <p>REST API with API key authentication. All API activity is attributed in the audit log — distinguish UI-driven changes from automated pipelines.</p>
     </div>
     <div class="feature">
       <div class="feature-icon">🏗️</div>
       <h3>Terraform Provider</h3>
-      <p>Declare credentials as code with the official Tribal provider. Manage secret policy data along side your other IaC.</p>
+      <p>Declare and version-control your credential policy alongside your infrastructure. Manage expiration dates and rotation instructions as code.</p>
     </div>
     <div class="feature">
-      <div class="feature-icon">⚙️</div>
-      <h3>Admin Panel</h3>
-      <p>Configure notification schedules, manage users, download reports, and review audit logs.</p>
+      <div class="feature-icon">📅</div>
+      <h3>Visual Calendar</h3>
+      <p>See everything expiring at a glance in month or year view. Overdue and urgent items are highlighted so nothing is missed.</p>
     </div>
   </div>
 

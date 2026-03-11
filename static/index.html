@@ -133,12 +133,16 @@
               <span class="admin-field-hint">Optional. Receives admin-level notifications. Separate from per-resource webhooks.</span>
             </div>
             <div class="admin-form-group">
-              <label style="font-weight:500">Overdue Alerts</label>
-              <label class="checkbox-label">
+              <label style="font-weight:500">Admin Alerts</label>
+              <label class="checkbox-label" style="margin-bottom:6px">
                 <input type="checkbox" id="adm-alert-on-overdue" />
                 Alert admins when a resource is overdue
               </label>
-              <span class="admin-field-hint">Sends a one-time alert to the Admin Slack Webhook when a resource passes its expiration date.</span>
+              <label class="checkbox-label">
+                <input type="checkbox" id="adm-alert-on-delete" />
+                Alert admins when a resource is deleted
+              </label>
+              <span class="admin-field-hint">Sends alerts to the Admin Slack Webhook for the selected conditions.</span>
             </div>
           </div>
           <div id="adm-settings-msg" class="admin-msg"></div>
@@ -232,7 +236,7 @@
         </div>
         <div class="admin-card-body" style="padding:0">
           <div class="admin-table-wrap">
-            <table class="admin-table">
+            <table class="admin-table audit-table">
               <thead>
                 <tr>
                   <th>Date / Time</th>
@@ -310,29 +314,39 @@
   <!-- Docs tab -->
   <div id="tab-docs" class="tab-pane">
     <div class="about-panel">
-      <h2>Docs</h2>
-      <p class="about-lead">Tribal helps teams stay on top of expiration dates and rotation processes for certificates, API keys, SSH keys, and other time-sensitive credentials.</p>
+      <h2>Tribal</h2>
+      <p class="about-lead">Tribal is a credential lifecycle management tool that keeps your team ahead of certificate expirations, API key rotations, and other time-sensitive secrets — with automated Slack reminders, full audit visibility, and infrastructure-as-code support.</p>
 
-      <h3>The Problem</h3>
-      <p>Expired certificates and rotated credentials cause outages. Teams discover expirations too late because the knowledge of what expires, when, and how to rotate it is scattered across emails, wikis, and individual memory.</p>
-
-      <h3>What Tribal Does</h3>
+      <h3>What Tribal Tracks</h3>
       <ul>
-        <li>Tracks expiration and rotation dates for any credential or certificate</li>
-        <li>Sends automated Slack reminders 30, 14, 7, and 3 days before expiration</li>
-        <li>Stores generation and rotation instructions so any team member can act</li>
-        <li>Parses public certificate files to automatically extract expiry dates</li>
-        <li>Provides a visual calendar to see what's expiring and when</li>
+        <li><strong>Certificates</strong> — upload a PEM or CRT file and Tribal extracts the expiry date automatically, or point it at a live TLS endpoint</li>
+        <li><strong>API Keys</strong> — track third-party API keys with rotation deadlines and generation instructions</li>
+        <li><strong>SSH Keys</strong> — log SSH key expiry and who's responsible for rotation</li>
+        <li><strong>Any credential</strong> — use the "Other" type for anything else that needs monitoring</li>
+      </ul>
+
+      <h3>Automated Reminders</h3>
+      <p>Tribal sends Slack notifications to the owning team at configurable intervals before a credential expires (e.g. 30, 14, 7, 3, and 1 days). Each reminder includes the rotation instructions and a link to the secret manager, so the on-call engineer can act immediately without hunting for context.</p>
+
+      <h3>For Administrators</h3>
+      <ul>
+        <li><strong>Notification Settings</strong> — configure when reminders fire (days before expiry) and the time of day (UTC)</li>
+        <li><strong>Admin Slack Webhook</strong> — receive admin-level alerts: overdue resources, deleted resources, and test confirmations</li>
+        <li><strong>User Management</strong> — promote members to admin, remove access, and protect the account creator</li>
+        <li><strong>Audit Log</strong> — every create, update, delete, certificate upload, login, API key event, and role change is logged with the acting user and timestamp</li>
+        <li><strong>Soft Deletes</strong> — deleted resources are retained and recoverable from the Admin panel; no data is permanently lost without explicit action</li>
+        <li><strong>Reports</strong> — download CSV exports for upcoming expirations or recent audit activity</li>
+        <li><strong>API Access</strong> — issue API keys for programmatic access; all API actions appear in the audit log with the source noted</li>
       </ul>
 
       <h3>Terraform Provider</h3>
-      <p>Manage Tribal resources via the UI or alongside your other IaC resources using the official Terraform provider. Define credentials as code, keep them version-controlled, and let Terraform handle drift detection.</p>
+      <p>Manage Tribal resources alongside your other infrastructure-as-code using the official Terraform provider. Define credentials as code, track them in version control, and enforce rotation policy through your existing IaC pipelines.</p>
       <ul>
-        <li><code>tribal_resource</code> — create and manage tracked credentials (certificates, API keys, SSH keys, etc.)</li>
+        <li><code>tribal_resource</code> — create and manage tracked credentials</li>
         <li><code>tribal_admin_settings</code> — configure org-wide notification schedules and Slack webhooks</li>
       </ul>
 
-      <p>Configure the provider with your API key (generate one under <strong>Admin &rarr; API Keys</strong>):</p>
+      <p>Configure the provider with your API key (generate one under <strong>Account &rarr; API Keys</strong>):</p>
       <pre><code>terraform {
   required_providers {
     tribal = {
@@ -360,9 +374,6 @@ resource "tribal_resource" "prod_cert" {
 
   <!-- Resources tab -->
   <div id="tab-resources" class="tab-pane">
-    <div class="toolbar">
-      <h2>All Resources</h2>
-    </div>
     <div class="table-wrap">
       <table>
         <thead>

@@ -165,6 +165,43 @@ async def _send_overdue_alert(resource: Resource, admin_webhook: str, db=None):
         logger.exception("Failed to send overdue alert for resource %d", resource.id)
 
 
+async def send_admin_deletion_notification(resource: Resource, admin_webhook: str, deleted_by: str | None = None):
+    """Send a deletion alert to the admin Slack webhook when alert_on_delete is enabled."""
+    expiry_str = resource.expiration_date.strftime("%m/%d/%Y")
+    deleted_by_text = deleted_by or "Unknown"
+    payload = {
+        "text": f":wastebasket: Resource deleted: {resource.name}",
+        "blocks": [
+            {
+                "type": "header",
+                "text": {"type": "plain_text", "text": f":wastebasket: Resource deleted: {resource.name}"},
+            },
+            {
+                "type": "section",
+                "fields": [
+                    {"type": "mrkdwn", "text": f"*Type:*\n{resource.type}"},
+                    {"type": "mrkdwn", "text": f"*DRI:*\n{resource.dri}"},
+                    {"type": "mrkdwn", "text": f"*Expiration:*\n{expiry_str}"},
+                    {"type": "mrkdwn", "text": f"*Deleted by:*\n{deleted_by_text}"},
+                ],
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "This resource has been removed from Tribal. No further reminders will be sent.",
+                },
+            },
+            _TRIBAL_FOOTER,
+        ],
+    }
+    try:
+        async with httpx.AsyncClient() as client:
+            await client.post(admin_webhook, json=payload, timeout=10)
+    except Exception:
+        logger.exception("Failed to send admin deletion notification for resource %d", resource.id)
+
+
 async def send_deletion_notification(resource: Resource, deleted_by: str | None = None):
     payload = {
         "text": f":wastebasket: {resource.name} has been deleted from Tribal.",

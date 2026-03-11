@@ -118,7 +118,7 @@ header .tagline { color: var(--text-mut); font-size: 13px; flex: 1; }
 }
 
 /* ── Admin panel ───────────────────────────────────────────────────────────── */
-#admin-content { display: flex; flex-direction: column; gap: 20px; max-width: 860px; }
+#admin-content { display: flex; flex-direction: column; gap: 20px; }
 
 .admin-card {
   background: var(--surface);
@@ -685,7 +685,16 @@ select {
   font-family: inherit;
   transition: border-color .15s, box-shadow .15s;
 }
-select { color: var(--text); }
+select {
+  color: var(--text);
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' stroke='%2364748b' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 30px;
+}
 select option { background: var(--surface); }
 
 input:focus, textarea:focus, select:focus {
@@ -935,7 +944,6 @@ textarea { resize: vertical; min-height: 80px; }
 
 /* ── About page ────────────────────────────────────────────────────────────── */
 .about-panel {
-  max-width: 680px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -1057,10 +1065,14 @@ textarea { resize: vertical; min-height: 80px; }
   /* Year view — 2 columns on phones */
   .year-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; padding: 10px 12px 16px; }
 
-  /* Table — hide Type and DRI columns; they're always available in the detail modal */
+  /* Resources table — hide Type and DRI columns; they're always available in the detail modal */
   .table-wrap { overflow-x: auto; }
-  table th:nth-child(2), table td:nth-child(2),
-  table th:nth-child(3), table td:nth-child(3) { display: none; }
+  #tab-resources table th:nth-child(2), #tab-resources table td:nth-child(2),
+  #tab-resources table th:nth-child(3), #tab-resources table td:nth-child(3) { display: none; }
+
+  /* Audit log — hide Date and User columns; show Action and Resource */
+  .audit-table th:nth-child(1), .audit-table td:nth-child(1),
+  .audit-table th:nth-child(2), .audit-table td:nth-child(2) { display: none; }
 
   /* Stack action buttons so they don't blow out the column width */
   td.actions { flex-direction: column; gap: 3px; align-items: stretch; }

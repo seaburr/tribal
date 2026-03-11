@@ -250,3 +250,16 @@ Feedback from the first round of testing that needs to be addressed:
 * Update password complexity requirements to be: At least 8 characters, one number, and one special character. Enforce this check.
 * Go ahead implement the team. When the first user creates their account, ask them to name the team. For now, everything (users, api keys, resources, admin config, etc.) will be associated to this one team but this opens the door to making the application multi-tenant.
 * Team name can be modified from the admin page.
+
+## Iteration 14
+
+* feat: The admin webhook test message should use the same formatting at the regular notification with the footer and title.
+* feat: There should be an option under Admin that when a resource is deleted, the admins are also notified (default: false).
+* bug: When a resource is updated, the audit log report shows which field(s) were changed but appears to show all fields rather than actually logging the subset of fields which had their values change.
+* bug/UI: The width of of panels should be the same. Admin and Docs are both different widths but should match "Resources".
+* chore: The docs content needs refresh that focuses on what Tribal does (rather than why it is being developed) and what it offers administrators.
+* chore: Update the landing page. Things have changed in the app. I think focus on the certificate changes but mostly on auditability and the benefits for the organization using Tribal.
+* bug/UI: The dropdown arrow on the f-type selector drop down is too close to the edge and should be moved inward slightly.
+* bug/UI: Remove the "All Resources" text from the Resources tab.
+* bug/UI: When viewing the audit log on mobile, only the date and source columns are visible. If we can only show 2, the resource and action would be the best to display.
+* feat: Deleted items should be marked when they're deleted so we can (later) add a clean up job to delete these after N days.

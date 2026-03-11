@@ -11,6 +11,7 @@ from .. import models, schemas
 from ..audit import write_audit
 from ..database import get_db
 from ..dependencies import get_current_user, require_admin
+from ..scheduler import _TRIBAL_FOOTER
 
 router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(require_admin)])
 
@@ -28,7 +29,20 @@ def _get_or_create_settings(db: Session) -> models.AdminSettings:
 
 @router.post("/webhook-test", status_code=204)
 async def test_admin_webhook(req: schemas.WebhookTestRequest):
-    payload = {"text": "This is a test message from Tribal for the admin Slack webhook."}
+    payload = {
+        "text": "This is a test message from Tribal for the admin Slack webhook.",
+        "blocks": [
+            {
+                "type": "header",
+                "text": {"type": "plain_text", "text": ":white_check_mark: Admin Webhook Test"},
+            },
+            {
+                "type": "section",
+                "text": {"type": "mrkdwn", "text": "Your admin webhook is configured correctly. Tribal will send admin-level notifications to this channel."},
+            },
+            _TRIBAL_FOOTER,
+        ],
+    }
     try:
         async with httpx.AsyncClient() as client:
             r = await client.post(req.webhook_url, json=payload, timeout=10)
@@ -58,6 +72,7 @@ def update_settings(updates: schemas.AdminSettingsUpdate, db: Session = Depends(
     settings.notify_hour = updates.notify_hour
     settings.slack_webhook = updates.slack_webhook or None
     settings.alert_on_overdue = updates.alert_on_overdue
+    settings.alert_on_delete = updates.alert_on_delete
     settings.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(settings)

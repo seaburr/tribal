@@ -31,6 +31,7 @@ class AdminSettings(Base):
     notify_hour = Column(Integer, nullable=False, default=9)
     slack_webhook = Column(String(500), nullable=True)
     alert_on_overdue = Column(Boolean, nullable=False, default=False)
+    alert_on_delete = Column(Boolean, nullable=False, default=False)
     updated_at = Column(DateTime, default=_utcnow)
 
 
