@@ -407,3 +407,102 @@ def test_role_change_audited(client_with_creator):
     detail = role_events[0]["detail"]
     assert detail["action"] == "granted"
     assert detail["new_role"] == "admin"
+
+
+# ── Notification settings ─────────────────────────────────────────────────────
+
+def test_admin_settings_default_reminder_days(client):
+    r = client.get("/admin/settings")
+    assert r.status_code == 200
+    data = r.json()
+    assert "reminder_days" in data
+    # Defaults should be [30, 14, 7, 3] (stored descending)
+    assert set(data["reminder_days"]) == {30, 14, 7, 3}
+
+
+def test_admin_settings_accepts_60_and_45_days(client):
+    payload = {
+        "reminder_days": [60, 45, 30, 14, 7, 3],
+        "notify_hour": 9,
+        "slack_webhook": None,
+        "alert_on_overdue": False,
+        "alert_on_delete": False,
+    }
+    r = client.put("/admin/settings", json=payload)
+    assert r.status_code == 200
+    saved = r.json()["reminder_days"]
+    assert 60 in saved
+    assert 45 in saved
+
+
+def test_admin_settings_save_and_reload_60_45(client):
+    payload = {
+        "reminder_days": [60, 45],
+        "notify_hour": 8,
+        "slack_webhook": None,
+        "alert_on_overdue": False,
+        "alert_on_delete": False,
+    }
+    r = client.put("/admin/settings", json=payload)
+    assert r.status_code == 200
+
+    r2 = client.get("/admin/settings")
+    assert r2.status_code == 200
+    data = r2.json()
+    assert set(data["reminder_days"]) == {60, 45}
+    assert data["notify_hour"] == 8
+
+
+def test_admin_settings_rejects_empty_reminder_days(client):
+    payload = {
+        "reminder_days": [],
+        "notify_hour": 9,
+        "slack_webhook": None,
+        "alert_on_overdue": False,
+        "alert_on_delete": False,
+    }
+    r = client.put("/admin/settings", json=payload)
+    assert r.status_code == 422
+
+
+def test_admin_settings_rejects_out_of_range_reminder_days(client):
+    payload = {
+        "reminder_days": [0, 30],
+        "notify_hour": 9,
+        "slack_webhook": None,
+        "alert_on_overdue": False,
+        "alert_on_delete": False,
+    }
+    r = client.put("/admin/settings", json=payload)
+    assert r.status_code == 422
+
+
+# ── Certificate URL and auto-refresh ─────────────────────────────────────────
+
+def test_create_certificate_resource_with_url(client):
+    payload = {**SAMPLE, "certificate_url": "https://api.example.com", "auto_refresh_expiry": True}
+    r = client.post("/api/resources/", json=payload)
+    assert r.status_code == 201
+    data = r.json()
+    assert data["certificate_url"] == "https://api.example.com"
+    assert data["auto_refresh_expiry"] is True
+
+
+def test_certificate_url_defaults_to_none(client):
+    r = client.post("/api/resources/", json=SAMPLE)
+    assert r.status_code == 201
+    data = r.json()
+    assert data["certificate_url"] is None
+    assert data["auto_refresh_expiry"] is False
+
+
+def test_update_certificate_url(client, created):
+    r = client.put(f"/api/resources/{created['id']}", json={"certificate_url": "https://new.example.com"})
+    assert r.status_code == 200
+    assert r.json()["certificate_url"] == "https://new.example.com"
+
+
+def test_update_auto_refresh_expiry(client, created):
+    r = client.put(f"/api/resources/{created['id']}", json={"auto_refresh_expiry": True})
+    assert r.status_code == 200
+    assert r.json()["auto_refresh_expiry"] is True

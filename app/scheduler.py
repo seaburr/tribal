@@ -1,9 +1,10 @@
 import logging
 import re
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 
 import httpx
 
+from .cert_utils import fetch_cert_expiry_from_endpoint
 from .database import SessionLocal
 from .models import AdminSettings, AuditLog, ReminderLog, Resource
 
@@ -307,3 +308,47 @@ async def _send_slack_reminder(resource: Resource, days_until: int, db=None):
             _audit_notification(resource.id, resource.name, "notification.reminder", {"days_until": days_until, "expiration_date": expiry_str})
     except Exception:
         logger.exception("Failed to send Slack reminder for resource %d", resource.id)
+
+
+async def refresh_cert_expiry():
+    """Daily job: re-fetch TLS certificate expiry for resources with auto_refresh_expiry enabled."""
+    logger.info("refresh_cert_expiry: starting")
+    db = SessionLocal()
+    try:
+        candidates = (
+            db.query(Resource)
+            .filter(
+                Resource.deleted_at.is_(None),
+                Resource.type == "Certificate",
+                Resource.auto_refresh_expiry.is_(True),
+                Resource.certificate_url.isnot(None),
+            )
+            .all()
+        )
+        logger.info("refresh_cert_expiry: checking %d resource(s)", len(candidates))
+        for resource in candidates:
+            try:
+                new_expiry = fetch_cert_expiry_from_endpoint(resource.certificate_url)
+            except Exception:
+                logger.warning("refresh_cert_expiry: could not fetch cert for resource %d (%s)", resource.id, resource.certificate_url)
+                continue
+
+            if new_expiry != resource.expiration_date:
+                old_expiry = resource.expiration_date.isoformat()
+                resource.expiration_date = new_expiry
+                resource.updated_at = datetime.now(timezone.utc)
+                db.add(AuditLog(
+                    resource_id=resource.id,
+                    resource_name=resource.name,
+                    action="resource.cert_expiry_refresh",
+                    detail={"old_expiry": old_expiry, "new_expiry": new_expiry.isoformat(), "certificate_url": resource.certificate_url},
+                ))
+                db.commit()
+                logger.info("refresh_cert_expiry: updated expiry for %r: %s → %s", resource.name, old_expiry, new_expiry.isoformat())
+            else:
+                logger.info("refresh_cert_expiry: expiry unchanged for %r (%s)", resource.name, resource.expiration_date)
+        logger.info("refresh_cert_expiry: complete")
+    except Exception:
+        logger.exception("refresh_cert_expiry: unhandled error")
+    finally:
+        db.close()

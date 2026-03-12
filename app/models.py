@@ -82,6 +82,8 @@ class Resource(Base):
     type = Column(String(50), nullable=False, server_default="Other")
     team_id = Column(Integer, ForeignKey("teams.id", ondelete="SET NULL"), nullable=True)
     public_key_pem = Column(Text, nullable=True)
+    certificate_url = Column(String(1000), nullable=True)
+    auto_refresh_expiry = Column(Boolean, nullable=False, default=False)
     created_at = Column(DateTime, default=_utcnow)
     updated_at = Column(DateTime, default=_utcnow)
     deleted_at = Column(DateTime, nullable=True, default=None)

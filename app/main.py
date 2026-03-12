@@ -15,7 +15,7 @@ from .routers import resources
 from .routers import auth as auth_router
 from .routers import admin as admin_router
 from .routers import keys as keys_router
-from .scheduler import check_reminders
+from .scheduler import check_reminders, refresh_cert_expiry
 
 BUILD_SHA = os.environ.get("BUILD_SHA", "dev")
 
@@ -24,6 +24,7 @@ BUILD_SHA = os.environ.get("BUILD_SHA", "dev")
 async def lifespan(app: FastAPI):
     scheduler = AsyncIOScheduler()
     scheduler.add_job(check_reminders, "cron", minute=0)  # runs every hour; notify_hour configured in Admin
+    scheduler.add_job(refresh_cert_expiry, "cron", hour=0, minute=5)  # daily at 00:05 UTC
     scheduler.start()
     yield
     scheduler.shutdown()

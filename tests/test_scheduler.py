@@ -7,12 +7,13 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from app.models import AdminSettings, Base, ReminderLog, Resource
+from app.models import AdminSettings, AuditLog, Base, ReminderLog, Resource
 from app.scheduler import (
     _send_slack_reminder,
     _send_overdue_alert,
     send_deletion_notification,
     check_reminders,
+    refresh_cert_expiry,
 )
 
 
@@ -282,3 +283,113 @@ def test_check_reminders_sends_and_deduplicates(db_session):
         # Second run — already logged, should not send again
         asyncio.run(check_reminders())
         assert mock_client.post.call_count == 1
+
+
+# ── refresh_cert_expiry ───────────────────────────────────────────────────────
+
+def _make_cert_resource(db, **kwargs):
+    today = date.today()
+    defaults = dict(
+        name="api.example.com TLS",
+        dri="ops@example.com",
+        type="Certificate",
+        expiration_date=today + timedelta(days=60),
+        purpose="Prod TLS",
+        generation_instructions="Renew via certbot",
+        slack_webhook="https://hooks.slack.com/TEST",
+        certificate_url="https://api.example.com",
+        auto_refresh_expiry=True,
+    )
+    defaults.update(kwargs)
+    r = Resource(**defaults)
+    db.add(r)
+    db.commit()
+    db.refresh(r)
+    return r
+
+
+def test_refresh_cert_expiry_updates_date(db_session):
+    today = date.today()
+    resource = _make_cert_resource(db_session, expiration_date=today + timedelta(days=60))
+    new_expiry = today + timedelta(days=90)
+
+    with patch("app.scheduler.SessionLocal", return_value=db_session), \
+         patch("app.scheduler.fetch_cert_expiry_from_endpoint", return_value=new_expiry):
+        asyncio.run(refresh_cert_expiry())
+
+    # Session is closed by scheduler; query fresh
+    updated = db_session.get(Resource, resource.id)
+    assert updated.expiration_date == new_expiry
+
+    audit = db_session.query(AuditLog).filter(AuditLog.action == "resource.cert_expiry_refresh").first()
+    assert audit is not None
+    assert audit.detail["new_expiry"] == new_expiry.isoformat()
+
+
+def test_refresh_cert_expiry_no_change(db_session):
+    today = date.today()
+    expiry = today + timedelta(days=60)
+    resource = _make_cert_resource(db_session, expiration_date=expiry)
+
+    with patch("app.scheduler.SessionLocal", return_value=db_session), \
+         patch("app.scheduler.fetch_cert_expiry_from_endpoint", return_value=expiry):
+        asyncio.run(refresh_cert_expiry())
+
+    updated = db_session.get(Resource, resource.id)
+    assert updated.expiration_date == expiry
+    audit = db_session.query(AuditLog).filter(AuditLog.action == "resource.cert_expiry_refresh").first()
+    assert audit is None  # no change, no audit entry
+
+
+def test_refresh_cert_expiry_skips_non_cert_resources(db_session):
+    today = date.today()
+    r = Resource(
+        name="My API Key",
+        dri="ops@example.com",
+        type="API Key",
+        expiration_date=today + timedelta(days=30),
+        purpose="API access",
+        generation_instructions="Rotate in console",
+        slack_webhook="https://hooks.slack.com/TEST",
+        certificate_url="https://api.example.com",
+        auto_refresh_expiry=True,
+    )
+    db_session.add(r)
+    db_session.commit()
+
+    with patch("app.scheduler.SessionLocal", return_value=db_session), \
+         patch("app.scheduler.fetch_cert_expiry_from_endpoint") as mock_fetch:
+        asyncio.run(refresh_cert_expiry())
+        mock_fetch.assert_not_called()
+
+
+def test_refresh_cert_expiry_skips_disabled(db_session):
+    resource = _make_cert_resource(db_session, auto_refresh_expiry=False)
+
+    with patch("app.scheduler.SessionLocal", return_value=db_session), \
+         patch("app.scheduler.fetch_cert_expiry_from_endpoint") as mock_fetch:
+        asyncio.run(refresh_cert_expiry())
+        mock_fetch.assert_not_called()
+
+
+def test_refresh_cert_expiry_skips_no_url(db_session):
+    resource = _make_cert_resource(db_session, certificate_url=None)
+
+    with patch("app.scheduler.SessionLocal", return_value=db_session), \
+         patch("app.scheduler.fetch_cert_expiry_from_endpoint") as mock_fetch:
+        asyncio.run(refresh_cert_expiry())
+        mock_fetch.assert_not_called()
+
+
+def test_refresh_cert_expiry_tolerates_fetch_error(db_session):
+    today = date.today()
+    expiry = today + timedelta(days=60)
+    resource = _make_cert_resource(db_session, expiration_date=expiry)
+
+    with patch("app.scheduler.SessionLocal", return_value=db_session), \
+         patch("app.scheduler.fetch_cert_expiry_from_endpoint", side_effect=Exception("timeout")):
+        # Should not raise — errors are caught and logged
+        asyncio.run(refresh_cert_expiry())
+
+    updated = db_session.get(Resource, resource.id)
+    assert updated.expiration_date == expiry  # unchanged

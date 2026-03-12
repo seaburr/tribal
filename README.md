@@ -263,3 +263,10 @@ Feedback from the first round of testing that needs to be addressed:
 * bug/UI: Remove the "All Resources" text from the Resources tab.
 * bug/UI: When viewing the audit log on mobile, only the date and source columns are visible. If we can only show 2, the resource and action would be the best to display.
 * feat: Deleted items should be marked when they're deleted so we can (later) add a clean up job to delete these after N days.
+
+## Iteration 15
+* bug/UI: IF any Notification Settings changes are made, the text "Settings saved." incorrectly stays on the screen even after switching tabs and a page refresh.
+* feat: Add additional days before expiry options (60, 45). Keep defaults the same as current however.
+* feat: Add a resource field for certificate to store the URL where the certificate is used. Store this value with the resource. Field should not be visible if certificate is not chosen as the resource type.
+* feat: Add a resource field for certificates that allows a user to enable periodic re-checking of the certificate expiry. If checked, it should run once daily and update the expiry data on the certificate resource. Field should not be visible if certificate is not chosen as the resource type.
+

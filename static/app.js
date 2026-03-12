@@ -597,6 +597,8 @@ async function openModal(id = null) {
       document.getElementById("f-instructions").value = r.generation_instructions;
       document.getElementById("f-secret-link").value = r.secret_manager_link || "";
       document.getElementById("f-webhook").value = r.slack_webhook;
+      document.getElementById("f-cert-endpoint").value = r.certificate_url || "";
+      document.getElementById("f-auto-refresh").checked = r.auto_refresh_expiry || false;
       onTypeChange();
     } catch (e) {
       showError("Failed to load resource details.");
@@ -618,6 +620,7 @@ function clearForm() {
     .forEach(id => { document.getElementById(id).value = ""; });
   document.getElementById("f-type").value = "";
   document.getElementById("f-cert-endpoint").value = "";
+  document.getElementById("f-auto-refresh").checked = false;
   document.getElementById("cert-status").textContent = "";
   document.getElementById("cert-status").className = "cert-status";
   document.getElementById("cert-section").style.display = "none";
@@ -674,6 +677,7 @@ async function saveResource(event) {
   const dateISO = document.getElementById("f-date-picker").value;
   if (!dateISO) { showError("Please select an expiration date."); return; }
 
+  const isCert = document.getElementById("f-type").value === "Certificate";
   const payload = {
     name:                    document.getElementById("f-name").value.trim(),
     dri:                     document.getElementById("f-dri").value.trim(),
@@ -683,6 +687,8 @@ async function saveResource(event) {
     generation_instructions: document.getElementById("f-instructions").value.trim(),
     secret_manager_link:     document.getElementById("f-secret-link").value.trim() || null,
     slack_webhook:           document.getElementById("f-webhook").value.trim(),
+    certificate_url:         isCert ? (document.getElementById("f-cert-endpoint").value.trim() || null) : null,
+    auto_refresh_expiry:     isCert && document.getElementById("f-auto-refresh").checked,
   };
 
   const saveBtn = document.getElementById("save-btn");
@@ -872,6 +878,8 @@ function loadAdminTab() {
 
 // ── Notification settings ─────────────────────────────────────────────────────
 async function loadAdminSettings() {
+  const msgEl = document.getElementById("adm-settings-msg");
+  if (msgEl) { msgEl.textContent = ""; msgEl.className = "admin-msg"; }
   const hourSel = document.getElementById("adm-notify-hour");
   if (!hourSel.options.length) {
     for (let h = 0; h < 24; h++) {

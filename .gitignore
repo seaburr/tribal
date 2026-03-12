@@ -394,6 +394,5 @@ $RECYCLE.BIN/
 # End of https://www.toptal.com/developers/gitignore/api/macos,windows,linux,visualstudiocode,python,pycharm,venv
 
 # Custom
-tribal.db
-test.db
+data/
 test.txt

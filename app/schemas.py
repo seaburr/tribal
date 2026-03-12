@@ -137,6 +137,8 @@ class ResourceCreate(BaseModel):
     secret_manager_link: Optional[str] = None
     slack_webhook: str
     team_id: Optional[int] = None
+    certificate_url: Optional[str] = None
+    auto_refresh_expiry: bool = False
 
     @field_validator("expiration_date", mode="before")
     @classmethod
@@ -154,6 +156,8 @@ class ResourceUpdate(BaseModel):
     secret_manager_link: Optional[str] = None
     slack_webhook: Optional[str] = None
     team_id: Optional[int] = None
+    certificate_url: Optional[str] = None
+    auto_refresh_expiry: Optional[bool] = None
 
     @field_validator("expiration_date", mode="before")
     @classmethod
@@ -173,6 +177,8 @@ class ResourceResponse(BaseModel):
     slack_webhook: str
     team_id: Optional[int] = None
     public_key_pem: Optional[str]
+    certificate_url: Optional[str] = None
+    auto_refresh_expiry: bool = False
     created_at: datetime
     updated_at: datetime
 

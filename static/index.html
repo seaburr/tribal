@@ -108,6 +108,8 @@
             <div class="admin-form-group">
               <label>Reminder Days</label>
               <div class="checkbox-group" id="adm-reminder-days">
+                <label class="checkbox-label"><input type="checkbox" value="60" /> 60 days</label>
+                <label class="checkbox-label"><input type="checkbox" value="45" /> 45 days</label>
                 <label class="checkbox-label"><input type="checkbox" value="30" /> 30 days</label>
                 <label class="checkbox-label"><input type="checkbox" value="14" /> 14 days</label>
                 <label class="checkbox-label"><input type="checkbox" value="7" />  7 days</label>
@@ -130,17 +132,17 @@
                 <button type="button" class="btn-test" onclick="testAdminWebhook()">Send Test</button>
               </div>
               <div id="admin-webhook-test-status" class="webhook-test-status"></div>
-              <span class="admin-field-hint">Optional. Receives admin-level notifications. Separate from per-resource webhooks.</span>
+              <span class="admin-field-hint"><i>(Optional.)</i> Receives admin-level notifications. Separate from per-resource webhooks.</span>
             </div>
             <div class="admin-form-group">
               <label style="font-weight:500">Admin Alerts</label>
               <label class="checkbox-label" style="margin-bottom:6px">
                 <input type="checkbox" id="adm-alert-on-overdue" />
-                Alert admins when a resource is overdue
+                Alert admins when a resource has expired.
               </label>
               <label class="checkbox-label">
                 <input type="checkbox" id="adm-alert-on-delete" />
-                Alert admins when a resource is deleted
+                Alert admins when a resource has been deleted.
               </label>
               <span class="admin-field-hint">Sends alerts to the Admin Slack Webhook for the selected conditions.</span>
             </div>
@@ -427,13 +429,17 @@ resource "tribal_resource" "prod_cert" {
         </div>
 
         <div id="cert-section" class="form-group cert-section" style="display:none">
-          <h4>Certificate Expiry Detection <span class="optional">(optional)</span></h4>
-          <p>Enter the URL or hostname where this certificate is deployed to automatically detect its expiry date.</p>
+          <h4>Certificate URL <span class="optional">(optional)</span></h4>
+          <p>The URL or hostname where this certificate is deployed. Used for expiry detection and periodic re-checking.</p>
           <div class="cert-lookup-row">
             <input type="text" id="f-cert-endpoint" placeholder="https://example.com or example.com:8443" />
             <button type="button" class="btn-secondary" onclick="lookupCertExpiry()">Get Expiry</button>
           </div>
           <div id="cert-status" class="cert-status"></div>
+          <label class="checkbox-label" style="margin-top:8px">
+            <input type="checkbox" id="f-auto-refresh" />
+            Periodically re-check certificate expiry.
+          </label>
         </div>
 
         <div class="form-group">
