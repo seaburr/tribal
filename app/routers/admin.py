@@ -58,7 +58,11 @@ def get_settings(db: Session = Depends(get_db)):
 
 
 @router.put("/settings", response_model=schemas.AdminSettingsResponse)
-def update_settings(updates: schemas.AdminSettingsUpdate, db: Session = Depends(get_db)):
+def update_settings(
+    updates: schemas.AdminSettingsUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
     if not updates.reminder_days:
         raise HTTPException(status_code=422, detail="At least one reminder day is required.")
     if any(d <= 0 or d > 365 for d in updates.reminder_days):
@@ -67,15 +71,45 @@ def update_settings(updates: schemas.AdminSettingsUpdate, db: Session = Depends(
         raise HTTPException(status_code=422, detail="Notify hour must be between 0 and 23.")
 
     settings = _get_or_create_settings(db)
-    settings.org_name = updates.org_name.strip() if updates.org_name and updates.org_name.strip() else None
-    settings.reminder_days = sorted(set(updates.reminder_days), reverse=True)
+    new_org_name = updates.org_name.strip() if updates.org_name and updates.org_name.strip() else None
+    new_reminder_days = sorted(set(updates.reminder_days), reverse=True)
+    new_slack_webhook = updates.slack_webhook or None
+
+    # Collect changed fields for the audit log
+    changes: dict = {}
+    if settings.org_name != new_org_name:
+        changes["org_name"] = {"old": settings.org_name, "new": new_org_name}
+    if sorted(settings.reminder_days or [], reverse=True) != new_reminder_days:
+        changes["reminder_days"] = {"old": settings.reminder_days, "new": new_reminder_days}
+    if settings.notify_hour != updates.notify_hour:
+        changes["notify_hour"] = {"old": settings.notify_hour, "new": updates.notify_hour}
+    if settings.slack_webhook != new_slack_webhook:
+        changes["slack_webhook"] = {"old": bool(settings.slack_webhook), "new": bool(new_slack_webhook)}
+    if settings.alert_on_overdue != updates.alert_on_overdue:
+        changes["alert_on_overdue"] = {"old": settings.alert_on_overdue, "new": updates.alert_on_overdue}
+    if settings.alert_on_delete != updates.alert_on_delete:
+        changes["alert_on_delete"] = {"old": settings.alert_on_delete, "new": updates.alert_on_delete}
+
+    settings.org_name = new_org_name
+    settings.reminder_days = new_reminder_days
     settings.notify_hour = updates.notify_hour
-    settings.slack_webhook = updates.slack_webhook or None
+    settings.slack_webhook = new_slack_webhook
     settings.alert_on_overdue = updates.alert_on_overdue
     settings.alert_on_delete = updates.alert_on_delete
     settings.updated_at = datetime.now(timezone.utc)
+
+    # Keep the singleton Team name in sync with org_name
+    if new_org_name:
+        team = db.query(models.Team).first()
+        if team and team.name != new_org_name:
+            team.name = new_org_name
+
     db.commit()
     db.refresh(settings)
+
+    if changes:
+        write_audit(db, "admin.settings_updated", user_email=current_user.email, detail={"changes": changes})
+
     return settings
 
 

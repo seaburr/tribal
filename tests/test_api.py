@@ -477,6 +477,34 @@ def test_admin_settings_rejects_out_of_range_reminder_days(client):
     assert r.status_code == 422
 
 
+def test_admin_settings_org_name_syncs_team_name(client):
+    """PUT /admin/settings with org_name must also update the singleton Team name."""
+    from app.models import Team
+    from app.database import get_db as _get_db
+
+    # Create a team first
+    client.post("/admin/teams", json={"name": "Original Team"})
+
+    payload = {
+        "org_name": "Updated Org Name",
+        "reminder_days": [30, 14, 7, 3],
+        "notify_hour": 9,
+        "slack_webhook": None,
+        "alert_on_overdue": False,
+        "alert_on_delete": False,
+    }
+    r = client.put("/admin/settings", json=payload)
+    assert r.status_code == 200
+    assert r.json()["org_name"] == "Updated Org Name"
+
+    # The team name should now match
+    r2 = client.get("/admin/teams")
+    assert r2.status_code == 200
+    teams = r2.json()
+    assert len(teams) == 1
+    assert teams[0]["name"] == "Updated Org Name"
+
+
 # ── Certificate URL and auto-refresh ─────────────────────────────────────────
 
 def test_create_certificate_resource_with_url(client):
