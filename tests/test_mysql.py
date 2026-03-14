@@ -55,6 +55,11 @@ def test_mysql_all_tables_exist(mysql_engine):
 def test_mysql_json_columns(mysql_session):
     """Verify JSON columns work correctly (MySQL 5.7.8+ feature)."""
     from app.models import AdminSettings
+    # Remove any leftover row from a prior failed run before inserting.
+    existing = mysql_session.get(AdminSettings, 1)
+    if existing:
+        mysql_session.delete(existing)
+        mysql_session.commit()
     settings = AdminSettings(id=1, reminder_days=[30, 14, 7, 3], notify_hour=9, alert_on_overdue=False)
     mysql_session.add(settings)
     mysql_session.commit()

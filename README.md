@@ -271,5 +271,9 @@ Feedback from the first round of testing that needs to be addressed:
 * feat: Add a resource field for certificates that allows a user to enable periodic re-checking of the certificate expiry. If checked, it should run once daily and update the expiry data on the certificate resource. Field should not be visible if certificate is not chosen as the resource type.
 
 ## Iteration 16
+* bug: Notification config settings, team name changes, etc. need to go into the audit log but do not appear to be currently.
 * bug/API: `PUT /admin/settings` with `org_name` does not update the team name displayed in the UI. `AdminSettings.org_name` and `Team.name` are two separate, unlinked models — the UI reads the team name exclusively from `GET /admin/teams` (`Team.name`), while `PUT /admin/settings` only updates `AdminSettings.org_name` and never touches the `Team` table. Fix: when `org_name` is provided in a `PUT /admin/settings` request, also update the singleton `Team` row's `name` to match (see `app/routers/admin.py`).
 
+# Iteration 17
+* bug/UI: In UI, if the team name is changed the text "Team name updated." stays present in the UI even after clicking to another tab and/or refreshing the page.
+* bug: Admin notification config changes, team name changes, and undelete resource events should go to the audit log.

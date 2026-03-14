@@ -252,7 +252,7 @@ function urgencyClass(days) {
 function statusBadge(isoDate) {
   const days = daysUntil(isoDate);
   if (days < 0)   return `<span class="badge badge-red">Expired</span>`;
-  if (days === 0) return `<span class="badge badge-red">Expires today</span>`;
+  if (days === 0) return `<span class="badge badge-red">Expired today</span>`;
   if (days <= 3)  return `<span class="badge badge-red">URGENT &mdash; ${days}d</span>`;
   if (days <= 7)  return `<span class="badge badge-red">${days} days</span>`;
   if (days <= 14) return `<span class="badge badge-orange">${days} days</span>`;
@@ -976,6 +976,8 @@ async function saveAdminSettings() {
 // ── Team (singleton) ──────────────────────────────────────────────────────────
 async function loadAdminTeams() {
   // Populate the rename field in the Admin > Team card
+  const msgEl = document.getElementById("adm-team-msg");
+  if (msgEl) { msgEl.textContent = ""; msgEl.className = "admin-msg"; }
   if (!_teams.length) {
     try {
       const res = await fetch("/admin/teams");

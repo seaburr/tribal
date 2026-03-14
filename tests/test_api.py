@@ -477,6 +477,48 @@ def test_admin_settings_rejects_out_of_range_reminder_days(client):
     assert r.status_code == 422
 
 
+def test_admin_settings_change_writes_audit_log(client):
+    """Changing notification settings must produce an admin.settings_updated audit entry."""
+    payload = {
+        "reminder_days": [60, 30, 14],
+        "notify_hour": 12,
+        "slack_webhook": None,
+        "alert_on_overdue": True,
+        "alert_on_delete": False,
+    }
+    r = client.put("/admin/settings", json=payload)
+    assert r.status_code == 200
+
+    r2 = client.get("/admin/audit-log")
+    assert r2.status_code == 200
+    actions = [e["action"] for e in r2.json()]
+    assert "admin.settings_updated" in actions
+
+    entry = next(e for e in r2.json() if e["action"] == "admin.settings_updated")
+    assert "changes" in entry["detail"]
+
+
+def test_admin_settings_no_change_does_not_write_audit_log(client):
+    """Saving settings without changing anything must NOT add an audit entry."""
+    # Read current settings
+    r = client.get("/admin/settings")
+    s = r.json()
+    payload = {
+        "org_name": s.get("org_name"),
+        "reminder_days": s["reminder_days"],
+        "notify_hour": s["notify_hour"],
+        "slack_webhook": s.get("slack_webhook"),
+        "alert_on_overdue": s["alert_on_overdue"],
+        "alert_on_delete": s["alert_on_delete"],
+    }
+    r = client.put("/admin/settings", json=payload)
+    assert r.status_code == 200
+
+    r2 = client.get("/admin/audit-log")
+    actions = [e["action"] for e in r2.json()]
+    assert "admin.settings_updated" not in actions
+
+
 def test_admin_settings_org_name_syncs_team_name(client):
     """PUT /admin/settings with org_name must also update the singleton Team name."""
     from app.models import Team
@@ -503,6 +545,39 @@ def test_admin_settings_org_name_syncs_team_name(client):
     teams = r2.json()
     assert len(teams) == 1
     assert teams[0]["name"] == "Updated Org Name"
+
+
+def test_rename_team_syncs_org_name_and_survives_settings_save(client):
+    """PUT /admin/teams/{id} must sync AdminSettings.org_name so a subsequent
+    PUT /admin/settings doesn't overwrite Team.name back to the stale value."""
+    # Create team
+    r = client.post("/admin/teams", json={"name": "Initial"})
+    assert r.status_code == 201
+    team_id = r.json()["id"]
+
+    # Rename via the teams endpoint (as Terraform does)
+    r = client.put(f"/admin/teams/{team_id}", json={"name": "Terraform Name"})
+    assert r.status_code == 200
+
+    # AdminSettings.org_name should now reflect the new name
+    r = client.get("/admin/settings")
+    assert r.json()["org_name"] == "Terraform Name"
+
+    # Simulate the UI saving settings — it will echo back the org_name it read
+    settings = r.json()
+    r = client.put("/admin/settings", json={
+        "org_name": settings["org_name"],
+        "reminder_days": settings["reminder_days"],
+        "notify_hour": settings["notify_hour"],
+        "slack_webhook": settings["slack_webhook"],
+        "alert_on_overdue": settings["alert_on_overdue"],
+        "alert_on_delete": settings["alert_on_delete"],
+    })
+    assert r.status_code == 200
+
+    # Team name must still be "Terraform Name", not reverted
+    r = client.get("/admin/teams")
+    assert r.json()[0]["name"] == "Terraform Name"
 
 
 # ── Certificate URL and auto-refresh ─────────────────────────────────────────

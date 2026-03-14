@@ -157,6 +157,11 @@ def rename_team(
         raise HTTPException(status_code=404, detail="Team not found.")
     old_name = team.name
     team.name = name
+
+    # Keep AdminSettings.org_name in sync so PUT /admin/settings won't overwrite back
+    settings = _get_or_create_settings(db)
+    settings.org_name = name
+
     db.commit()
     db.refresh(team)
     write_audit(db, "team.rename", user_email=current_user.email, detail={"old_name": old_name, "new_name": name})
