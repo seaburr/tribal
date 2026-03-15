@@ -609,3 +609,138 @@ def test_update_auto_refresh_expiry(client, created):
     r = client.put(f"/api/resources/{created['id']}", json={"auto_refresh_expiry": True})
     assert r.status_code == 200
     assert r.json()["auto_refresh_expiry"] is True
+
+
+# ── Read-only role (Iteration 18) ─────────────────────────────────────────────
+
+@pytest.fixture
+def client_with_readonly(tmp_path):
+    """Fixture: admin logs in; a separate read-only user client is also returned."""
+    db_url = f"sqlite:///{tmp_path / 'test.db'}"
+    engine = create_engine(db_url, connect_args={"check_same_thread": False})
+    Base.metadata.create_all(bind=engine)
+    Session = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+    def override_get_db():
+        db = Session()
+        try:
+            yield db
+        finally:
+            db.close()
+
+    app.dependency_overrides[get_db] = override_get_db
+
+    db = Session()
+    admin = User(
+        email="admin@example.com",
+        hashed_password=hash_password("testpassword"),
+        is_admin=True,
+        is_account_creator=True,
+    )
+    ro_user = User(
+        email="readonly@example.com",
+        hashed_password=hash_password("testpassword"),
+        is_admin=False,
+        is_readonly=True,
+    )
+    db.add(admin)
+    db.add(ro_user)
+    db.commit()
+    admin_id = admin.id
+    ro_id = ro_user.id
+    db.close()
+
+    with TestClient(app, follow_redirects=False) as admin_c:
+        r = admin_c.post("/auth/login", json={"email": "admin@example.com", "password": "testpassword"})
+        assert r.status_code == 200
+
+        with TestClient(app, follow_redirects=False) as ro_c:
+            r = ro_c.post("/auth/login", json={"email": "readonly@example.com", "password": "testpassword"})
+            assert r.status_code == 200
+            yield admin_c, ro_c, admin_id, ro_id
+
+    app.dependency_overrides.clear()
+    Base.metadata.drop_all(bind=engine)
+
+
+def test_readonly_user_can_list_resources(client_with_readonly):
+    _, ro_c, _, _ = client_with_readonly
+    r = ro_c.get("/api/resources/")
+    assert r.status_code == 200
+
+
+def test_readonly_user_cannot_create_resource(client_with_readonly):
+    _, ro_c, _, _ = client_with_readonly
+    r = ro_c.post("/api/resources/", json=SAMPLE)
+    assert r.status_code == 403
+
+
+def test_readonly_user_cannot_update_resource(client_with_readonly):
+    admin_c, ro_c, _, _ = client_with_readonly
+    r = admin_c.post("/api/resources/", json=SAMPLE)
+    assert r.status_code == 201
+    resource_id = r.json()["id"]
+
+    r = ro_c.put(f"/api/resources/{resource_id}", json={"name": "Should Fail"})
+    assert r.status_code == 403
+
+
+def test_readonly_user_cannot_delete_resource(client_with_readonly):
+    admin_c, ro_c, _, _ = client_with_readonly
+    r = admin_c.post("/api/resources/", json=SAMPLE)
+    assert r.status_code == 201
+    resource_id = r.json()["id"]
+
+    with patch("app.routers.resources.send_deletion_notification", new=AsyncMock()):
+        r = ro_c.delete(f"/api/resources/{resource_id}")
+    assert r.status_code == 403
+
+
+def test_readonly_flag_in_user_response(client_with_readonly):
+    _, ro_c, _, ro_id = client_with_readonly
+    r = ro_c.get("/auth/me")
+    assert r.status_code == 200
+    assert r.json()["is_readonly"] is True
+
+
+def test_admin_can_set_user_readonly(client_with_readonly):
+    admin_c, _, _, ro_id = client_with_readonly
+    # Remove read-only
+    r = admin_c.put(f"/admin/users/{ro_id}/readonly?is_readonly=false")
+    assert r.status_code == 200
+    assert r.json()["is_readonly"] is False
+    # Re-apply
+    r = admin_c.put(f"/admin/users/{ro_id}/readonly?is_readonly=true")
+    assert r.status_code == 200
+    assert r.json()["is_readonly"] is True
+
+
+def test_cannot_set_admin_to_readonly(client_with_readonly):
+    admin_c, _, _, ro_id = client_with_readonly
+    # First promote ro_user to admin
+    r = admin_c.put(f"/admin/users/{ro_id}/role?is_admin=true")
+    assert r.status_code == 200
+    # Now try to set that admin to read-only — should be rejected
+    r = admin_c.put(f"/admin/users/{ro_id}/readonly?is_readonly=true")
+    assert r.status_code == 400
+    assert "admin" in r.json()["detail"].lower()
+
+
+def test_cannot_set_account_creator_to_readonly(client_with_readonly):
+    admin_c, _, admin_id, _ = client_with_readonly
+    r = admin_c.put(f"/admin/users/{admin_id}/readonly?is_readonly=true")
+    assert r.status_code == 400
+
+
+def test_readonly_role_change_audited(client_with_readonly):
+    admin_c, _, _, ro_id = client_with_readonly
+    # Remove read-only
+    r = admin_c.put(f"/admin/users/{ro_id}/readonly?is_readonly=false")
+    assert r.status_code == 200
+
+    audit = admin_c.get("/admin/audit-log").json()
+    role_events = [e for e in audit if e["action"] == "user.role_change"]
+    assert role_events, "Expected a user.role_change audit entry"
+    detail = role_events[0]["detail"]
+    assert detail["new_role"] == "member"
+    assert detail["action"] == "revoked"

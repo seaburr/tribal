@@ -63,3 +63,9 @@ def require_admin(current_user: models.User = Depends(get_current_user)) -> mode
     if not current_user.is_admin:
         raise HTTPException(status_code=403, detail="Admin access required.")
     return current_user
+
+
+def require_write_access(current_user: models.User = Depends(get_current_user)) -> models.User:
+    if current_user.is_readonly:
+        raise HTTPException(status_code=403, detail="Read-only users cannot modify resources.")
+    return current_user

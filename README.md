@@ -53,7 +53,7 @@ docker compose build           # ensure the image is up to date
 docker compose run --rm --no-deps tribal python -m pytest tests/ -q
 ```
 
-All 20 tests should pass. Tests use an in-memory SQLite database and do not require the app to be running.
+All tests should pass. Tests use an in-memory SQLite database and do not require the app to be running.
 
 ### Local environment variables
 
@@ -277,3 +277,8 @@ Feedback from the first round of testing that needs to be addressed:
 # Iteration 17
 * bug/UI: In UI, if the team name is changed the text "Team name updated." stays present in the UI even after clicking to another tab and/or refreshing the page.
 * bug: Admin notification config changes, team name changes, and undelete resource events should go to the audit log.
+
+
+# Iteration 18
+
+feat: Implement a read-only role. This would allow users to see the calendar, resources, and docs but they cannot edit resources (Hide edit and delete buttons).

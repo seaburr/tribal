@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from .. import models, schemas
 from ..database import get_db
-from ..dependencies import get_current_user
+from ..dependencies import get_current_user, require_write_access
 from ..cert_utils import extract_expiry_from_pem, fetch_cert_expiry_from_endpoint
 from ..scheduler import send_deletion_notification, send_admin_deletion_notification, _TRIBAL_FOOTER
 
@@ -112,7 +112,7 @@ def create_resource(
     request: Request,
     resource: schemas.ResourceCreate,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
+    current_user: models.User = Depends(require_write_access),
 ):
     data = resource.model_dump()
     # Auto-assign the singleton team if one exists and none was specified
@@ -146,7 +146,7 @@ def update_resource(
     resource_id: int,
     updates: schemas.ResourceUpdate,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
+    current_user: models.User = Depends(require_write_access),
 ):
     resource = _active(db).filter(models.Resource.id == resource_id).first()
     if not resource:
@@ -173,7 +173,7 @@ async def delete_resource(
     request: Request,
     resource_id: int,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
+    current_user: models.User = Depends(require_write_access),
 ):
     resource = _active(db).filter(models.Resource.id == resource_id).first()
     if not resource:
@@ -195,7 +195,7 @@ async def upload_certificate(
     resource_id: int,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
+    current_user: models.User = Depends(require_write_access),
 ):
     resource = _active(db).filter(models.Resource.id == resource_id).first()
     if not resource:

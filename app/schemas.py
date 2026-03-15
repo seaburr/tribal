@@ -23,6 +23,7 @@ class UserResponse(BaseModel):
     display_name: Optional[str]
     is_admin: bool = False
     is_account_creator: bool = False
+    is_readonly: bool = False
 
     model_config = {"from_attributes": True}
 

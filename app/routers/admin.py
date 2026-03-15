@@ -215,6 +215,41 @@ def set_user_admin(
     return target
 
 
+@router.put("/users/{user_id}/readonly", response_model=schemas.UserResponse)
+def set_user_readonly(
+    user_id: int,
+    is_readonly: bool,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    target = db.get(models.User, user_id)
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found.")
+
+    if target.is_account_creator and is_readonly:
+        raise HTTPException(status_code=400, detail="Cannot set the account creator to read-only.")
+
+    if target.is_admin and is_readonly:
+        raise HTTPException(status_code=400, detail="Cannot set an admin user to read-only.")
+
+    if target.is_readonly != is_readonly:
+        write_audit(
+            db,
+            "user.role_change",
+            user_email=current_user.email,
+            detail={
+                "target_user": target.email,
+                "action": "granted" if is_readonly else "revoked",
+                "new_role": "readonly" if is_readonly else "member",
+            },
+        )
+
+    target.is_readonly = is_readonly
+    db.commit()
+    db.refresh(target)
+    return target
+
+
 @router.delete("/users/{user_id}", status_code=204)
 def delete_user(
     user_id: int,

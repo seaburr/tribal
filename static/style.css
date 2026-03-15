@@ -211,6 +211,15 @@ header .tagline { color: var(--text-mut); font-size: 13px; flex: 1; }
   color: #c084fc;
   margin-left: 4px;
 }
+.badge-readonly {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(245,158,11,.15);
+  color: #fbbf24;
+}
 .badge-future {
   display: inline-block;
   padding: 1px 8px;

@@ -10,6 +10,14 @@ async function loadUser() {
     document.getElementById("user-label").textContent = "≡";
     document.getElementById("user-dropdown-name").textContent = _currentUser.display_name || _currentUser.email;
     document.getElementById("user-dropdown-email").textContent = _currentUser.email;
+    if (_currentUser.is_readonly) {
+      const btn = document.getElementById("add-resource-btn");
+      if (btn) btn.style.display = "none";
+      const editBtn = document.getElementById("detail-edit-btn");
+      if (editBtn) editBtn.style.display = "none";
+      const deleteBtn = document.getElementById("detail-delete-btn");
+      if (deleteBtn) deleteBtn.style.display = "none";
+    }
   } catch {}
 }
 
@@ -570,8 +578,8 @@ function renderTable() {
       <td style="color:var(--text-sec)">${isoToDisplay(r.expiration_date)}</td>
       <td>${statusBadge(r.expiration_date)}</td>
       <td class="actions">
-        <button class="btn-secondary btn-sm" onclick="openModal(${r.id})">Edit</button>
-        <button class="btn-danger btn-sm" onclick="openDeleteModal(${r.id},'${esc(r.name)}')">Delete</button>
+        ${_currentUser && _currentUser.is_readonly ? '' : `<button class="btn-secondary btn-sm" onclick="openModal(${r.id})">Edit</button>
+        <button class="btn-danger btn-sm" onclick="openDeleteModal(${r.id},'${esc(r.name)}')">Delete</button>`}
       </td>
     </tr>
   `;
@@ -1079,7 +1087,7 @@ async function loadAdminUsers() {
         <td>${esc(u.display_name || "—")}</td>
         <td>${esc(u.email)}</td>
         <td>
-          ${u.is_admin ? '<span class="badge-admin">Admin</span>' : '<span class="badge-member">Member</span>'}
+          ${u.is_admin ? '<span class="badge-admin">Admin</span>' : (u.is_readonly ? '<span class="badge-readonly">Read Only</span>' : '<span class="badge-member">Member</span>')}
           ${u.is_account_creator ? '<span class="badge-creator" title="Account creator — admin rights and account are permanent">Creator</span>' : ''}
         </td>
         <td class="actions" style="gap:6px">
@@ -1088,6 +1096,7 @@ async function loadAdminUsers() {
             : u.is_account_creator
               ? '<span style="color:var(--text-mut);font-size:12px">Protected</span>'
               : `<button class="btn-secondary btn-sm" onclick="toggleUserAdmin(${u.id}, ${u.is_admin})">${u.is_admin ? "Remove Admin" : "Make Admin"}</button>
+            ${!u.is_admin ? `<button class="btn-secondary btn-sm" onclick="toggleUserReadonly(${u.id}, ${u.is_readonly})">${u.is_readonly ? "Remove Read-Only" : "Make Read-Only"}</button>` : ''}
             <button class="btn-danger btn-sm" onclick="deleteAdminUser(${u.id}, '${esc(u.email)}')">Delete</button>`}
         </td>
       </tr>
@@ -1101,6 +1110,17 @@ async function toggleUserAdmin(userId, currentIsAdmin) {
   const res = await fetch(`/admin/users/${userId}/role?is_admin=${!currentIsAdmin}`, { method: "PUT" });
   if (res.ok) {
     showToast(currentIsAdmin ? "Admin access removed." : "User promoted to admin.");
+    loadAdminUsers();
+  } else {
+    const err = await res.json().catch(() => ({}));
+    showToast(err.detail || "Failed to update role.");
+  }
+}
+
+async function toggleUserReadonly(userId, currentIsReadonly) {
+  const res = await fetch(`/admin/users/${userId}/readonly?is_readonly=${!currentIsReadonly}`, { method: "PUT" });
+  if (res.ok) {
+    showToast(currentIsReadonly ? "Read-only access removed." : "User set to read-only.");
     loadAdminUsers();
   } else {
     const err = await res.json().catch(() => ({}));

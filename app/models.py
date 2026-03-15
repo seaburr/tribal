@@ -18,6 +18,7 @@ class User(Base):
     hashed_password = Column(String(255), nullable=False)
     is_admin = Column(Boolean, nullable=False, default=False)
     is_account_creator = Column(Boolean, nullable=False, default=False)
+    is_readonly = Column(Boolean, nullable=False, default=False)
     created_at = Column(DateTime, default=_utcnow)
 
 
