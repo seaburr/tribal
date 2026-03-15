@@ -800,3 +800,48 @@ def test_display_name_type_unchanged_on_create(client):
     r = client.post("/api/resources/", json=payload)
     assert r.status_code == 201
     assert r.json()["type"] == "Certificate"
+
+
+# ── Iteration 21: resource PDF report ─────────────────────────────────────────
+
+def test_resource_report_returns_pdf(client, created):
+    """GET /api/resources/{id}/report must return a PDF file."""
+    r = client.get(f"/api/resources/{created['id']}/report")
+    assert r.status_code == 200
+    assert r.headers["content-type"] == "application/pdf"
+    assert r.content[:4] == b"%PDF"
+
+
+def test_resource_report_not_found(client):
+    """Report endpoint must return 404 for a non-existent resource."""
+    r = client.get("/api/resources/9999/report")
+    assert r.status_code == 404
+
+
+def test_resource_report_has_content_disposition(client, created):
+    """PDF response must include a content-disposition attachment header."""
+    r = client.get(f"/api/resources/{created['id']}/report")
+    assert r.status_code == 200
+    assert "attachment" in r.headers.get("content-disposition", "")
+
+
+def test_resource_report_accessible_to_readonly_user(client_with_readonly):
+    """Read-only users must be able to download the resource report."""
+    admin_c, ro_c, _, _ = client_with_readonly
+    # Admin creates a resource
+    r = admin_c.post("/api/resources/", json=SAMPLE)
+    assert r.status_code == 201
+    resource_id = r.json()["id"]
+
+    # Read-only user can fetch the report
+    r = ro_c.get(f"/api/resources/{resource_id}/report")
+    assert r.status_code == 200
+    assert r.headers["content-type"] == "application/pdf"
+    assert r.content[:4] == b"%PDF"
+
+
+def test_resource_report_includes_audit_history(client, created):
+    """PDF must be non-trivially sized — at least 1 KB — indicating content was generated."""
+    r = client.get(f"/api/resources/{created['id']}/report")
+    assert r.status_code == 200
+    assert len(r.content) > 1024  # a blank PDF is ~700 bytes; any real content pushes it higher

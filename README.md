@@ -297,3 +297,6 @@ Feedback from the first round of testing that needs to be addressed:
 * UI/nit: From Resources tab, items should be clickable with the same modal seen when you click on an item from the Overview tab.
 * bug: At some point the way that deleted resources is logged in the audit log changed. The type for "API Key" for instance now logs as "api_key". What changed? Can we revert it to log the "Friendly/Display Name"?
 * UI: Switch the order of things on the admin page: It should be Team Name, Notification Settings, Reports, Users, Member Invites, API Keys, Audit Log
+
+## Iteration 21
+* feat: Add an additional action to a resource that can output an overview report. It should include all relevant details about the resource including when it was created, who created it, when it was last updated, and filtered view of the audit log for changes (including creation) for that resource. This is an action that all users regardless of role should be allowed to access which will mean putting the actions column back on the resource tab for read-only users. The format should be PDF. Minimal formatting for now is completely fine.

@@ -605,10 +605,8 @@ function sortBy(col) {
 
 function renderTable() {
   const tbody = document.getElementById("resources-body");
-  const actionsHeader = document.getElementById("resources-actions-th");
   const isReadonly = _currentUser && _currentUser.is_readonly;
-  if (actionsHeader) actionsHeader.style.display = isReadonly ? "none" : "";
-  const colCount = isReadonly ? 5 : 6;
+  const colCount = 6;
 
   ["name","type","dri","expiration_date","status"].forEach(col => {
     const el = document.getElementById("sort-" + col);
@@ -661,10 +659,11 @@ function renderTable() {
       <td style="color:var(--text-sec)">${esc(r.dri)}</td>
       <td style="color:var(--text-sec)">${isoToDisplay(r.expiration_date)}</td>
       <td>${statusBadge(r.expiration_date)}</td>
-      ${isReadonly ? '' : `<td class="actions" onclick="event.stopPropagation()">
-        <button class="btn-secondary btn-sm" onclick="openModal(${r.id})">Edit</button>
-        <button class="btn-danger btn-sm" onclick="openDeleteModal(${r.id},'${esc(r.name)}')">Delete</button>
-      </td>`}
+      <td class="actions" onclick="event.stopPropagation()">
+        <button class="btn-secondary btn-sm" onclick="window.open('/api/resources/${r.id}/report','_blank')">Report</button>
+        ${isReadonly ? '' : `<button class="btn-secondary btn-sm" onclick="openModal(${r.id})">Edit</button>
+        <button class="btn-danger btn-sm" onclick="openDeleteModal(${r.id},'${esc(r.name)}')">Delete</button>`}
+      </td>
     </tr>
   `;
   }).join("");
