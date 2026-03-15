@@ -18,6 +18,23 @@ ALLOWED_EXTENSIONS = {".pem", ".crt", ".cer"}
 PRIVATE_KEY_MARKERS = ["PRIVATE KEY", "RSA PRIVATE", "EC PRIVATE", "ENCRYPTED PRIVATE", "DSA PRIVATE"]
 
 
+_TYPE_DISPLAY: dict[str, str] = {
+    "api_key": "API Key",
+    "certificate": "Certificate",
+    "ssh_key": "SSH Key",
+    "other": "Other",
+}
+
+
+def _friendly_type(t: str) -> str:
+    """Return the display-friendly name for a resource type.
+
+    Handles snake_case variants that may come from the Terraform provider or
+    other API clients (e.g. ``"api_key"`` → ``"API Key"``).
+    """
+    return _TYPE_DISPLAY.get(t.lower().replace(" ", "_"), t)
+
+
 def _active(db: Session):
     """Base query for non-deleted resources."""
     return db.query(models.Resource).filter(models.Resource.deleted_at.is_(None))
@@ -124,7 +141,7 @@ def create_resource(
     db.add(db_resource)
     db.commit()
     db.refresh(db_resource)
-    _audit(db, "resource.create", db_resource, current_user, {"type": db_resource.type}, via=getattr(request.state, "auth_via", "ui"))
+    _audit(db, "resource.create", db_resource, current_user, {"type": _friendly_type(db_resource.type)}, via=getattr(request.state, "auth_via", "ui"))
     return db_resource
 
 
@@ -178,7 +195,7 @@ async def delete_resource(
     resource = _active(db).filter(models.Resource.id == resource_id).first()
     if not resource:
         raise HTTPException(status_code=404, detail="Resource not found")
-    _audit(db, "resource.delete", resource, current_user, {"type": resource.type, "dri": resource.dri}, via=getattr(request.state, "auth_via", "ui"))
+    _audit(db, "resource.delete", resource, current_user, {"type": _friendly_type(resource.type), "dri": resource.dri}, via=getattr(request.state, "auth_via", "ui"))
     deleted_by = current_user.display_name or current_user.email if current_user else None
     await send_deletion_notification(resource, deleted_by=deleted_by)
     # Notify admin webhook if alert_on_delete is enabled

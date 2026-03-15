@@ -97,6 +97,24 @@
     <!-- Admin content (shown only to admins) -->
     <div id="admin-content" style="display:none">
 
+      <!-- Team -->
+      <div class="admin-card">
+        <div class="admin-card-header">
+          <h3>Team</h3>
+          <p class="admin-card-desc">Your team name identifies your organisation in Tribal. All resources are automatically associated with your team.</p>
+        </div>
+        <div class="admin-card-body">
+          <div class="admin-form-group">
+            <label for="adm-team-name">Team Name</label>
+            <input type="text" id="adm-team-name" placeholder="e.g. Platform, Security, Acme Corp…" />
+          </div>
+          <div id="adm-team-msg" class="admin-msg"></div>
+        </div>
+        <div class="admin-card-footer">
+          <button class="btn-primary" onclick="saveTeamName()">Save Settings</button>
+        </div>
+      </div>
+
       <!-- Notification Settings -->
       <div class="admin-card">
         <div class="admin-card-header">
@@ -154,6 +172,28 @@
         </div>
       </div>
 
+      <!-- Reports -->
+      <div class="admin-card">
+        <div class="admin-card-header">
+          <h3>Reports</h3>
+          <p class="admin-card-desc">Download CSV reports for sharing or offline review.</p>
+        </div>
+        <div class="admin-card-body">
+          <div class="admin-report-row">
+            <div class="admin-report-item">
+              <div class="admin-report-name">Upcoming Expiry</div>
+              <div class="admin-report-desc">All resources sorted by expiration date.</div>
+              <a class="btn-secondary btn-sm admin-report-btn" href="/admin/reports/upcoming" download>Download CSV</a>
+            </div>
+            <div class="admin-report-item">
+              <div class="admin-report-name">Recent Changes</div>
+              <div class="admin-report-desc">Audit log entries from the last 30 days.</div>
+              <a class="btn-secondary btn-sm admin-report-btn" href="/admin/reports/recent-changes" download>Download CSV</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Users -->
       <div class="admin-card">
         <div class="admin-card-header">
@@ -177,6 +217,14 @@
             </table>
           </div>
           <div id="users-pagination" class="pagination-bar" style="display:none"></div>
+        </div>
+      </div>
+
+      <!-- Coming Soon: Member Invites -->
+      <div class="admin-card admin-card-future">
+        <div class="admin-card-header">
+          <h3>Member Invites <span class="badge-future">Coming Soon</span></h3>
+          <p class="admin-card-desc">Invite users by email. Requires email or Slack integration — planned for a future release.</p>
         </div>
       </div>
 
@@ -204,28 +252,6 @@
             </table>
           </div>
           <div id="keys-pagination" class="pagination-bar" style="display:none"></div>
-        </div>
-      </div>
-
-      <!-- Reports -->
-      <div class="admin-card">
-        <div class="admin-card-header">
-          <h3>Reports</h3>
-          <p class="admin-card-desc">Download CSV reports for sharing or offline review.</p>
-        </div>
-        <div class="admin-card-body">
-          <div class="admin-report-row">
-            <div class="admin-report-item">
-              <div class="admin-report-name">Upcoming Expiry</div>
-              <div class="admin-report-desc">All resources sorted by expiration date.</div>
-              <a class="btn-secondary btn-sm admin-report-btn" href="/admin/reports/upcoming" download>Download CSV</a>
-            </div>
-            <div class="admin-report-item">
-              <div class="admin-report-name">Recent Changes</div>
-              <div class="admin-report-desc">Audit log entries from the last 30 days.</div>
-              <a class="btn-secondary btn-sm admin-report-btn" href="/admin/reports/recent-changes" download>Download CSV</a>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -284,32 +310,6 @@
               </tbody>
             </table>
           </div>
-        </div>
-      </div>
-
-      <!-- Coming Soon: Member Invites -->
-      <div class="admin-card admin-card-future">
-        <div class="admin-card-header">
-          <h3>Member Invites <span class="badge-future">Coming Soon</span></h3>
-          <p class="admin-card-desc">Invite users by email. Requires email or Slack integration — planned for a future release.</p>
-        </div>
-      </div>
-
-      <!-- Team -->
-      <div class="admin-card">
-        <div class="admin-card-header">
-          <h3>Team</h3>
-          <p class="admin-card-desc">Your team name identifies your organisation in Tribal. All resources are automatically associated with your team.</p>
-        </div>
-        <div class="admin-card-body">
-          <div class="admin-form-group">
-            <label for="adm-team-name">Team Name</label>
-            <input type="text" id="adm-team-name" placeholder="e.g. Platform, Security, Acme Corp…" />
-          </div>
-          <div id="adm-team-msg" class="admin-msg"></div>
-        </div>
-        <div class="admin-card-footer">
-          <button class="btn-primary" onclick="saveTeamName()">Save Settings</button>
         </div>
       </div>
 

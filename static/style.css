@@ -243,13 +243,17 @@ header .tagline { color: var(--text-mut); font-size: 13px; flex: 1; }
 .pagination-bar button:disabled { opacity: 0.4; cursor: default; }
 
 .role-select {
+  appearance: auto;
+  -webkit-appearance: auto;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 6px;
   color: var(--text);
   font-size: 12px;
-  padding: 2px 6px;
+  padding: 2px 24px 2px 6px;
   cursor: pointer;
+  max-width: 120px;
+  width: auto;
 }
 .role-select:focus { outline: 2px solid var(--accent); }
 
@@ -811,6 +815,13 @@ textarea { resize: vertical; min-height: 80px; }
   pointer-events: none;
 }
 .toast.show { opacity: 1; transform: translateY(0); }
+
+/* ── Role-change row flash ──────────────────────────────────────────────────── */
+@keyframes row-flash {
+  0%   { background: rgba(59,130,246,.25); }
+  100% { background: transparent; }
+}
+tr.role-updated td { animation: row-flash 1.4s ease-out forwards; }
 
 /* ── Webhook test button row ───────────────────────────────────────────────── */
 .webhook-row {

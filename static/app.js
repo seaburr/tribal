@@ -655,13 +655,13 @@ function renderTable() {
   tbody.innerHTML = page.map(r => {
     const isOverdue = daysUntil(r.expiration_date) < 0;
     return `
-    <tr${isOverdue ? ' class="overdue"' : ''}>
+    <tr class="${isOverdue ? 'overdue ' : ''}resource-row" style="cursor:pointer" onclick="showResourceDetail(${r.id})">
       <td class="name">${esc(r.name)}</td>
       <td style="color:var(--text-sec)">${esc(r.type)}</td>
       <td style="color:var(--text-sec)">${esc(r.dri)}</td>
       <td style="color:var(--text-sec)">${isoToDisplay(r.expiration_date)}</td>
       <td>${statusBadge(r.expiration_date)}</td>
-      ${isReadonly ? '' : `<td class="actions">
+      ${isReadonly ? '' : `<td class="actions" onclick="event.stopPropagation()">
         <button class="btn-secondary btn-sm" onclick="openModal(${r.id})">Edit</button>
         <button class="btn-danger btn-sm" onclick="openDeleteModal(${r.id},'${esc(r.name)}')">Delete</button>
       </td>`}
@@ -1215,8 +1215,9 @@ function renderUsersPage() {
            <option value="user" ${!u.is_admin && !u.is_readonly ? 'selected' : ''}>User</option>
            <option value="readonly" ${u.is_readonly ? 'selected' : ''}>Read Only</option>
          </select>`;
+    const flashClass = u.id === _pendingRoleFlashUserId ? ' role-updated' : '';
     return `
-      <tr>
+      <tr class="${flashClass}">
         <td>${esc(u.display_name || "—")}</td>
         <td>${esc(u.email)}</td>
         <td>${roleCell}</td>
@@ -1230,6 +1231,7 @@ function renderUsersPage() {
       </tr>
     `;
   }).join("");
+  _pendingRoleFlashUserId = null;
 
   if (pagEl) {
     if (totalPages > 1) {
@@ -1250,7 +1252,10 @@ function goUsersPage(p) {
   renderUsersPage();
 }
 
+let _pendingRoleFlashUserId = null;
+
 async function setUserRole(userId, newRole, currentIsAdmin, currentIsReadonly) {
+  const roleLabels = { admin: "Admin", user: "User", readonly: "Read Only" };
   try {
     if (newRole === "admin") {
       const res = await fetch(`/admin/users/${userId}/role?is_admin=true`, { method: "PUT" });
@@ -1292,7 +1297,8 @@ async function setUserRole(userId, newRole, currentIsAdmin, currentIsReadonly) {
         }
       }
     }
-    showToast("Role updated.");
+    showToast(`Role changed to ${roleLabels[newRole] || newRole}.`);
+    _pendingRoleFlashUserId = userId;
     loadAdminUsers();
   } catch {
     showToast("Network error.");

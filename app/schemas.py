@@ -115,6 +115,18 @@ def _parse_date(v):
 
 RESOURCE_TYPES = ["Certificate", "API Key", "SSH Key", "Other"]
 
+_TYPE_DISPLAY_MAP: dict[str, str] = {
+    "api_key": "API Key",
+    "certificate": "Certificate",
+    "ssh_key": "SSH Key",
+    "other": "Other",
+}
+
+
+def normalize_resource_type(v: str) -> str:
+    """Normalize snake_case type variants to their display names."""
+    return _TYPE_DISPLAY_MAP.get(v.lower().replace(" ", "_"), v)
+
 
 class WebhookTestRequest(BaseModel):
     webhook_url: str
@@ -141,6 +153,11 @@ class ResourceCreate(BaseModel):
     certificate_url: Optional[str] = None
     auto_refresh_expiry: bool = False
 
+    @field_validator("type", mode="before")
+    @classmethod
+    def normalize_type(cls, v):
+        return normalize_resource_type(v) if isinstance(v, str) else v
+
     @field_validator("expiration_date", mode="before")
     @classmethod
     def parse_date(cls, v):
@@ -159,6 +176,11 @@ class ResourceUpdate(BaseModel):
     team_id: Optional[int] = None
     certificate_url: Optional[str] = None
     auto_refresh_expiry: Optional[bool] = None
+
+    @field_validator("type", mode="before")
+    @classmethod
+    def normalize_type(cls, v):
+        return normalize_resource_type(v) if isinstance(v, str) else v
 
     @field_validator("expiration_date", mode="before")
     @classmethod

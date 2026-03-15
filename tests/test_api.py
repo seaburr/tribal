@@ -744,3 +744,59 @@ def test_readonly_role_change_audited(client_with_readonly):
     detail = role_events[0]["detail"]
     assert detail["new_role"] == "member"
     assert detail["action"] == "revoked"
+
+
+# ── Iteration 20: type normalization in audit log ─────────────────────────────
+
+def test_audit_log_type_uses_display_name_on_create(client):
+    """resource.create audit entry must store the display name (e.g. 'API Key'),
+    not a snake_case variant (e.g. 'api_key')."""
+    payload = {**SAMPLE, "type": "api_key"}  # snake_case from API/Terraform
+    r = client.post("/api/resources/", json=payload)
+    assert r.status_code == 201
+
+    audit = client.get("/admin/audit-log").json()
+    create_events = [e for e in audit if e["action"] == "resource.create"]
+    assert create_events, "Expected a resource.create audit entry"
+    assert create_events[0]["detail"]["type"] == "API Key"
+
+
+def test_audit_log_type_uses_display_name_on_delete(client):
+    """resource.delete audit entry must store the display name for the type."""
+    payload = {**SAMPLE, "type": "SSH Key"}
+    r = client.post("/api/resources/", json=payload)
+    assert r.status_code == 201
+    resource_id = r.json()["id"]
+
+    with patch("app.routers.resources.send_deletion_notification", new=AsyncMock()):
+        r = client.delete(f"/api/resources/{resource_id}")
+    assert r.status_code == 204
+
+    audit = client.get("/admin/audit-log").json()
+    delete_events = [e for e in audit if e["action"] == "resource.delete"]
+    assert delete_events, "Expected a resource.delete audit entry"
+    assert delete_events[0]["detail"]["type"] == "SSH Key"
+
+
+def test_snake_case_type_normalized_on_create(client):
+    """Types sent as snake_case (e.g. from the Terraform provider) must be
+    normalized to their display names and stored that way in the database."""
+    payload = {**SAMPLE, "type": "ssh_key"}
+    r = client.post("/api/resources/", json=payload)
+    assert r.status_code == 201
+    assert r.json()["type"] == "SSH Key"
+
+
+def test_snake_case_type_normalized_on_update(client, created):
+    """Updating a resource with a snake_case type must normalize it."""
+    r = client.put(f"/api/resources/{created['id']}", json={"type": "api_key"})
+    assert r.status_code == 200
+    assert r.json()["type"] == "API Key"
+
+
+def test_display_name_type_unchanged_on_create(client):
+    """Types already in display-name form must not be altered."""
+    payload = {**SAMPLE, "type": "Certificate"}
+    r = client.post("/api/resources/", json=payload)
+    assert r.status_code == 201
+    assert r.json()["type"] == "Certificate"

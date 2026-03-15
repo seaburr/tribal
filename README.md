@@ -289,3 +289,11 @@ Feedback from the first round of testing that needs to be addressed:
 * performance: Add pagination to resources, users, and audit log in UI. Default size: 25 items.
 * Change "Creator" to "Owner".
 * Explore but do not implement what it would take to add support for creating JIRA work items instead of sending Slack notifications when a resource is nearing expiry.
+
+## Iteration 20
+
+* UI/nit: Make the Role column less wide and give it a drop down selector arrow/carrot so it's obvious it's a drop down.
+* UI/nit: Make it clear in the UI that a users role has changed.
+* UI/nit: From Resources tab, items should be clickable with the same modal seen when you click on an item from the Overview tab.
+* bug: At some point the way that deleted resources is logged in the audit log changed. The type for "API Key" for instance now logs as "api_key". What changed? Can we revert it to log the "Friendly/Display Name"?
+* UI: Switch the order of things on the admin page: It should be Team Name, Notification Settings, Reports, Users, Member Invites, API Keys, Audit Log
