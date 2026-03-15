@@ -136,17 +136,54 @@ function copyApiKey() {
 // ── API Keys (admin view on Admin tab) ────────────────────────────────────────
 
 async function loadAdminApiKeys() {
+  _keysPage = 0;
   const tbody = document.getElementById("admin-all-keys-body");
   if (!tbody) return;
   tbody.innerHTML = `<tr><td colspan="5" class="loading">Loading…</td></tr>`;
   const res = await fetch("/admin/api-keys");
   if (!res.ok) { tbody.innerHTML = `<tr><td colspan="5" class="loading">Failed to load.</td></tr>`; return; }
-  const keys = await res.json();
-  if (!keys.length) {
+  _adminKeysList = await res.json();
+  renderAdminKeysPage();
+}
+
+function sortAdminKeysBy(col) {
+  if (_keysSortCol === col) _keysSortDir *= -1;
+  else { _keysSortCol = col; _keysSortDir = 1; }
+  _keysPage = 0;
+  renderAdminKeysPage();
+}
+
+function renderAdminKeysPage() {
+  const tbody = document.getElementById("admin-all-keys-body");
+  const pagEl = document.getElementById("keys-pagination");
+  if (!tbody) return;
+
+  ["name","user_email","last_used_at"].forEach(col => {
+    const el = document.getElementById("keys-sort-" + col);
+    if (el) el.textContent = _keysSortCol === col ? (_keysSortDir === 1 ? " ▲" : " ▼") : "";
+  });
+
+  if (!_adminKeysList.length) {
     tbody.innerHTML = `<tr><td colspan="5" class="loading">No active API keys.</td></tr>`;
+    if (pagEl) pagEl.style.display = "none";
     return;
   }
-  tbody.innerHTML = keys.map(k => `
+
+  const sorted = [..._adminKeysList].sort((a, b) => {
+    const av = (a[_keysSortCol] || "").toString().toLowerCase();
+    const bv = (b[_keysSortCol] || "").toString().toLowerCase();
+    if (av < bv) return -_keysSortDir;
+    if (av > bv) return  _keysSortDir;
+    return 0;
+  });
+
+  const total = sorted.length;
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+  if (_keysPage >= totalPages) _keysPage = Math.max(0, totalPages - 1);
+  const start = _keysPage * PAGE_SIZE;
+  const page = sorted.slice(start, start + PAGE_SIZE);
+
+  tbody.innerHTML = page.map(k => `
     <tr>
       <td>${esc(k.name)}</td>
       <td style="color:var(--muted);font-size:0.8rem">${esc(k.user_email)}</td>
@@ -154,6 +191,24 @@ async function loadAdminApiKeys() {
       <td style="color:var(--muted);font-size:0.8rem">${k.last_used_at ? new Date(k.last_used_at).toLocaleDateString() : "Never"}</td>
       <td><button class="btn-danger btn-sm" onclick="revokeAdminApiKey(${k.id})">Revoke</button></td>
     </tr>`).join("");
+
+  if (pagEl) {
+    if (totalPages > 1) {
+      pagEl.style.display = "flex";
+      pagEl.innerHTML = `
+        <button class="btn-secondary btn-sm" onclick="goKeysPage(${_keysPage - 1})" ${_keysPage === 0 ? 'disabled' : ''}>← Prev</button>
+        <span>Page ${_keysPage + 1} of ${totalPages}</span>
+        <button class="btn-secondary btn-sm" onclick="goKeysPage(${_keysPage + 1})" ${_keysPage >= totalPages - 1 ? 'disabled' : ''}>Next →</button>
+      `;
+    } else {
+      pagEl.style.display = "none";
+    }
+  }
+}
+
+function goKeysPage(p) {
+  _keysPage = p;
+  renderAdminKeysPage();
 }
 
 async function revokeAdminApiKey(id) {
@@ -175,6 +230,20 @@ let deletingName = null;
 let detailResourceId = null;
 let sortCol = "expiration_date";
 let sortDir = 1;
+
+// ── Pagination state ───────────────────────────────────────────────────────────
+const PAGE_SIZE = 25;
+let _resourcesPage = 0;
+let _adminUsersList = [];
+let _usersPage = 0;
+let _auditEntries = [];
+let _auditPage = 0;
+let _auditSortCol = "created_at";
+let _auditSortDir = -1; // newest first
+let _adminKeysList = [];
+let _keysPage = 0;
+let _keysSortCol = "name";
+let _keysSortDir = 1;
 
 const MONTH_NAMES = ["January","February","March","April","May","June",
                      "July","August","September","October","November","December"];
@@ -212,6 +281,7 @@ async function loadData() {
     eventsByDate[r.expiration_date].push(r);
   });
 
+  _resourcesPage = 0;
   renderCalendar();
   renderUpcoming();
   renderTable();
@@ -529,25 +599,33 @@ function renderUpcoming() {
 function sortBy(col) {
   if (sortCol === col) sortDir *= -1;
   else { sortCol = col; sortDir = 1; }
+  _resourcesPage = 0;
   renderTable();
 }
 
 function renderTable() {
   const tbody = document.getElementById("resources-body");
+  const actionsHeader = document.getElementById("resources-actions-th");
+  const isReadonly = _currentUser && _currentUser.is_readonly;
+  if (actionsHeader) actionsHeader.style.display = isReadonly ? "none" : "";
+  const colCount = isReadonly ? 5 : 6;
 
   ["name","type","dri","expiration_date","status"].forEach(col => {
     const el = document.getElementById("sort-" + col);
     if (el) el.textContent = sortCol === col ? (sortDir === 1 ? " ▲" : " ▼") : "";
   });
 
+  const pagEl = document.getElementById("resources-pagination");
+
   if (resources.length === 0) {
     tbody.innerHTML = `
-      <tr><td colspan="6">
+      <tr><td colspan="${colCount}">
         <div class="empty-state">
           <strong>No resources yet</strong>
           <p>Add a resource to start tracking expiration dates.</p>
         </div>
       </td></tr>`;
+    if (pagEl) pagEl.style.display = "none";
     return;
   }
 
@@ -568,7 +646,13 @@ function renderTable() {
     return 0;
   });
 
-  tbody.innerHTML = sorted.map(r => {
+  const total = sorted.length;
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+  if (_resourcesPage >= totalPages) _resourcesPage = Math.max(0, totalPages - 1);
+  const start = _resourcesPage * PAGE_SIZE;
+  const page = sorted.slice(start, start + PAGE_SIZE);
+
+  tbody.innerHTML = page.map(r => {
     const isOverdue = daysUntil(r.expiration_date) < 0;
     return `
     <tr${isOverdue ? ' class="overdue"' : ''}>
@@ -577,13 +661,31 @@ function renderTable() {
       <td style="color:var(--text-sec)">${esc(r.dri)}</td>
       <td style="color:var(--text-sec)">${isoToDisplay(r.expiration_date)}</td>
       <td>${statusBadge(r.expiration_date)}</td>
-      <td class="actions">
-        ${_currentUser && _currentUser.is_readonly ? '' : `<button class="btn-secondary btn-sm" onclick="openModal(${r.id})">Edit</button>
-        <button class="btn-danger btn-sm" onclick="openDeleteModal(${r.id},'${esc(r.name)}')">Delete</button>`}
-      </td>
+      ${isReadonly ? '' : `<td class="actions">
+        <button class="btn-secondary btn-sm" onclick="openModal(${r.id})">Edit</button>
+        <button class="btn-danger btn-sm" onclick="openDeleteModal(${r.id},'${esc(r.name)}')">Delete</button>
+      </td>`}
     </tr>
   `;
   }).join("");
+
+  if (pagEl) {
+    if (totalPages > 1) {
+      pagEl.style.display = "flex";
+      pagEl.innerHTML = `
+        <button class="btn-secondary btn-sm" onclick="goResourcesPage(${_resourcesPage - 1})" ${_resourcesPage === 0 ? 'disabled' : ''}>← Prev</button>
+        <span>Page ${_resourcesPage + 1} of ${totalPages}</span>
+        <button class="btn-secondary btn-sm" onclick="goResourcesPage(${_resourcesPage + 1})" ${_resourcesPage >= totalPages - 1 ? 'disabled' : ''}>Next →</button>
+      `;
+    } else {
+      pagEl.style.display = "none";
+    }
+  }
+}
+
+function goResourcesPage(p) {
+  _resourcesPage = p;
+  renderTable();
 }
 
 // ── Create / Edit modal ───────────────────────────────────────────────────────
@@ -1072,59 +1174,129 @@ async function submitTeamSetup() {
 
 // ── Users ─────────────────────────────────────────────────────────────────────
 async function loadAdminUsers() {
+  _usersPage = 0;
   const tbody = document.getElementById("admin-users-body");
   tbody.innerHTML = `<tr><td colspan="4" class="loading">Loading…</td></tr>`;
   try {
     const res = await fetch("/admin/users");
     if (!res.ok) { tbody.innerHTML = `<tr><td colspan="4" class="loading">Failed to load users.</td></tr>`; return; }
-    const users = await res.json();
-    if (!users.length) {
-      tbody.innerHTML = `<tr><td colspan="4" class="loading">No users found.</td></tr>`;
-      return;
-    }
-    tbody.innerHTML = users.map(u => `
-      <tr>
-        <td>${esc(u.display_name || "—")}</td>
-        <td>${esc(u.email)}</td>
-        <td>
-          ${u.is_admin ? '<span class="badge-admin">Admin</span>' : (u.is_readonly ? '<span class="badge-readonly">Read Only</span>' : '<span class="badge-member">Member</span>')}
-          ${u.is_account_creator ? '<span class="badge-creator" title="Account creator — admin rights and account are permanent">Creator</span>' : ''}
-        </td>
-        <td class="actions" style="gap:6px">
-          ${u.id === _currentUser.id
-            ? '<span style="color:var(--text-mut);font-size:12px">You</span>'
-            : u.is_account_creator
-              ? '<span style="color:var(--text-mut);font-size:12px">Protected</span>'
-              : `<button class="btn-secondary btn-sm" onclick="toggleUserAdmin(${u.id}, ${u.is_admin})">${u.is_admin ? "Remove Admin" : "Make Admin"}</button>
-            ${!u.is_admin ? `<button class="btn-secondary btn-sm" onclick="toggleUserReadonly(${u.id}, ${u.is_readonly})">${u.is_readonly ? "Remove Read-Only" : "Make Read-Only"}</button>` : ''}
-            <button class="btn-danger btn-sm" onclick="deleteAdminUser(${u.id}, '${esc(u.email)}')">Delete</button>`}
-        </td>
-      </tr>
-    `).join("");
+    _adminUsersList = await res.json();
+    renderUsersPage();
   } catch {
     tbody.innerHTML = `<tr><td colspan="4" class="loading">Network error.</td></tr>`;
   }
 }
 
-async function toggleUserAdmin(userId, currentIsAdmin) {
-  const res = await fetch(`/admin/users/${userId}/role?is_admin=${!currentIsAdmin}`, { method: "PUT" });
-  if (res.ok) {
-    showToast(currentIsAdmin ? "Admin access removed." : "User promoted to admin.");
-    loadAdminUsers();
-  } else {
-    const err = await res.json().catch(() => ({}));
-    showToast(err.detail || "Failed to update role.");
+function renderUsersPage() {
+  const tbody = document.getElementById("admin-users-body");
+  const pagEl = document.getElementById("users-pagination");
+  const users = _adminUsersList;
+
+  if (!users.length) {
+    tbody.innerHTML = `<tr><td colspan="4" class="loading">No users found.</td></tr>`;
+    if (pagEl) pagEl.style.display = "none";
+    return;
+  }
+
+  const total = users.length;
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+  if (_usersPage >= totalPages) _usersPage = Math.max(0, totalPages - 1);
+  const start = _usersPage * PAGE_SIZE;
+  const page = users.slice(start, start + PAGE_SIZE);
+
+  tbody.innerHTML = page.map(u => {
+    const currentRole = u.is_admin ? "admin" : (u.is_readonly ? "readonly" : "user");
+    const isProtected = u.id === _currentUser.id || u.is_account_creator;
+    const roleCell = isProtected
+      ? `${u.is_admin ? '<span class="badge-admin">Admin</span>' : (u.is_readonly ? '<span class="badge-readonly">Read Only</span>' : '<span class="badge-member">Member</span>')}
+         ${u.is_account_creator ? '<span class="badge-owner" title="Account owner — admin rights and account are permanent">Owner</span>' : ''}`
+      : `<select class="role-select" onchange="setUserRole(${u.id}, this.value, ${u.is_admin}, ${u.is_readonly})">
+           <option value="admin" ${u.is_admin ? 'selected' : ''}>Admin</option>
+           <option value="user" ${!u.is_admin && !u.is_readonly ? 'selected' : ''}>User</option>
+           <option value="readonly" ${u.is_readonly ? 'selected' : ''}>Read Only</option>
+         </select>`;
+    return `
+      <tr>
+        <td>${esc(u.display_name || "—")}</td>
+        <td>${esc(u.email)}</td>
+        <td>${roleCell}</td>
+        <td class="actions" style="gap:6px">
+          ${u.id === _currentUser.id
+            ? '<span style="color:var(--text-mut);font-size:12px">You</span>'
+            : u.is_account_creator
+              ? '<span style="color:var(--text-mut);font-size:12px">Protected</span>'
+              : `<button class="btn-danger btn-sm" onclick="deleteAdminUser(${u.id}, '${esc(u.email)}')">Delete</button>`}
+        </td>
+      </tr>
+    `;
+  }).join("");
+
+  if (pagEl) {
+    if (totalPages > 1) {
+      pagEl.style.display = "flex";
+      pagEl.innerHTML = `
+        <button class="btn-secondary btn-sm" onclick="goUsersPage(${_usersPage - 1})" ${_usersPage === 0 ? 'disabled' : ''}>← Prev</button>
+        <span>Page ${_usersPage + 1} of ${totalPages}</span>
+        <button class="btn-secondary btn-sm" onclick="goUsersPage(${_usersPage + 1})" ${_usersPage >= totalPages - 1 ? 'disabled' : ''}>Next →</button>
+      `;
+    } else {
+      pagEl.style.display = "none";
+    }
   }
 }
 
-async function toggleUserReadonly(userId, currentIsReadonly) {
-  const res = await fetch(`/admin/users/${userId}/readonly?is_readonly=${!currentIsReadonly}`, { method: "PUT" });
-  if (res.ok) {
-    showToast(currentIsReadonly ? "Read-only access removed." : "User set to read-only.");
+function goUsersPage(p) {
+  _usersPage = p;
+  renderUsersPage();
+}
+
+async function setUserRole(userId, newRole, currentIsAdmin, currentIsReadonly) {
+  try {
+    if (newRole === "admin") {
+      const res = await fetch(`/admin/users/${userId}/role?is_admin=true`, { method: "PUT" });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        showToast(err.detail || "Failed to update role.");
+        loadAdminUsers(); return;
+      }
+    } else if (newRole === "readonly") {
+      if (currentIsAdmin) {
+        const res = await fetch(`/admin/users/${userId}/role?is_admin=false`, { method: "PUT" });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          showToast(err.detail || "Failed to update role.");
+          loadAdminUsers(); return;
+        }
+      }
+      const res = await fetch(`/admin/users/${userId}/readonly?is_readonly=true`, { method: "PUT" });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        showToast(err.detail || "Failed to update role.");
+        loadAdminUsers(); return;
+      }
+    } else { // "user"
+      if (currentIsAdmin) {
+        const res = await fetch(`/admin/users/${userId}/role?is_admin=false`, { method: "PUT" });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          showToast(err.detail || "Failed to update role.");
+          loadAdminUsers(); return;
+        }
+      }
+      if (currentIsReadonly) {
+        const res = await fetch(`/admin/users/${userId}/readonly?is_readonly=false`, { method: "PUT" });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          showToast(err.detail || "Failed to update role.");
+          loadAdminUsers(); return;
+        }
+      }
+    }
+    showToast("Role updated.");
     loadAdminUsers();
-  } else {
-    const err = await res.json().catch(() => ({}));
-    showToast(err.detail || "Failed to update role.");
+  } catch {
+    showToast("Network error.");
+    loadAdminUsers();
   }
 }
 
@@ -1193,29 +1365,83 @@ const _ACTION_LABELS = {
 };
 
 async function loadAuditLog() {
+  _auditPage = 0;
   const tbody = document.getElementById("admin-audit-body");
   tbody.innerHTML = `<tr><td colspan="4" class="loading">Loading…</td></tr>`;
   try {
-    const res = await fetch("/admin/audit-log?limit=25");
+    const res = await fetch(`/admin/audit-log?limit=500&offset=0`);
     if (!res.ok) { tbody.innerHTML = `<tr><td colspan="4" class="loading">Failed to load audit log.</td></tr>`; return; }
-    const entries = await res.json();
-    if (!entries.length) {
-      tbody.innerHTML = `<tr><td colspan="4" class="loading">No audit entries yet. Actions on resources will appear here.</td></tr>`;
-      return;
-    }
-    tbody.innerHTML = entries.map(e => {
-      const dt = new Date(e.created_at + "Z");
-      const fmt = dt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-        + " " + dt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-      const action = _ACTION_LABELS[e.action] || e.action;
-      return `<tr>
-        <td style="white-space:nowrap;color:var(--text-sec)">${esc(fmt)}</td>
-        <td style="color:var(--text-sec)">${esc(e.user_email || "system")}</td>
-        <td>${esc(action)}</td>
-        <td>${esc(e.resource_name || "—")}</td>
-      </tr>`;
-    }).join("");
+    _auditEntries = await res.json();
+    renderAuditPage();
   } catch {
     tbody.innerHTML = `<tr><td colspan="4" class="loading">Network error.</td></tr>`;
   }
+}
+
+function sortAuditBy(col) {
+  if (_auditSortCol === col) _auditSortDir *= -1;
+  else { _auditSortCol = col; _auditSortDir = 1; }
+  _auditPage = 0;
+  renderAuditPage();
+}
+
+function renderAuditPage() {
+  const tbody = document.getElementById("admin-audit-body");
+  const pagEl = document.getElementById("audit-pagination");
+
+  ["created_at","user_email","action","resource_name"].forEach(col => {
+    const el = document.getElementById("audit-sort-" + col);
+    if (el) el.textContent = _auditSortCol === col ? (_auditSortDir === 1 ? " ▲" : " ▼") : "";
+  });
+
+  if (!_auditEntries.length) {
+    tbody.innerHTML = `<tr><td colspan="4" class="loading">No audit entries yet. Actions on resources will appear here.</td></tr>`;
+    if (pagEl) pagEl.style.display = "none";
+    return;
+  }
+
+  const sorted = [..._auditEntries].sort((a, b) => {
+    const av = (a[_auditSortCol] || "").toString().toLowerCase();
+    const bv = (b[_auditSortCol] || "").toString().toLowerCase();
+    if (av < bv) return -_auditSortDir;
+    if (av > bv) return  _auditSortDir;
+    return 0;
+  });
+
+  const total = sorted.length;
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+  if (_auditPage >= totalPages) _auditPage = Math.max(0, totalPages - 1);
+  const start = _auditPage * PAGE_SIZE;
+  const page = sorted.slice(start, start + PAGE_SIZE);
+
+  tbody.innerHTML = page.map(e => {
+    const dt = new Date(e.created_at + "Z");
+    const fmt = dt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+      + " " + dt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+    const action = _ACTION_LABELS[e.action] || e.action;
+    return `<tr>
+      <td style="white-space:nowrap;color:var(--text-sec)">${esc(fmt)}</td>
+      <td style="color:var(--text-sec)">${esc(e.user_email || "system")}</td>
+      <td>${esc(action)}</td>
+      <td>${esc(e.resource_name || "—")}</td>
+    </tr>`;
+  }).join("");
+
+  if (pagEl) {
+    if (totalPages > 1) {
+      pagEl.style.display = "flex";
+      pagEl.innerHTML = `
+        <button class="btn-secondary btn-sm" onclick="goAuditPage(${_auditPage - 1})" ${_auditPage === 0 ? 'disabled' : ''}>← Prev</button>
+        <span>Page ${_auditPage + 1} of ${totalPages}</span>
+        <button class="btn-secondary btn-sm" onclick="goAuditPage(${_auditPage + 1})" ${_auditPage >= totalPages - 1 ? 'disabled' : ''}>Next →</button>
+      `;
+    } else {
+      pagEl.style.display = "none";
+    }
+  }
+}
+
+function goAuditPage(p) {
+  _auditPage = p;
+  renderAuditPage();
 }

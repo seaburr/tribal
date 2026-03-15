@@ -201,7 +201,7 @@ header .tagline { color: var(--text-mut); font-size: 13px; flex: 1; }
   background: rgba(100,116,139,.2);
   color: var(--text-sec);
 }
-.badge-creator {
+.badge-owner {
   display: inline-block;
   padding: 1px 8px;
   border-radius: 999px;
@@ -229,6 +229,29 @@ header .tagline { color: var(--text-mut); font-size: 13px; flex: 1; }
   background: rgba(100,116,139,.2);
   color: var(--text-mut);
 }
+
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--text-sec);
+}
+.pagination-bar button:disabled { opacity: 0.4; cursor: default; }
+
+.role-select {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 12px;
+  padding: 2px 6px;
+  cursor: pointer;
+}
+.role-select:focus { outline: 2px solid var(--accent); }
 
 .admin-report-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 @media (max-width: 600px) { .admin-report-row { grid-template-columns: 1fr; } }

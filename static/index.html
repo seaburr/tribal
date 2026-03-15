@@ -176,6 +176,7 @@
               </tbody>
             </table>
           </div>
+          <div id="users-pagination" class="pagination-bar" style="display:none"></div>
         </div>
       </div>
 
@@ -190,10 +191,10 @@
             <table class="admin-table">
               <thead>
                 <tr>
-                  <th>Name</th>
-                  <th>Owner</th>
+                  <th class="sortable" onclick="sortAdminKeysBy('name')"><span>Name</span><span class="sort-icon" id="keys-sort-name"></span></th>
+                  <th class="sortable" onclick="sortAdminKeysBy('user_email')"><span>Owner</span><span class="sort-icon" id="keys-sort-user_email"></span></th>
                   <th>Prefix</th>
-                  <th>Last Used</th>
+                  <th class="sortable" onclick="sortAdminKeysBy('last_used_at')"><span>Last Used</span><span class="sort-icon" id="keys-sort-last_used_at"></span></th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -202,6 +203,7 @@
               </tbody>
             </table>
           </div>
+          <div id="keys-pagination" class="pagination-bar" style="display:none"></div>
         </div>
       </div>
 
@@ -241,10 +243,10 @@
             <table class="admin-table audit-table">
               <thead>
                 <tr>
-                  <th>Date / Time</th>
-                  <th>User</th>
-                  <th>Action</th>
-                  <th>Resource</th>
+                  <th class="sortable" onclick="sortAuditBy('created_at')"><span>Date / Time</span><span class="sort-icon" id="audit-sort-created_at"></span></th>
+                  <th class="sortable" onclick="sortAuditBy('user_email')"><span>User</span><span class="sort-icon" id="audit-sort-user_email"></span></th>
+                  <th class="sortable" onclick="sortAuditBy('action')"><span>Action</span><span class="sort-icon" id="audit-sort-action"></span></th>
+                  <th class="sortable" onclick="sortAuditBy('resource_name')"><span>Resource</span><span class="sort-icon" id="audit-sort-resource_name"></span></th>
                 </tr>
               </thead>
               <tbody id="admin-audit-body">
@@ -252,6 +254,7 @@
               </tbody>
             </table>
           </div>
+          <div id="audit-pagination" class="pagination-bar" style="display:none"></div>
         </div>
       </div>
 
@@ -391,7 +394,7 @@ resource "tribal_resource" "prod_cert" {
             <th class="sortable" onclick="sortBy('dri')"><span>DRI</span><span class="sort-icon" id="sort-dri"></span></th>
             <th class="sortable" onclick="sortBy('expiration_date')"><span>Expiration</span><span class="sort-icon" id="sort-expiration_date"></span></th>
             <th class="sortable" onclick="sortBy('status')"><span>Status</span><span class="sort-icon" id="sort-status"></span></th>
-            <th>Actions</th>
+            <th id="resources-actions-th">Actions</th>
           </tr>
         </thead>
         <tbody id="resources-body">
@@ -399,6 +402,7 @@ resource "tribal_resource" "prod_cert" {
         </tbody>
       </table>
     </div>
+    <div id="resources-pagination" class="pagination-bar" style="display:none"></div>
   </div>
 
 </main>

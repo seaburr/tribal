@@ -23,7 +23,7 @@ def upgrade() -> None:
     )
     op.add_column(
         "resources",
-        sa.Column("auto_refresh_expiry", sa.Boolean(), nullable=False, server_default="0"),
+        sa.Column("auto_refresh_expiry", sa.Boolean(), nullable=False, server_default=sa.false()),
     )
 
 

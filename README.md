@@ -274,11 +274,18 @@ Feedback from the first round of testing that needs to be addressed:
 * bug: Notification config settings, team name changes, etc. need to go into the audit log but do not appear to be currently.
 * bug/API: `PUT /admin/settings` with `org_name` does not update the team name displayed in the UI. `AdminSettings.org_name` and `Team.name` are two separate, unlinked models — the UI reads the team name exclusively from `GET /admin/teams` (`Team.name`), while `PUT /admin/settings` only updates `AdminSettings.org_name` and never touches the `Team` table. Fix: when `org_name` is provided in a `PUT /admin/settings` request, also update the singleton `Team` row's `name` to match (see `app/routers/admin.py`).
 
-# Iteration 17
+## Iteration 17
 * bug/UI: In UI, if the team name is changed the text "Team name updated." stays present in the UI even after clicking to another tab and/or refreshing the page.
 * bug: Admin notification config changes, team name changes, and undelete resource events should go to the audit log.
 
+## Iteration 18
 
-# Iteration 18
+* feat: Implement a read-only role. This would allow users to see the calendar, resources, and docs but they cannot edit resources (Hide edit and delete buttons).
 
-feat: Implement a read-only role. This would allow users to see the calendar, resources, and docs but they cannot edit resources (Hide edit and delete buttons).
+## Iteration 19
+
+* UI: On Admin tab, add a column called "Role" and let admin/user/read-only be options from a drop down.
+* UI/bug: When logged in as a read-only user, the actions column on the resources tab is misaligned. Simply remove the actions column for read-only users.
+* performance: Add pagination to resources, users, and audit log in UI. Default size: 25 items.
+* Change "Creator" to "Owner".
+* Explore but do not implement what it would take to add support for creating JIRA work items instead of sending Slack notifications when a resource is nearing expiry.
