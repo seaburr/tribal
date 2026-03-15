@@ -17,10 +17,14 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.add_column(
-        "users",
-        sa.Column("is_readonly", sa.Boolean(), nullable=False, server_default=sa.false()),
-    )
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    existing = [c["name"] for c in inspector.get_columns("users")]
+    if "is_readonly" not in existing:
+        op.add_column(
+            "users",
+            sa.Column("is_readonly", sa.Boolean(), nullable=False, server_default=sa.false()),
+        )
 
 
 def downgrade() -> None:
