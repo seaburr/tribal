@@ -333,14 +333,21 @@
       <h3>Automated Reminders</h3>
       <p>Tribal sends Slack notifications to the owning team at configurable intervals before a credential expires (e.g. 30, 14, 7, 3, and 1 days). Each reminder includes the rotation instructions and a link to the secret manager, so the on-call engineer can act immediately without hunting for context.</p>
 
+      <h3>Roles</h3>
+      <ul>
+        <li><strong>Admin</strong> — full access: manage users, configure notifications, view and export audit logs, recover deleted resources, and revoke API keys</li>
+        <li><strong>Member</strong> — create, edit, and delete resources; generate API keys; generate per-resource reports</li>
+        <li><strong>Read-only</strong> — view the calendar, resource list, and docs; generate per-resource PDF reports; no create, edit, or delete access</li>
+      </ul>
+
       <h3>For Administrators</h3>
       <ul>
         <li><strong>Notification Settings</strong> — configure when reminders fire (days before expiry) and the time of day (UTC)</li>
         <li><strong>Admin Slack Webhook</strong> — receive admin-level alerts: overdue resources, deleted resources, and test confirmations</li>
-        <li><strong>User Management</strong> — promote members to admin, remove access, and protect the account creator</li>
+        <li><strong>User Management</strong> — assign roles (admin, member, or read-only), promote or demote users, and protect the account creator from accidental removal</li>
         <li><strong>Audit Log</strong> — every create, update, delete, certificate upload, login, API key event, and role change is logged with the acting user and timestamp</li>
         <li><strong>Soft Deletes</strong> — deleted resources are retained and recoverable from the Admin panel; no data is permanently lost without explicit action</li>
-        <li><strong>Reports</strong> — download CSV exports for upcoming expirations or recent audit activity</li>
+        <li><strong>Reports</strong> — download CSV exports for upcoming expirations or recent audit activity; any user can generate a per-resource PDF report with full details and a filtered audit history</li>
         <li><strong>API Access</strong> — issue API keys for programmatic access; all API actions appear in the audit log with the source noted</li>
       </ul>
 
@@ -527,6 +534,7 @@ resource "tribal_resource" "prod_cert" {
       </div>
     </div>
     <div class="modal-footer">
+      <button class="btn-secondary" id="detail-report-btn" onclick="downloadResourceReport()">Report</button>
       <button class="btn-primary" id="detail-edit-btn" onclick="editFromDetail()">Edit</button>
       <button class="btn-danger" id="detail-delete-btn" onclick="openDeleteFromDetail()">Delete</button>
     </div>

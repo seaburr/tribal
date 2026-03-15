@@ -551,6 +551,10 @@ function openDeleteFromDetail() {
   openDeleteModal(r.id, r.name);
 }
 
+function downloadResourceReport() {
+  if (detailResourceId) window.open(`/api/resources/${detailResourceId}/report`, '_blank');
+}
+
 // ── Upcoming events ───────────────────────────────────────────────────────────
 function renderUpcoming() {
   const container = document.getElementById("upcoming-list");
