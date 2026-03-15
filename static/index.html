@@ -342,9 +342,10 @@
       </ul>
 
       <h3>Terraform Provider</h3>
-      <p>Manage Tribal resources alongside your other infrastructure-as-code using the official Terraform provider. Define credentials as code, track them in version control, and enforce rotation policy through your existing IaC pipelines.</p>
+      <p>Manage Tribal resources alongside your other infrastructure-as-code using the <a href="https://registry.terraform.io/providers/seaburr/tribal/latest" target="_blank" rel="noopener">official Terraform provider</a>. Define credentials as code, track them in version control, and enforce rotation policy through your existing IaC pipelines.</p>
       <ul>
         <li><code>tribal_resource</code> — create and manage tracked credentials</li>
+        <li><code>tribal_team</code> — manage team groupings for organizing resources</li>
         <li><code>tribal_admin_settings</code> — configure org-wide notification schedules and Slack webhooks</li>
       </ul>
 
@@ -352,14 +353,19 @@
       <pre><code>terraform {
   required_providers {
     tribal = {
-      source = "registry.terraform.io/cberndt/tribal"
+      source  = "seaburr/tribal"
+      version = "~> 0.1"
     }
   }
 }
 
 provider "tribal" {
-  # host defaults to TRIBAL_HOST env var
-  # api_key defaults to TRIBAL_API_KEY env var
+  host    = "https://your-tribal-instance"  # or set TRIBAL_HOST env var
+  api_key = var.tribal_api_key              # or set TRIBAL_API_KEY env var
+}
+
+resource "tribal_team" "platform" {
+  name = "Platform"
 }
 
 resource "tribal_resource" "prod_cert" {
