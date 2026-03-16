@@ -1343,7 +1343,7 @@ async function loadDeletedResources() {
         <td style="color:var(--text-sec);font-size:0.8rem">${new Date(r.deleted_at + "Z").toLocaleDateString()}</td>
         <td style="display:flex;gap:6px">
           <button class="btn-secondary btn-sm" onclick="restoreResource(${r.id})">Restore</button>
-          <button class="btn-danger btn-sm" onclick="purgeResource(${r.id}, ${JSON.stringify(r.name)})">Purge</button>
+          <button class="btn-danger btn-sm" onclick="purgeResource(${r.id}, '${esc(r.name)}')">Purge</button>
         </td>
       </tr>`).join("");
   } catch {
