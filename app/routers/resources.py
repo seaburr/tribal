@@ -113,7 +113,7 @@ async def test_webhook(
             r = await client.post(req.webhook_url, json=payload, timeout=10)
             if r.status_code >= 400:
                 raise HTTPException(status_code=400, detail=f"Webhook returned HTTP {r.status_code}. Check the URL and try again.")
-    except httpx.RequestError as e:
+    except (httpx.RequestError, httpx.InvalidURL) as e:
         raise HTTPException(status_code=400, detail=f"Could not reach webhook: {e}")
 
 

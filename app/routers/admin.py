@@ -3,7 +3,7 @@ import io
 from datetime import date, datetime, timedelta, timezone
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
@@ -48,7 +48,7 @@ async def test_admin_webhook(req: schemas.WebhookTestRequest):
             r = await client.post(req.webhook_url, json=payload, timeout=10)
             if r.status_code >= 400:
                 raise HTTPException(status_code=400, detail=f"Webhook returned HTTP {r.status_code}. Check the URL and try again.")
-    except httpx.RequestError as e:
+    except (httpx.RequestError, httpx.InvalidURL) as e:
         raise HTTPException(status_code=400, detail=f"Could not reach webhook: {e}")
 
 
@@ -299,7 +299,7 @@ def restore_resource(resource_id: int, db: Session = Depends(get_db)):
 @router.get("/audit-log", response_model=list[schemas.AuditLogEntry])
 def get_audit_log(
     limit: int = 25,
-    offset: int = 0,
+    offset: int = Query(default=0, ge=0, le=10_000_000),
     db: Session = Depends(get_db),
 ):
     limit = min(limit, 500)
