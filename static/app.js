@@ -1341,10 +1341,25 @@ async function loadDeletedResources() {
         <td style="color:var(--text-sec)">${esc(r.type)}</td>
         <td style="color:var(--text-sec)">${esc(r.dri)}</td>
         <td style="color:var(--text-sec);font-size:0.8rem">${new Date(r.deleted_at + "Z").toLocaleDateString()}</td>
-        <td><button class="btn-secondary btn-sm" onclick="restoreResource(${r.id})">Restore</button></td>
+        <td style="display:flex;gap:6px">
+          <button class="btn-secondary btn-sm" onclick="restoreResource(${r.id})">Restore</button>
+          <button class="btn-danger btn-sm" onclick="purgeResource(${r.id}, ${JSON.stringify(r.name)})">Purge</button>
+        </td>
       </tr>`).join("");
   } catch {
     tbody.innerHTML = `<tr><td colspan="5" class="loading">Network error.</td></tr>`;
+  }
+}
+
+async function purgeResource(id, name) {
+  if (!confirm(`Permanently delete "${name}"? This cannot be undone.`)) return;
+  const res = await fetch(`/admin/resources/${id}/purge`, { method: "DELETE" });
+  if (res.ok) {
+    showToast("Resource permanently deleted.");
+    loadDeletedResources();
+  } else {
+    const err = await res.json().catch(() => ({}));
+    showToast(err.detail || "Failed to purge resource.");
   }
 }
 
@@ -1365,6 +1380,7 @@ const _ACTION_LABELS = {
   "resource.create": "Created",
   "resource.update": "Updated",
   "resource.delete": "Deleted",
+  "resource.purge": "Purged",
   "resource.cert_upload": "Cert Uploaded",
   "user.create": "User Registered",
   "user.delete": "User Deleted",

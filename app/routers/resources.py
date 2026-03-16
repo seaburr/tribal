@@ -212,6 +212,7 @@ _REPORT_ACTION_LABELS: dict[str, str] = {
     "resource.update": "Updated",
     "resource.delete": "Deleted",
     "resource.cert_upload": "Certificate Uploaded",
+    "resource.cert_expiry_refresh": "Expiry Auto-Refreshed",
 }
 
 
@@ -351,6 +352,8 @@ def get_resource_report(
             parts: list[str] = []
             if "updated_fields" in detail:
                 parts.append(f"Fields: {', '.join(detail['updated_fields'])}")
+            elif "new_expiry" in detail:
+                parts.append(f"{detail.get('old_expiry', '?')} → {detail['new_expiry']}")
             elif "type" in detail:
                 parts.append(f"Type: {detail['type']}")
             if detail.get("via") == "api":

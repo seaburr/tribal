@@ -296,6 +296,32 @@ def restore_resource(resource_id: int, db: Session = Depends(get_db)):
     return resource
 
 
+@router.delete("/resources/{resource_id}/purge", status_code=204)
+def purge_resource(
+    resource_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """Permanently delete a soft-deleted resource. Audit log entries are preserved."""
+    resource = (
+        db.query(models.Resource)
+        .filter(models.Resource.id == resource_id, models.Resource.deleted_at.isnot(None))
+        .first()
+    )
+    if not resource:
+        raise HTTPException(status_code=404, detail="Deleted resource not found.")
+    write_audit(
+        db,
+        "resource.purge",
+        user_email=current_user.email,
+        resource_id=resource.id,
+        resource_name=resource.name,
+        detail={"type": resource.type, "dri": resource.dri},
+    )
+    db.delete(resource)
+    db.commit()
+
+
 @router.get("/audit-log", response_model=list[schemas.AuditLogEntry])
 def get_audit_log(
     limit: int = 25,
