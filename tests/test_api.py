@@ -845,3 +845,50 @@ def test_resource_report_includes_audit_history(client, created):
     r = client.get(f"/api/resources/{created['id']}/report")
     assert r.status_code == 200
     assert len(r.content) > 1024  # a blank PDF is ~700 bytes; any real content pushes it higher
+
+
+# ── Purge (hard-delete) ────────────────────────────────────────────────────────
+
+def _soft_delete(client, resource_id):
+    with patch("app.routers.resources.send_deletion_notification", new=AsyncMock()):
+        r = client.delete(f"/api/resources/{resource_id}")
+    assert r.status_code == 204
+
+
+def test_purge_removes_resource(client, created):
+    _soft_delete(client, created["id"])
+    r = client.delete(f"/admin/resources/{created['id']}/purge")
+    assert r.status_code == 204
+    # Resource no longer appears in the deleted list
+    assert not any(
+        item["id"] == created["id"]
+        for item in client.get("/admin/resources/deleted").json()
+    )
+
+
+def test_purge_preserves_audit_log(client, created):
+    from app.models import AuditLog
+    from app.database import get_db as _get_db
+
+    _soft_delete(client, created["id"])
+    client.delete(f"/admin/resources/{created['id']}/purge")
+
+    # The audit log entries for this resource must still exist
+    db = next(app.dependency_overrides[_get_db]())
+    entries = db.query(AuditLog).filter(AuditLog.resource_id == created["id"]).all()
+    actions = {e.action for e in entries}
+    assert "resource.purge" in actions
+    # Earlier actions (create, delete) are also still present
+    assert "resource.create" in actions
+    assert "resource.delete" in actions
+
+
+def test_purge_non_deleted_resource_returns_404(client, created):
+    # Resource exists but has not been soft-deleted — purge must refuse
+    r = client.delete(f"/admin/resources/{created['id']}/purge")
+    assert r.status_code == 404
+
+
+def test_purge_nonexistent_resource_returns_404(client):
+    r = client.delete("/admin/resources/9999/purge")
+    assert r.status_code == 404
