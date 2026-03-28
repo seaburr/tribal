@@ -360,9 +360,12 @@ def get_resource_report(
         + (f"  by {creator}" if creator else "")
     )
     _field("Created", created_label)
-    _field("Last Updated", resource.updated_at.strftime("%Y-%m-%d %H:%M UTC"))
+    now = datetime.now(timezone.utc)
+    updated_ago = (now - resource.updated_at).days
+    _field("Last Updated", f"{resource.updated_at.strftime('%Y-%m-%d %H:%M UTC')} ({updated_ago} day(s) ago)")
     if resource.last_reviewed_at:
-        _field("Last Reviewed", resource.last_reviewed_at.strftime("%Y-%m-%d %H:%M UTC"))
+        reviewed_ago = (now - resource.last_reviewed_at).days
+        _field("Last Reviewed", f"{resource.last_reviewed_at.strftime('%Y-%m-%d %H:%M UTC')} ({reviewed_ago} day(s) ago)")
 
     pdf.ln(3)
     pdf.set_draw_color(200, 200, 200)
