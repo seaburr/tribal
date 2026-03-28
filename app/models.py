@@ -33,6 +33,7 @@ class AdminSettings(Base):
     slack_webhook = Column(String(500), nullable=True)
     alert_on_overdue = Column(Boolean, nullable=False, default=False)
     alert_on_delete = Column(Boolean, nullable=False, default=False)
+    review_cadence_months = Column(Integer, nullable=True, default=None)
     updated_at = Column(DateTime, default=_utcnow)
 
 
@@ -75,7 +76,8 @@ class Resource(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), nullable=False)
     dri = Column(String(255), nullable=False)
-    expiration_date = Column(Date, nullable=False)
+    expiration_date = Column(Date, nullable=True)
+    does_not_expire = Column(Boolean, nullable=False, default=False)
     purpose = Column(Text, nullable=False)
     generation_instructions = Column(Text, nullable=False)
     secret_manager_link = Column(String(1000), nullable=True)
@@ -85,6 +87,7 @@ class Resource(Base):
     public_key_pem = Column(Text, nullable=True)
     certificate_url = Column(String(1000), nullable=True)
     auto_refresh_expiry = Column(Boolean, nullable=False, default=False)
+    last_reviewed_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=_utcnow)
     updated_at = Column(DateTime, default=_utcnow)
     deleted_at = Column(DateTime, nullable=True, default=None)
@@ -97,4 +100,5 @@ class ReminderLog(Base):
     resource_id = Column(Integer, ForeignKey("resources.id", ondelete="CASCADE"), nullable=False)
     expiration_date = Column(Date, nullable=False)
     days_before = Column(Integer, nullable=False)
+    reminder_type = Column(String(20), nullable=False, server_default="expiry")
     sent_at = Column(DateTime, default=_utcnow)

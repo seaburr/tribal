@@ -4,6 +4,7 @@ from typing import Optional
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
 from fastapi.responses import Response
+from sqlalchemy import case
 from sqlalchemy.orm import Session
 
 from .. import models, schemas
@@ -122,7 +123,10 @@ def list_resources(
     db: Session = Depends(get_db),
     _: models.User = Depends(get_current_user),
 ):
-    return _active(db).order_by(models.Resource.expiration_date).all()
+    return _active(db).order_by(
+        case((models.Resource.expiration_date.is_(None), 1), else_=0),
+        models.Resource.expiration_date.asc(),
+    ).all()
 
 
 @router.post("/", response_model=schemas.ResourceResponse, status_code=201)
@@ -133,6 +137,9 @@ def create_resource(
     current_user: models.User = Depends(require_write_access),
 ):
     data = resource.model_dump()
+    # If does_not_expire, ensure expiration_date is cleared
+    if data.get("does_not_expire"):
+        data["expiration_date"] = None
     # Auto-assign the singleton team if one exists and none was specified
     if not data.get("team_id"):
         team = db.query(models.Team).first()
@@ -171,6 +178,16 @@ def update_resource(
         raise HTTPException(status_code=404, detail="Resource not found")
 
     update_data = updates.model_dump(exclude_unset=True)
+
+    # Handle does_not_expire toggle
+    new_dne = update_data.get("does_not_expire")
+    if new_dne is True:
+        update_data["expiration_date"] = None
+    elif new_dne is False and resource.does_not_expire:
+        # Switching back to expiring — require a date
+        if not update_data.get("expiration_date"):
+            raise HTTPException(status_code=422, detail="Expiration date is required when disabling 'does not expire'.")
+
     # Only record fields whose values actually changed
     changed_fields = [
         field for field, new_val in update_data.items()
@@ -180,6 +197,7 @@ def update_resource(
         setattr(resource, field, value)
 
     resource.updated_at = datetime.now(timezone.utc)
+    resource.last_reviewed_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(resource)
     _audit(db, "resource.update", resource, current_user, {"updated_fields": changed_fields}, via=getattr(request.state, "auth_via", "ui"))
@@ -207,12 +225,33 @@ async def delete_resource(
     db.commit()
 
 
+@router.post("/{resource_id}/review", response_model=schemas.ResourceResponse)
+def review_resource(
+    request: Request,
+    resource_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_write_access),
+):
+    """Mark a resource as reviewed without making changes."""
+    resource = _active(db).filter(models.Resource.id == resource_id).first()
+    if not resource:
+        raise HTTPException(status_code=404, detail="Resource not found")
+    resource.last_reviewed_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(resource)
+    _audit(db, "resource.review_approved", resource, current_user,
+           {"status": "reviewed but no changes required"},
+           via=getattr(request.state, "auth_via", "ui"))
+    return resource
+
+
 _REPORT_ACTION_LABELS: dict[str, str] = {
     "resource.create": "Created",
     "resource.update": "Updated",
     "resource.delete": "Deleted",
     "resource.cert_upload": "Certificate Uploaded",
     "resource.cert_expiry_refresh": "Expiry Auto-Refreshed",
+    "resource.review_approved": "Review Approved",
 }
 
 
@@ -246,13 +285,16 @@ def get_resource_report(
     creator = create_entry.user_email if create_entry else None
 
     today = date_type.today()
-    delta = (resource.expiration_date - today).days
-    if delta < 0:
-        status_str = f"{abs(delta)} day(s) overdue"
-    elif delta == 0:
-        status_str = "Expires today"
+    if resource.does_not_expire or resource.expiration_date is None:
+        status_str = "Does not expire"
     else:
-        status_str = f"{delta} day(s) remaining"
+        delta = (resource.expiration_date - today).days
+        if delta < 0:
+            status_str = f"{abs(delta)} day(s) overdue"
+        elif delta == 0:
+            status_str = "Expires today"
+        else:
+            status_str = f"{delta} day(s) remaining"
 
     def _s(text) -> str:
         """Convert to a latin-1-safe string for the PDF core font."""
@@ -297,10 +339,13 @@ def get_resource_report(
 
     _field("Type", resource.type)
     _field("DRI", resource.dri)
-    _field(
-        "Expiration / Rotation Date",
-        f"{resource.expiration_date.isoformat()} ({status_str})",
-    )
+    if resource.does_not_expire or resource.expiration_date is None:
+        _field("Expiration / Rotation Date", "Does not expire")
+    else:
+        _field(
+            "Expiration / Rotation Date",
+            f"{resource.expiration_date.isoformat()} ({status_str})",
+        )
     _field("Purpose / Usage", resource.purpose)
     _field("Generation / Rotation Instructions", resource.generation_instructions)
     if resource.secret_manager_link:
@@ -316,6 +361,8 @@ def get_resource_report(
     )
     _field("Created", created_label)
     _field("Last Updated", resource.updated_at.strftime("%Y-%m-%d %H:%M UTC"))
+    if resource.last_reviewed_at:
+        _field("Last Reviewed", resource.last_reviewed_at.strftime("%Y-%m-%d %H:%M UTC"))
 
     pdf.ln(3)
     pdf.set_draw_color(200, 200, 200)

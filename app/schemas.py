@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from typing import Optional
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
@@ -35,6 +35,7 @@ class AdminSettingsResponse(BaseModel):
     slack_webhook: Optional[str] = None
     alert_on_overdue: bool = False
     alert_on_delete: bool = False
+    review_cadence_months: Optional[int] = None
 
     model_config = {"from_attributes": True}
 
@@ -46,6 +47,7 @@ class AdminSettingsUpdate(BaseModel):
     slack_webhook: Optional[str] = None
     alert_on_overdue: bool = False
     alert_on_delete: bool = False
+    review_cadence_months: Optional[int] = None
 
 
 class TeamCreate(BaseModel):
@@ -144,7 +146,8 @@ class ResourceCreate(BaseModel):
     name: str
     dri: str
     type: str
-    expiration_date: date
+    expiration_date: Optional[date] = None
+    does_not_expire: bool = False
     purpose: str
     generation_instructions: str
     secret_manager_link: Optional[str] = None
@@ -163,12 +166,21 @@ class ResourceCreate(BaseModel):
     def parse_date(cls, v):
         return _parse_date(v)
 
+    @model_validator(mode="after")
+    def require_date_unless_no_expiry(self):
+        if not self.does_not_expire and self.expiration_date is None:
+            raise ValueError("Expiration date is required unless 'does_not_expire' is set.")
+        if self.does_not_expire:
+            self.expiration_date = None
+        return self
+
 
 class ResourceUpdate(BaseModel):
     name: Optional[str] = None
     dri: Optional[str] = None
     type: Optional[str] = None
     expiration_date: Optional[date] = None
+    does_not_expire: Optional[bool] = None
     purpose: Optional[str] = None
     generation_instructions: Optional[str] = None
     secret_manager_link: Optional[str] = None
@@ -193,7 +205,8 @@ class ResourceResponse(BaseModel):
     name: str
     dri: str
     type: str
-    expiration_date: date
+    expiration_date: Optional[date] = None
+    does_not_expire: bool = False
     purpose: str
     generation_instructions: str
     secret_manager_link: Optional[str]
@@ -202,6 +215,7 @@ class ResourceResponse(BaseModel):
     public_key_pem: Optional[str]
     certificate_url: Optional[str] = None
     auto_refresh_expiry: bool = False
+    last_reviewed_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
 

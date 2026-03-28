@@ -69,6 +69,8 @@ def update_settings(
         raise HTTPException(status_code=422, detail="Reminder days must be between 1 and 365.")
     if not (0 <= updates.notify_hour <= 23):
         raise HTTPException(status_code=422, detail="Notify hour must be between 0 and 23.")
+    if updates.review_cadence_months is not None and updates.review_cadence_months not in (6, 12, 24):
+        raise HTTPException(status_code=422, detail="Review cadence must be 6, 12, or 24 months.")
 
     settings = _get_or_create_settings(db)
     new_org_name = updates.org_name.strip() if updates.org_name and updates.org_name.strip() else None
@@ -89,6 +91,8 @@ def update_settings(
         changes["alert_on_overdue"] = {"old": settings.alert_on_overdue, "new": updates.alert_on_overdue}
     if settings.alert_on_delete != updates.alert_on_delete:
         changes["alert_on_delete"] = {"old": settings.alert_on_delete, "new": updates.alert_on_delete}
+    if settings.review_cadence_months != updates.review_cadence_months:
+        changes["review_cadence_months"] = {"old": settings.review_cadence_months, "new": updates.review_cadence_months}
 
     settings.org_name = new_org_name
     settings.reminder_days = new_reminder_days
@@ -96,6 +100,7 @@ def update_settings(
     settings.slack_webhook = new_slack_webhook
     settings.alert_on_overdue = updates.alert_on_overdue
     settings.alert_on_delete = updates.alert_on_delete
+    settings.review_cadence_months = updates.review_cadence_months
     settings.updated_at = datetime.now(timezone.utc)
 
     # Keep the singleton Team name in sync with org_name
@@ -410,6 +415,66 @@ def report_upcoming(db: Session = Depends(get_db)):
         media_type="text/csv",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+@router.get("/reports/reviews-due")
+def report_reviews_due(db: Session = Depends(get_db)):
+    settings = _get_or_create_settings(db)
+    cadence = settings.review_cadence_months
+    if not cadence:
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(["Info"])
+        writer.writerow(["Review cadence is not configured. Enable it in Notification Settings."])
+        output.seek(0)
+        return StreamingResponse(
+            iter([output.getvalue()]),
+            media_type="text/csv",
+            headers={"Content-Disposition": f'attachment; filename="tribal-reviews-due-{date.today().isoformat()}.csv"'},
+        )
+
+    today = date.today()
+    resources = (
+        db.query(models.Resource)
+        .filter(models.Resource.deleted_at.is_(None))
+        .all()
+    )
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Name", "Type", "DRI", "Created", "Last Reviewed", "Next Review Due", "Days Until Review"])
+    for r in resources:
+        base = r.last_reviewed_at.date() if r.last_reviewed_at else r.created_at.date()
+        next_review = _add_months(base, cadence)
+        days_until = (next_review - today).days
+        if days_until <= 30:
+            writer.writerow([
+                r.name,
+                r.type,
+                r.dri,
+                r.created_at.strftime("%m/%d/%Y"),
+                r.last_reviewed_at.strftime("%m/%d/%Y") if r.last_reviewed_at else "Never",
+                next_review.strftime("%m/%d/%Y"),
+                days_until,
+            ])
+
+    output.seek(0)
+    filename = f"tribal-reviews-due-{today.isoformat()}.csv"
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+def _add_months(d: date, months: int) -> date:
+    """Add months to a date, clamping to end of month if needed."""
+    month = d.month - 1 + months
+    year = d.year + month // 12
+    month = month % 12 + 1
+    import calendar
+    day = min(d.day, calendar.monthrange(year, month)[1])
+    return date(year, month, day)
 
 
 @router.get("/reports/recent-changes")

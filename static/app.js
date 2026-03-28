@@ -230,6 +230,7 @@ let deletingName = null;
 let detailResourceId = null;
 let sortCol = "expiration_date";
 let sortDir = 1;
+let _reviewCadenceMonths = null; // null = disabled, 6/12/24
 
 // ── Pagination state ───────────────────────────────────────────────────────────
 const PAGE_SIZE = 25;
@@ -275,10 +276,21 @@ async function loadData() {
     _teams = [];
   }
 
+  // Try to fetch review cadence (non-admins get 403, that's fine)
+  try {
+    const settingsRes = await fetch("/admin/settings");
+    if (settingsRes.ok) {
+      const s = await settingsRes.json();
+      _reviewCadenceMonths = s.review_cadence_months || null;
+    }
+  } catch {}
+
   eventsByDate = {};
   resources.forEach(r => {
-    if (!eventsByDate[r.expiration_date]) eventsByDate[r.expiration_date] = [];
-    eventsByDate[r.expiration_date].push(r);
+    if (r.expiration_date) {
+      if (!eventsByDate[r.expiration_date]) eventsByDate[r.expiration_date] = [];
+      eventsByDate[r.expiration_date].push(r);
+    }
   });
 
   _resourcesPage = 0;
@@ -313,6 +325,7 @@ function isoToDisplay(iso) {
 }
 
 function daysUntil(isoDate) {
+  if (!isoDate) return Infinity;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const expiry = new Date(isoDate + "T00:00:00");
@@ -327,7 +340,8 @@ function urgencyClass(days) {
   return "evt-green";
 }
 
-function statusBadge(isoDate) {
+function statusBadge(isoDate, doesNotExpire) {
+  if (doesNotExpire || !isoDate) return `<span class="badge badge-gray">No Expiry</span>`;
   const days = daysUntil(isoDate);
   if (days < 0)   return `<span class="badge badge-red">Expired</span>`;
   if (days === 0) return `<span class="badge badge-red">Expired today</span>`;
@@ -336,6 +350,36 @@ function statusBadge(isoDate) {
   if (days <= 14) return `<span class="badge badge-orange">${days} days</span>`;
   if (days <= 30) return `<span class="badge badge-amber">${days} days</span>`;
   return `<span class="badge badge-green">${days} days</span>`;
+}
+
+// ── Review helpers ─────────────────────────────────────────────────────────────
+function _addMonths(d, months) {
+  const result = new Date(d);
+  result.setMonth(result.getMonth() + months);
+  return result;
+}
+
+function _nextReviewDate(r) {
+  if (!_reviewCadenceMonths) return null;
+  const base = r.last_reviewed_at ? new Date(r.last_reviewed_at) : new Date(r.created_at);
+  return _addMonths(base, _reviewCadenceMonths);
+}
+
+function _reviewDaysUntil(r) {
+  const nrd = _nextReviewDate(r);
+  if (!nrd) return Infinity;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  nrd.setHours(0, 0, 0, 0);
+  return Math.round((nrd - today) / 86400000);
+}
+
+function reviewBadge(r) {
+  if (!_reviewCadenceMonths) return "";
+  const days = _reviewDaysUntil(r);
+  if (days < 0)   return `<span class="badge badge-purple">Review overdue</span>`;
+  if (days <= 30) return `<span class="badge badge-purple">Review in ${days}d</span>`;
+  return "";
 }
 
 // ── Linkify ───────────────────────────────────────────────────────────────────
@@ -491,7 +535,7 @@ function showDatelistModal(iso, events) {
         <div class="date-resource-meta">
           <span>${esc(r.type)}</span>
           <span>DRI: ${esc(r.dri)}</span>
-          ${statusBadge(r.expiration_date)}
+          ${statusBadge(r.expiration_date, r.does_not_expire)}
         </div>
       </div>
       <button class="btn-secondary btn-sm" onclick="closeDatelistModal(); showResourceDetail(${r.id})">View</button>
@@ -515,8 +559,14 @@ function showResourceDetail(id) {
   document.getElementById("detail-name").textContent = r.name;
   document.getElementById("detail-type-val").textContent = r.type;
   document.getElementById("detail-dri").textContent = r.dri;
-  document.getElementById("detail-expiration").innerHTML =
-    `${isoToDisplay(r.expiration_date)} &nbsp; ${statusBadge(r.expiration_date)}`;
+
+  if (r.does_not_expire || !r.expiration_date) {
+    document.getElementById("detail-expiration").innerHTML =
+      `${statusBadge(null, true)}`;
+  } else {
+    document.getElementById("detail-expiration").innerHTML =
+      `${isoToDisplay(r.expiration_date)} &nbsp; ${statusBadge(r.expiration_date, r.does_not_expire)} ${reviewBadge(r)}`;
+  }
 
   document.getElementById("detail-purpose").innerHTML = linkify(r.purpose);
   document.getElementById("detail-instructions").innerHTML = linkify(r.generation_instructions);
@@ -528,6 +578,26 @@ function showResourceDetail(id) {
     secretWrap.style.display = "block";
   } else {
     secretWrap.style.display = "none";
+  }
+
+  // Last Reviewed
+  const reviewedWrap = document.getElementById("detail-reviewed-wrap");
+  if (r.last_reviewed_at) {
+    const dt = new Date(r.last_reviewed_at);
+    document.getElementById("detail-reviewed").textContent =
+      dt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    reviewedWrap.style.display = "block";
+  } else {
+    reviewedWrap.style.display = "none";
+  }
+
+  // Mark Reviewed button (show for write users when review cadence is configured)
+  const reviewBtn = document.getElementById("detail-review-btn");
+  const isReadonly = _currentUser && _currentUser.is_readonly;
+  if (!isReadonly && _reviewCadenceMonths) {
+    reviewBtn.style.display = "";
+  } else {
+    reviewBtn.style.display = "none";
   }
 
   document.getElementById("detail-modal").classList.remove("hidden");
@@ -542,6 +612,23 @@ function editFromDetail() {
   const id = detailResourceId;
   closeDetailModal();
   openModal(id);
+}
+
+async function markReviewed() {
+  if (!detailResourceId) return;
+  try {
+    const res = await fetch(`/api/resources/${detailResourceId}/review`, { method: "POST" });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      showToast(err.detail || "Failed to mark as reviewed.");
+      return;
+    }
+    closeDetailModal();
+    await loadData();
+    showToast("Resource marked as reviewed.");
+  } catch {
+    showToast("Network error.");
+  }
 }
 
 function openDeleteFromDetail() {
@@ -561,12 +648,19 @@ function renderUpcoming() {
   const countEl = document.getElementById("upcoming-count");
   const today = todayISO();
 
-  const sorted = [...resources].sort((a, b) => a.expiration_date.localeCompare(b.expiration_date));
+  // Filter to only resources that have an expiration date
+  const withExpiry = resources.filter(r => r.expiration_date && !r.does_not_expire);
+  const sorted = [...withExpiry].sort((a, b) => a.expiration_date.localeCompare(b.expiration_date));
   const expired  = sorted.filter(r => r.expiration_date < today).reverse();
   const upcoming = sorted.filter(r => r.expiration_date >= today && daysUntil(r.expiration_date) <= 30);
-  const all = [...expired, ...upcoming];
+  const expiryItems = [...expired, ...upcoming];
 
-  if (all.length === 0) {
+  // Review items (all resources, including does-not-expire)
+  const reviewItems = _reviewCadenceMonths
+    ? resources.filter(r => _reviewDaysUntil(r) <= 30).sort((a, b) => _reviewDaysUntil(a) - _reviewDaysUntil(b))
+    : [];
+
+  if (expiryItems.length === 0 && reviewItems.length === 0) {
     container.innerHTML = `<div class="sidebar-empty">Zarro items expiring.</div>`;
     countEl.textContent = "";
     return;
@@ -575,9 +669,13 @@ function renderUpcoming() {
   const parts = [];
   if (expired.length)  parts.push(`${expired.length} overdue`);
   if (upcoming.length) parts.push(`${upcoming.length} within 30 days`);
+  if (reviewItems.length) parts.push(`${reviewItems.length} review${reviewItems.length !== 1 ? 's' : ''} due`);
   countEl.textContent = parts.join(", ");
 
-  container.innerHTML = all.map(r => {
+  let html = "";
+
+  // Expiry items
+  html += expiryItems.map(r => {
     const days = daysUntil(r.expiration_date);
     const isOverdue = days < 0;
     let label;
@@ -591,12 +689,37 @@ function renderUpcoming() {
       <div class="upcoming-item${isOverdue ? ' overdue' : ''}" onclick="showResourceDetail(${r.id})">
         <div class="upcoming-item-name">${esc(r.name)}</div>
         <div class="upcoming-item-meta">
-          <span>${isoToDisplay(r.expiration_date)}</span>
+          <span>${r.expiration_date ? isoToDisplay(r.expiration_date) : '—'}</span>
           ${label}
         </div>
       </div>
     `;
   }).join("");
+
+  // Review items
+  if (reviewItems.length) {
+    html += `<div class="sidebar-divider" style="margin:10px 0;border-top:1px solid var(--border);padding-top:8px">
+      <span style="font-size:11px;font-weight:600;color:var(--text-mut);text-transform:uppercase;letter-spacing:0.5px">Reviews Due</span>
+    </div>`;
+    html += reviewItems.map(r => {
+      const days = _reviewDaysUntil(r);
+      const isOverdue = days < 0;
+      const label = isOverdue
+        ? `<span style="color:var(--purple,#7c3aed)">Overdue ${Math.abs(days)}d</span>`
+        : `<span style="color:var(--purple,#7c3aed)">${days}d</span>`;
+      return `
+        <div class="upcoming-item${isOverdue ? ' overdue' : ''}" onclick="showResourceDetail(${r.id})">
+          <div class="upcoming-item-name">${esc(r.name)}</div>
+          <div class="upcoming-item-meta">
+            <span>Review</span>
+            ${label}
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  container.innerHTML = html;
 }
 
 // ── Resources table ───────────────────────────────────────────────────────────
@@ -637,8 +760,8 @@ function renderTable() {
       av = daysUntil(a.expiration_date);
       bv = daysUntil(b.expiration_date);
     } else if (sortCol === "expiration_date") {
-      av = a.expiration_date;
-      bv = b.expiration_date;
+      av = a.expiration_date || "9999-12-31";
+      bv = b.expiration_date || "9999-12-31";
     } else {
       av = (a[sortCol] || "").toLowerCase();
       bv = (b[sortCol] || "").toLowerCase();
@@ -655,14 +778,15 @@ function renderTable() {
   const page = sorted.slice(start, start + PAGE_SIZE);
 
   tbody.innerHTML = page.map(r => {
-    const isOverdue = daysUntil(r.expiration_date) < 0;
+    const isOverdue = !r.does_not_expire && r.expiration_date && daysUntil(r.expiration_date) < 0;
+    const dateDisplay = r.does_not_expire || !r.expiration_date ? "—" : isoToDisplay(r.expiration_date);
     return `
     <tr class="${isOverdue ? 'overdue ' : ''}resource-row" style="cursor:pointer" onclick="showResourceDetail(${r.id})">
       <td class="name">${esc(r.name)}</td>
       <td style="color:var(--text-sec)">${esc(r.type)}</td>
       <td style="color:var(--text-sec)">${esc(r.dri)}</td>
-      <td style="color:var(--text-sec)">${isoToDisplay(r.expiration_date)}</td>
-      <td>${statusBadge(r.expiration_date)}</td>
+      <td style="color:var(--text-sec)">${dateDisplay}</td>
+      <td>${statusBadge(r.expiration_date, r.does_not_expire)} ${reviewBadge(r)}</td>
       <td class="actions" onclick="event.stopPropagation()">
         <button class="btn-secondary btn-sm" onclick="window.open('/api/resources/${r.id}/report','_blank')">Report</button>
         ${isReadonly ? '' : `<button class="btn-secondary btn-sm" onclick="openModal(${r.id})">Edit</button>
@@ -705,7 +829,8 @@ async function openModal(id = null) {
       document.getElementById("f-name").value = r.name;
       document.getElementById("f-dri").value = r.dri;
       document.getElementById("f-type").value = r.type;
-      document.getElementById("f-date-picker").value = r.expiration_date;
+      document.getElementById("f-does-not-expire").checked = r.does_not_expire || false;
+      document.getElementById("f-date-picker").value = r.expiration_date || "";
       document.getElementById("f-purpose").value = r.purpose;
       document.getElementById("f-instructions").value = r.generation_instructions;
       document.getElementById("f-secret-link").value = r.secret_manager_link || "";
@@ -713,6 +838,7 @@ async function openModal(id = null) {
       document.getElementById("f-cert-endpoint").value = r.certificate_url || "";
       document.getElementById("f-auto-refresh").checked = r.auto_refresh_expiry || false;
       onTypeChange();
+      onDoesNotExpireChange();
     } catch (e) {
       showError("Failed to load resource details.");
     }
@@ -732,6 +858,9 @@ function clearForm() {
   ["f-name","f-dri","f-date-picker","f-purpose","f-instructions","f-secret-link","f-webhook"]
     .forEach(id => { document.getElementById(id).value = ""; });
   document.getElementById("f-type").value = "";
+  document.getElementById("f-does-not-expire").checked = false;
+  document.getElementById("f-date-group").style.display = "";
+  document.getElementById("f-date-picker").required = true;
   document.getElementById("f-cert-endpoint").value = "";
   document.getElementById("f-auto-refresh").checked = false;
   document.getElementById("cert-status").textContent = "";
@@ -745,6 +874,19 @@ function clearForm() {
 function onTypeChange() {
   const type = document.getElementById("f-type").value;
   document.getElementById("cert-section").style.display = type === "Certificate" ? "block" : "none";
+}
+
+function onDoesNotExpireChange() {
+  const checked = document.getElementById("f-does-not-expire").checked;
+  const dateGroup = document.getElementById("f-date-group");
+  const datePicker = document.getElementById("f-date-picker");
+  if (checked) {
+    dateGroup.style.display = "none";
+    datePicker.required = false;
+  } else {
+    dateGroup.style.display = "";
+    datePicker.required = true;
+  }
 }
 
 // ── Webhook test ──────────────────────────────────────────────────────────────
@@ -787,15 +929,17 @@ async function saveResource(event) {
   event.preventDefault();
   hideError();
 
+  const doesNotExpire = document.getElementById("f-does-not-expire").checked;
   const dateISO = document.getElementById("f-date-picker").value;
-  if (!dateISO) { showError("Please select an expiration date."); return; }
+  if (!doesNotExpire && !dateISO) { showError("Please select an expiration date."); return; }
 
   const isCert = document.getElementById("f-type").value === "Certificate";
   const payload = {
     name:                    document.getElementById("f-name").value.trim(),
     dri:                     document.getElementById("f-dri").value.trim(),
     type:                    document.getElementById("f-type").value,
-    expiration_date:         dateISO,
+    does_not_expire:         doesNotExpire,
+    expiration_date:         doesNotExpire ? null : dateISO,
     purpose:                 document.getElementById("f-purpose").value.trim(),
     generation_instructions: document.getElementById("f-instructions").value.trim(),
     secret_manager_link:     document.getElementById("f-secret-link").value.trim() || null,
@@ -1015,6 +1159,7 @@ async function loadAdminSettings() {
     document.getElementById("adm-slack-webhook").value = s.slack_webhook || "";
     document.getElementById("adm-alert-on-overdue").checked = s.alert_on_overdue || false;
     document.getElementById("adm-alert-on-delete").checked = s.alert_on_delete || false;
+    document.getElementById("adm-review-cadence").value = s.review_cadence_months || "";
   } catch {}
 }
 
@@ -1059,6 +1204,8 @@ async function saveAdminSettings() {
   const slackWebhook = document.getElementById("adm-slack-webhook").value.trim() || null;
   const alertOnOverdue = document.getElementById("adm-alert-on-overdue").checked;
   const alertOnDelete = document.getElementById("adm-alert-on-delete").checked;
+  const reviewCadenceVal = document.getElementById("adm-review-cadence").value;
+  const reviewCadenceMonths = reviewCadenceVal ? parseInt(reviewCadenceVal, 10) : null;
 
   if (!days.length) {
     msgEl.textContent = "Select at least one reminder day.";
@@ -1070,7 +1217,7 @@ async function saveAdminSettings() {
     const res = await fetch("/admin/settings", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ reminder_days: days, notify_hour: hour, slack_webhook: slackWebhook, alert_on_overdue: alertOnOverdue, alert_on_delete: alertOnDelete }),
+      body: JSON.stringify({ reminder_days: days, notify_hour: hour, slack_webhook: slackWebhook, alert_on_overdue: alertOnOverdue, alert_on_delete: alertOnDelete, review_cadence_months: reviewCadenceMonths }),
     });
     if (res.ok) {
       msgEl.textContent = "Settings saved.";
@@ -1382,6 +1529,7 @@ const _ACTION_LABELS = {
   "resource.delete": "Deleted",
   "resource.purge": "Purged",
   "resource.cert_upload": "Cert Uploaded",
+  "resource.review_approved": "Review Approved",
   "user.create": "User Registered",
   "user.delete": "User Deleted",
   "user.login": "Logged In",

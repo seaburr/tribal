@@ -144,6 +144,18 @@
           </div>
           <div class="admin-form-row">
             <div class="admin-form-group">
+              <label for="adm-review-cadence">Review Cadence</label>
+              <select id="adm-review-cadence">
+                <option value="">Disabled</option>
+                <option value="6">Every 6 months</option>
+                <option value="12">Every 1 year</option>
+                <option value="24">Every 2 years</option>
+              </select>
+              <span class="admin-field-hint">How often resources must be reviewed and re-approved. Reminders follow the same schedule as expiry notifications.</span>
+            </div>
+          </div>
+          <div class="admin-form-row">
+            <div class="admin-form-group">
               <label for="adm-slack-webhook">Admin Slack Webhook</label>
               <div class="webhook-row">
                 <input type="text" id="adm-slack-webhook" placeholder="https://hooks.slack.com/services/…" />
@@ -189,6 +201,11 @@
               <div class="admin-report-name">Recent Changes</div>
               <div class="admin-report-desc">Audit log entries from the last 30 days.</div>
               <a class="btn-secondary btn-sm admin-report-btn" href="/admin/reports/recent-changes" download>Download CSV</a>
+            </div>
+            <div class="admin-report-item">
+              <div class="admin-report-name">Reviews Due</div>
+              <div class="admin-report-desc">Resources nearing or overdue for periodic review.</div>
+              <a class="btn-secondary btn-sm admin-report-btn" href="/admin/reports/reviews-due" download>Download CSV</a>
             </div>
           </div>
         </div>
@@ -460,6 +477,13 @@ resource "tribal_resource" "prod_cert" {
         </div>
 
         <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="f-does-not-expire" onchange="onDoesNotExpireChange()" />
+            Does not expire
+          </label>
+        </div>
+
+        <div class="form-group" id="f-date-group">
           <label for="f-date-picker">Expiration / Rotation Date <span class="required">*</span></label>
           <input type="date" id="f-date-picker" required />
         </div>
@@ -532,9 +556,14 @@ resource "tribal_resource" "prod_cert" {
         <div class="detail-label">Secret Manager</div>
         <div class="detail-value" id="detail-secret"></div>
       </div>
+      <div class="detail-field" id="detail-reviewed-wrap" style="display:none">
+        <div class="detail-label">Last Reviewed</div>
+        <div class="detail-value" id="detail-reviewed"></div>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn-secondary" id="detail-report-btn" onclick="downloadResourceReport()">Report</button>
+      <button class="btn-secondary" id="detail-review-btn" onclick="markReviewed()" style="display:none">Mark Reviewed</button>
       <button class="btn-primary" id="detail-edit-btn" onclick="editFromDetail()">Edit</button>
       <button class="btn-danger" id="detail-delete-btn" onclick="openDeleteFromDetail()">Delete</button>
     </div>

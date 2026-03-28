@@ -892,3 +892,140 @@ def test_purge_non_deleted_resource_returns_404(client, created):
 def test_purge_nonexistent_resource_returns_404(client):
     r = client.delete("/admin/resources/9999/purge")
     assert r.status_code == 404
+
+
+# ── Does Not Expire ──────────────────────────────────────────────────────────
+
+def test_create_resource_does_not_expire(client):
+    payload = {**SAMPLE, "does_not_expire": True, "expiration_date": None}
+    r = client.post("/api/resources/", json=payload)
+    assert r.status_code == 201
+    data = r.json()
+    assert data["does_not_expire"] is True
+    assert data["expiration_date"] is None
+
+
+def test_create_resource_does_not_expire_clears_date(client):
+    """If does_not_expire is True, any supplied expiration_date should be cleared."""
+    payload = {**SAMPLE, "does_not_expire": True}
+    r = client.post("/api/resources/", json=payload)
+    assert r.status_code == 201
+    assert r.json()["expiration_date"] is None
+
+
+def test_create_resource_requires_date_when_expires(client):
+    payload = {**SAMPLE, "does_not_expire": False, "expiration_date": None}
+    r = client.post("/api/resources/", json=payload)
+    assert r.status_code == 422
+
+
+def test_update_toggle_does_not_expire(client, created):
+    # Toggle to does_not_expire
+    r = client.put(f"/api/resources/{created['id']}", json={"does_not_expire": True})
+    assert r.status_code == 200
+    data = r.json()
+    assert data["does_not_expire"] is True
+    assert data["expiration_date"] is None
+
+    # Toggle back — must supply a date
+    new_date = (date.today() + timedelta(days=60)).isoformat()
+    r = client.put(f"/api/resources/{created['id']}", json={"does_not_expire": False, "expiration_date": new_date})
+    assert r.status_code == 200
+    assert r.json()["does_not_expire"] is False
+    assert r.json()["expiration_date"] == new_date
+
+
+def test_update_toggle_does_not_expire_requires_date(client, created):
+    # First toggle on
+    client.put(f"/api/resources/{created['id']}", json={"does_not_expire": True})
+    # Toggle back without date — should fail
+    r = client.put(f"/api/resources/{created['id']}", json={"does_not_expire": False})
+    assert r.status_code == 422
+
+
+def test_list_resources_does_not_expire_sorted_last(client):
+    payload_no_exp = {**SAMPLE, "name": "NoExpiry", "does_not_expire": True, "expiration_date": None}
+    payload_exp = {**SAMPLE, "name": "HasExpiry"}
+    client.post("/api/resources/", json=payload_no_exp)
+    client.post("/api/resources/", json=payload_exp)
+    r = client.get("/api/resources/")
+    items = r.json()
+    names = [i["name"] for i in items]
+    assert names.index("HasExpiry") < names.index("NoExpiry")
+
+
+# ── Review ────────────────────────────────────────────────────────────────────
+
+def test_update_sets_last_reviewed(client, created):
+    r = client.put(f"/api/resources/{created['id']}", json={"name": "Reviewed Name"})
+    assert r.status_code == 200
+    data = r.json()
+    assert data["last_reviewed_at"] is not None
+
+
+def test_review_approve_no_changes(client, created):
+    r = client.post(f"/api/resources/{created['id']}/review")
+    assert r.status_code == 200
+    data = r.json()
+    assert data["last_reviewed_at"] is not None
+
+    # Check audit log
+    audit = client.get("/admin/audit-log?limit=100").json()
+    review_entries = [e for e in audit if e["action"] == "resource.review_approved"]
+    assert len(review_entries) >= 1
+    assert review_entries[0]["resource_id"] == created["id"]
+    assert review_entries[0]["detail"]["status"] == "reviewed but no changes required"
+
+
+def test_review_not_found(client):
+    r = client.post("/api/resources/9999/review")
+    assert r.status_code == 404
+
+
+# ── Admin Review Cadence ──────────────────────────────────────────────────────
+
+def test_admin_review_cadence_valid(client):
+    r = client.put("/admin/settings", json={
+        "reminder_days": [30, 14, 7, 3],
+        "notify_hour": 9,
+        "review_cadence_months": 12,
+    })
+    assert r.status_code == 200
+    assert r.json()["review_cadence_months"] == 12
+
+
+def test_admin_review_cadence_null_disables(client):
+    r = client.put("/admin/settings", json={
+        "reminder_days": [30, 14, 7, 3],
+        "notify_hour": 9,
+        "review_cadence_months": None,
+    })
+    assert r.status_code == 200
+    assert r.json()["review_cadence_months"] is None
+
+
+def test_admin_review_cadence_invalid(client):
+    r = client.put("/admin/settings", json={
+        "reminder_days": [30, 14, 7, 3],
+        "notify_hour": 9,
+        "review_cadence_months": 3,
+    })
+    assert r.status_code == 422
+
+
+def test_reviews_due_report_disabled(client):
+    """When review cadence is not set, report should still return a CSV."""
+    r = client.get("/admin/reports/reviews-due")
+    assert r.status_code == 200
+    assert "text/csv" in r.headers["content-type"]
+
+
+def test_reviews_due_report_with_cadence(client, created):
+    # Set cadence to 6 months
+    client.put("/admin/settings", json={
+        "reminder_days": [30], "notify_hour": 9, "review_cadence_months": 6,
+    })
+    # The just-created resource's review won't be due yet (created just now + 6 months > 30 days)
+    r = client.get("/admin/reports/reviews-due")
+    assert r.status_code == 200
+    assert "text/csv" in r.headers["content-type"]

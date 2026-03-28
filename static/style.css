@@ -638,6 +638,8 @@ td.actions { display: flex; gap: 6px; align-items: center; }
 .badge-amber  { background: rgba(245,158,11,.15);  color: #fcd34d; }
 .badge-orange { background: rgba(249,115,22,.15);  color: #fdba74; }
 .badge-red    { background: rgba(239,68,68,.15);   color: #fca5a5; }
+.badge-gray   { background: rgba(156,163,175,.15); color: #d1d5db; }
+.badge-purple { background: rgba(124,58,237,.15);  color: #c4b5fd; }
 
 /* ── Empty state ───────────────────────────────────────────────────────────── */
 .empty-state {

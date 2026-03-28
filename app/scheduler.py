@@ -1,3 +1,4 @@
+import calendar as _cal
 import logging
 import re
 from datetime import date, datetime, timezone
@@ -56,53 +57,108 @@ async def check_reminders():
             logger.info("check_reminders: outside notify_hour=%d (current=%d), skipping", notify_hour, current_hour)
             return
 
-        resources = db.query(Resource).all()
+        resources = db.query(Resource).filter(Resource.deleted_at.is_(None)).all()
         today = date.today()
+        review_cadence = settings.review_cadence_months if settings else None
         logger.info("check_reminders: evaluating %d resources", len(resources))
 
         for resource in resources:
-            days_until = (resource.expiration_date - today).days
+            # ── Expiry reminders (skip does-not-expire resources) ──
+            if resource.expiration_date is not None and not resource.does_not_expire:
+                days_until = (resource.expiration_date - today).days
 
-            if days_until in reminder_days:
-                existing = (
-                    db.query(ReminderLog)
-                    .filter(
-                        ReminderLog.resource_id == resource.id,
-                        ReminderLog.expiration_date == resource.expiration_date,
-                        ReminderLog.days_before == days_until,
+                if days_until in reminder_days:
+                    existing = (
+                        db.query(ReminderLog)
+                        .filter(
+                            ReminderLog.resource_id == resource.id,
+                            ReminderLog.expiration_date == resource.expiration_date,
+                            ReminderLog.days_before == days_until,
+                            ReminderLog.reminder_type == "expiry",
+                        )
+                        .first()
                     )
-                    .first()
-                )
-                if not existing:
-                    logger.info("check_reminders: sending reminder for %r (%d days)", resource.name, days_until)
-                    await _send_slack_reminder(resource, days_until, db)
-                    db.add(ReminderLog(
-                        resource_id=resource.id,
-                        expiration_date=resource.expiration_date,
-                        days_before=days_until,
-                    ))
-                    db.commit()
+                    if not existing:
+                        logger.info("check_reminders: sending reminder for %r (%d days)", resource.name, days_until)
+                        await _send_slack_reminder(resource, days_until, db)
+                        db.add(ReminderLog(
+                            resource_id=resource.id,
+                            expiration_date=resource.expiration_date,
+                            days_before=days_until,
+                            reminder_type="expiry",
+                        ))
+                        db.commit()
 
-            if alert_on_overdue and admin_webhook and days_until < 0:
-                # days_before=-1 is the sentinel for "overdue alert sent"
-                existing = (
-                    db.query(ReminderLog)
-                    .filter(
-                        ReminderLog.resource_id == resource.id,
-                        ReminderLog.expiration_date == resource.expiration_date,
-                        ReminderLog.days_before == -1,
+                if alert_on_overdue and admin_webhook and days_until < 0:
+                    existing = (
+                        db.query(ReminderLog)
+                        .filter(
+                            ReminderLog.resource_id == resource.id,
+                            ReminderLog.expiration_date == resource.expiration_date,
+                            ReminderLog.days_before == -1,
+                            ReminderLog.reminder_type == "expiry",
+                        )
+                        .first()
                     )
-                    .first()
-                )
-                if not existing:
-                    logger.info("check_reminders: sending overdue alert for %r", resource.name)
-                    await _send_overdue_alert(resource, admin_webhook, db)
-                    db.add(ReminderLog(
-                        resource_id=resource.id,
-                        expiration_date=resource.expiration_date,
-                        days_before=-1,
-                    ))
-                    db.commit()
+                    if not existing:
+                        logger.info("check_reminders: sending overdue alert for %r", resource.name)
+                        await _send_overdue_alert(resource, admin_webhook, db)
+                        db.add(ReminderLog(
+                            resource_id=resource.id,
+                            expiration_date=resource.expiration_date,
+                            days_before=-1,
+                            reminder_type="expiry",
+                        ))
+                        db.commit()
+
+            # ── Review reminders ──
+            if review_cadence and resource.slack_webhook:
+                next_review = _next_review_date(resource, review_cadence)
+                review_days_until = (next_review - today).days
+
+                if review_days_until in reminder_days:
+                    existing = (
+                        db.query(ReminderLog)
+                        .filter(
+                            ReminderLog.resource_id == resource.id,
+                            ReminderLog.expiration_date == next_review,
+                            ReminderLog.days_before == review_days_until,
+                            ReminderLog.reminder_type == "review",
+                        )
+                        .first()
+                    )
+                    if not existing:
+                        logger.info("check_reminders: sending review reminder for %r (%d days)", resource.name, review_days_until)
+                        await _send_review_reminder(resource, review_days_until, next_review, db)
+                        db.add(ReminderLog(
+                            resource_id=resource.id,
+                            expiration_date=next_review,
+                            days_before=review_days_until,
+                            reminder_type="review",
+                        ))
+                        db.commit()
+
+                if review_days_until < 0:
+                    existing = (
+                        db.query(ReminderLog)
+                        .filter(
+                            ReminderLog.resource_id == resource.id,
+                            ReminderLog.expiration_date == next_review,
+                            ReminderLog.days_before == -1,
+                            ReminderLog.reminder_type == "review",
+                        )
+                        .first()
+                    )
+                    if not existing:
+                        logger.info("check_reminders: sending overdue review reminder for %r", resource.name)
+                        await _send_review_reminder(resource, review_days_until, next_review, db)
+                        db.add(ReminderLog(
+                            resource_id=resource.id,
+                            expiration_date=next_review,
+                            days_before=-1,
+                            reminder_type="review",
+                        ))
+                        db.commit()
 
         logger.info("check_reminders: complete")
     except Exception:
@@ -308,6 +364,75 @@ async def _send_slack_reminder(resource: Resource, days_until: int, db=None):
             _audit_notification(resource.id, resource.name, "notification.reminder", {"days_until": days_until, "expiration_date": expiry_str})
     except Exception:
         logger.exception("Failed to send Slack reminder for resource %d", resource.id)
+
+
+def _add_months(d: date, months: int) -> date:
+    """Add months to a date, clamping to end of month if needed."""
+    month = d.month - 1 + months
+    year = d.year + month // 12
+    month = month % 12 + 1
+    day = min(d.day, _cal.monthrange(year, month)[1])
+    return date(year, month, day)
+
+
+def _next_review_date(resource: Resource, cadence_months: int) -> date:
+    """Compute the next review date for a resource given a cadence in months."""
+    base = resource.last_reviewed_at.date() if resource.last_reviewed_at else resource.created_at.date()
+    return _add_months(base, cadence_months)
+
+
+async def _send_review_reminder(resource: Resource, days_until: int, review_date: date, db=None):
+    """Send a Slack review reminder to the per-resource webhook."""
+    review_str = review_date.strftime("%m/%d/%Y")
+    last_reviewed = resource.last_reviewed_at.strftime("%m/%d/%Y") if resource.last_reviewed_at else "Never"
+
+    if days_until < 0:
+        header_text = f":clipboard: OVERDUE FOR REVIEW: {resource.name}"
+        days_label = f"{abs(days_until)} day(s) overdue"
+    elif days_until == 0:
+        header_text = f":clipboard: Review due today: {resource.name}"
+        days_label = "Today"
+    else:
+        header_text = f":clipboard: Review due in {days_until} day{'s' if days_until != 1 else ''}: {resource.name}"
+        days_label = f"{days_until} day(s)"
+
+    payload = {
+        "text": header_text,
+        "blocks": [
+            {
+                "type": "header",
+                "text": {"type": "plain_text", "text": header_text[:150]},
+            },
+            {
+                "type": "section",
+                "fields": [
+                    {"type": "mrkdwn", "text": f"*Review Due:*\n{review_str}"},
+                    {"type": "mrkdwn", "text": f"*Days:*\n{days_label}"},
+                    {"type": "mrkdwn", "text": f"*Type:*\n{resource.type}"},
+                    {"type": "mrkdwn", "text": f"*DRI:*\n{resource.dri}"},
+                    {"type": "mrkdwn", "text": f"*Last Reviewed:*\n{last_reviewed}"},
+                ],
+            },
+            {
+                "type": "section",
+                "text": {"type": "mrkdwn", "text": "Please review this resource in Tribal to confirm the information is still accurate."},
+            },
+            _TRIBAL_FOOTER,
+        ],
+    }
+    try:
+        async with httpx.AsyncClient() as client:
+            await client.post(resource.slack_webhook, json=payload, timeout=10)
+        if db is not None:
+            db.add(AuditLog(resource_id=resource.id, resource_name=resource.name,
+                            action="notification.review_reminder",
+                            detail={"days_until_review": days_until, "review_date": review_str}))
+            db.commit()
+        else:
+            _audit_notification(resource.id, resource.name, "notification.review_reminder",
+                                {"days_until_review": days_until, "review_date": review_str})
+    except Exception:
+        logger.exception("Failed to send review reminder for resource %d", resource.id)
 
 
 async def refresh_cert_expiry():
