@@ -35,6 +35,7 @@ class AdminSettingsResponse(BaseModel):
     slack_webhook: Optional[str] = None
     alert_on_overdue: bool = False
     alert_on_delete: bool = False
+    alert_on_review_overdue: bool = False
     review_cadence_months: Optional[int] = None
 
     model_config = {"from_attributes": True}
@@ -47,6 +48,7 @@ class AdminSettingsUpdate(BaseModel):
     slack_webhook: Optional[str] = None
     alert_on_overdue: bool = False
     alert_on_delete: bool = False
+    alert_on_review_overdue: bool = False
     review_cadence_months: Optional[int] = None
 
 

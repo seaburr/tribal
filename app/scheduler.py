@@ -50,6 +50,7 @@ async def check_reminders():
         reminder_days = settings.reminder_days if settings else _DEFAULT_REMINDER_DAYS
         notify_hour = settings.notify_hour if settings else _DEFAULT_NOTIFY_HOUR
         alert_on_overdue = settings.alert_on_overdue if settings else False
+        alert_on_review_overdue = settings.alert_on_review_overdue if settings else False
         admin_webhook = settings.slack_webhook if settings else None
 
         current_hour = datetime.now().hour
@@ -159,6 +160,29 @@ async def check_reminders():
                             reminder_type="review",
                         ))
                         db.commit()
+
+                    # Send admin alert for overdue review
+                    if alert_on_review_overdue and admin_webhook:
+                        admin_existing = (
+                            db.query(ReminderLog)
+                            .filter(
+                                ReminderLog.resource_id == resource.id,
+                                ReminderLog.expiration_date == next_review,
+                                ReminderLog.days_before == -2,
+                                ReminderLog.reminder_type == "review",
+                            )
+                            .first()
+                        )
+                        if not admin_existing:
+                            logger.info("check_reminders: sending admin overdue review alert for %r", resource.name)
+                            await _send_admin_review_overdue_alert(resource, admin_webhook, next_review, db)
+                            db.add(ReminderLog(
+                                resource_id=resource.id,
+                                expiration_date=next_review,
+                                days_before=-2,
+                                reminder_type="review",
+                            ))
+                            db.commit()
 
         logger.info("check_reminders: complete")
     except Exception:
@@ -433,6 +457,51 @@ async def _send_review_reminder(resource: Resource, days_until: int, review_date
                                 {"days_until_review": days_until, "review_date": review_str})
     except Exception:
         logger.exception("Failed to send review reminder for resource %d", resource.id)
+
+
+async def _send_admin_review_overdue_alert(resource: Resource, admin_webhook: str, review_date: date, db=None):
+    """Send an overdue-review alert to the admin Slack webhook."""
+    review_str = review_date.strftime("%m/%d/%Y")
+    days_overdue = (date.today() - review_date).days
+    last_reviewed = resource.last_reviewed_at.strftime("%m/%d/%Y") if resource.last_reviewed_at else "Never"
+
+    payload = {
+        "text": f":clipboard: REVIEW OVERDUE: {resource.name} — review was due {review_str} ({days_overdue}d ago)",
+        "blocks": [
+            {
+                "type": "header",
+                "text": {"type": "plain_text", "text": f":clipboard: REVIEW OVERDUE: {resource.name}"},
+            },
+            {
+                "type": "section",
+                "fields": [
+                    {"type": "mrkdwn", "text": f"*Review Due:*\n{review_str}"},
+                    {"type": "mrkdwn", "text": f"*Days Overdue:*\n{days_overdue}"},
+                    {"type": "mrkdwn", "text": f"*Type:*\n{resource.type}"},
+                    {"type": "mrkdwn", "text": f"*DRI:*\n{resource.dri}"},
+                    {"type": "mrkdwn", "text": f"*Last Reviewed:*\n{last_reviewed}"},
+                ],
+            },
+            {
+                "type": "section",
+                "text": {"type": "mrkdwn", "text": "This resource is overdue for periodic review. Please review it in Tribal to confirm the information is still accurate."},
+            },
+            _TRIBAL_FOOTER,
+        ],
+    }
+    try:
+        async with httpx.AsyncClient() as client:
+            await client.post(admin_webhook, json=payload, timeout=10)
+        if db is not None:
+            db.add(AuditLog(resource_id=resource.id, resource_name=resource.name,
+                            action="notification.admin_review_overdue",
+                            detail={"days_overdue": days_overdue, "review_date": review_str}))
+            db.commit()
+        else:
+            _audit_notification(resource.id, resource.name, "notification.admin_review_overdue",
+                                {"days_overdue": days_overdue, "review_date": review_str})
+    except Exception:
+        logger.exception("Failed to send admin review overdue alert for resource %d", resource.id)
 
 
 async def refresh_cert_expiry():

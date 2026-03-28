@@ -1159,6 +1159,7 @@ async function loadAdminSettings() {
     document.getElementById("adm-slack-webhook").value = s.slack_webhook || "";
     document.getElementById("adm-alert-on-overdue").checked = s.alert_on_overdue || false;
     document.getElementById("adm-alert-on-delete").checked = s.alert_on_delete || false;
+    document.getElementById("adm-alert-on-review-overdue").checked = s.alert_on_review_overdue || false;
     document.getElementById("adm-review-cadence").value = s.review_cadence_months || "";
   } catch {}
 }
@@ -1204,6 +1205,7 @@ async function saveAdminSettings() {
   const slackWebhook = document.getElementById("adm-slack-webhook").value.trim() || null;
   const alertOnOverdue = document.getElementById("adm-alert-on-overdue").checked;
   const alertOnDelete = document.getElementById("adm-alert-on-delete").checked;
+  const alertOnReviewOverdue = document.getElementById("adm-alert-on-review-overdue").checked;
   const reviewCadenceVal = document.getElementById("adm-review-cadence").value;
   const reviewCadenceMonths = reviewCadenceVal ? parseInt(reviewCadenceVal, 10) : null;
 
@@ -1217,7 +1219,7 @@ async function saveAdminSettings() {
     const res = await fetch("/admin/settings", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ reminder_days: days, notify_hour: hour, slack_webhook: slackWebhook, alert_on_overdue: alertOnOverdue, alert_on_delete: alertOnDelete, review_cadence_months: reviewCadenceMonths }),
+      body: JSON.stringify({ reminder_days: days, notify_hour: hour, slack_webhook: slackWebhook, alert_on_overdue: alertOnOverdue, alert_on_delete: alertOnDelete, alert_on_review_overdue: alertOnReviewOverdue, review_cadence_months: reviewCadenceMonths }),
     });
     if (res.ok) {
       msgEl.textContent = "Settings saved.";
@@ -1530,6 +1532,7 @@ const _ACTION_LABELS = {
   "resource.purge": "Purged",
   "resource.cert_upload": "Cert Uploaded",
   "resource.review_approved": "Review Approved",
+  "notification.admin_review_overdue": "Admin Review Overdue Alert",
   "user.create": "User Registered",
   "user.delete": "User Deleted",
   "user.login": "Logged In",

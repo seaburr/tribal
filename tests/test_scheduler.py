@@ -11,6 +11,7 @@ from app.models import AdminSettings, AuditLog, Base, ReminderLog, Resource
 from app.scheduler import (
     _send_slack_reminder,
     _send_overdue_alert,
+    _send_admin_review_overdue_alert,
     send_deletion_notification,
     check_reminders,
     refresh_cert_expiry,
@@ -493,3 +494,106 @@ def test_review_reminder_dedup(db_session):
         # Second run — should NOT re-send (dedup via ReminderLog)
         asyncio.run(check_reminders())
         assert mock_client.post.call_count == first_count
+
+
+def test_admin_review_overdue_alert_payload(resource):
+    """The admin review overdue alert payload includes key resource details."""
+    review_date = date.today() - timedelta(days=10)
+
+    with patch("app.scheduler.httpx.AsyncClient") as mock_cls:
+        mock_client = _make_mock_client()
+        mock_cls.return_value.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+        asyncio.run(_send_admin_review_overdue_alert(
+            resource, "https://hooks.slack.com/admin", review_date,
+        ))
+        mock_client.post.assert_called_once()
+        payload = mock_client.post.call_args[1]["json"]
+        assert "REVIEW OVERDUE" in payload["text"]
+        assert resource.name in payload["text"]
+        # Verify it posts to admin webhook, not the resource webhook
+        assert mock_client.post.call_args[0][0] == "https://hooks.slack.com/admin"
+
+
+def test_admin_review_overdue_alert_sent_when_enabled(db_session):
+    """When alert_on_review_overdue is enabled, admin gets an alert for overdue reviews."""
+    from datetime import datetime, timezone
+
+    resource = Resource(
+        id=400,
+        name="Admin Alert Test",
+        dri="ops@example.com",
+        type="API Key",
+        expiration_date=date.today() + timedelta(days=90),
+        purpose="Test",
+        generation_instructions="Regen",
+        slack_webhook="https://hooks.slack.com/services/T/B/X",
+        created_at=datetime.now(timezone.utc) - timedelta(days=200),
+    )
+    db_session.add(resource)
+
+    settings = AdminSettings(
+        id=1, reminder_days=[30, 14, 7, 3],
+        notify_hour=datetime.now().hour,
+        review_cadence_months=6,
+        slack_webhook="https://hooks.slack.com/admin",
+        alert_on_review_overdue=True,
+    )
+    db_session.add(settings)
+    db_session.commit()
+
+    with patch("app.scheduler.SessionLocal", return_value=db_session), \
+         patch("app.scheduler.httpx.AsyncClient") as mock_cls:
+        mock_client = _make_mock_client()
+        mock_cls.return_value.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+
+        asyncio.run(check_reminders())
+
+        # Should have posted: one to resource webhook (review reminder) + one to admin webhook
+        calls = mock_client.post.call_args_list
+        admin_calls = [c for c in calls if c[0][0] == "https://hooks.slack.com/admin"]
+        assert len(admin_calls) == 1
+        payload = admin_calls[0][1]["json"]
+        assert "REVIEW OVERDUE" in payload["text"]
+
+
+def test_admin_review_overdue_alert_not_sent_when_disabled(db_session):
+    """When alert_on_review_overdue is disabled, no admin alert is sent for overdue reviews."""
+    from datetime import datetime, timezone
+
+    resource = Resource(
+        id=500,
+        name="No Admin Alert Test",
+        dri="ops@example.com",
+        type="API Key",
+        expiration_date=date.today() + timedelta(days=90),
+        purpose="Test",
+        generation_instructions="Regen",
+        slack_webhook="https://hooks.slack.com/services/T/B/X",
+        created_at=datetime.now(timezone.utc) - timedelta(days=200),
+    )
+    db_session.add(resource)
+
+    settings = AdminSettings(
+        id=1, reminder_days=[30, 14, 7, 3],
+        notify_hour=datetime.now().hour,
+        review_cadence_months=6,
+        slack_webhook="https://hooks.slack.com/admin",
+        alert_on_review_overdue=False,
+    )
+    db_session.add(settings)
+    db_session.commit()
+
+    with patch("app.scheduler.SessionLocal", return_value=db_session), \
+         patch("app.scheduler.httpx.AsyncClient") as mock_cls:
+        mock_client = _make_mock_client()
+        mock_cls.return_value.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+
+        asyncio.run(check_reminders())
+
+        # Only the per-resource review reminder should be sent, no admin alert
+        calls = mock_client.post.call_args_list
+        admin_calls = [c for c in calls if c[0][0] == "https://hooks.slack.com/admin"]
+        assert len(admin_calls) == 0

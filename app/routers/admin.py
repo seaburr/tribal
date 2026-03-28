@@ -91,6 +91,8 @@ def update_settings(
         changes["alert_on_overdue"] = {"old": settings.alert_on_overdue, "new": updates.alert_on_overdue}
     if settings.alert_on_delete != updates.alert_on_delete:
         changes["alert_on_delete"] = {"old": settings.alert_on_delete, "new": updates.alert_on_delete}
+    if settings.alert_on_review_overdue != updates.alert_on_review_overdue:
+        changes["alert_on_review_overdue"] = {"old": settings.alert_on_review_overdue, "new": updates.alert_on_review_overdue}
     if settings.review_cadence_months != updates.review_cadence_months:
         changes["review_cadence_months"] = {"old": settings.review_cadence_months, "new": updates.review_cadence_months}
 
@@ -100,6 +102,7 @@ def update_settings(
     settings.slack_webhook = new_slack_webhook
     settings.alert_on_overdue = updates.alert_on_overdue
     settings.alert_on_delete = updates.alert_on_delete
+    settings.alert_on_review_overdue = updates.alert_on_review_overdue
     settings.review_cadence_months = updates.review_cadence_months
     settings.updated_at = datetime.now(timezone.utc)
 

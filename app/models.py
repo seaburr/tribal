@@ -33,6 +33,7 @@ class AdminSettings(Base):
     slack_webhook = Column(String(500), nullable=True)
     alert_on_overdue = Column(Boolean, nullable=False, default=False)
     alert_on_delete = Column(Boolean, nullable=False, default=False)
+    alert_on_review_overdue = Column(Boolean, nullable=False, default=False)
     review_cadence_months = Column(Integer, nullable=True, default=None)
     updated_at = Column(DateTime, default=_utcnow)
 

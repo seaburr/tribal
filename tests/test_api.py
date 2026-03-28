@@ -1013,6 +1013,24 @@ def test_admin_review_cadence_invalid(client):
     assert r.status_code == 422
 
 
+def test_admin_alert_on_review_overdue_toggle(client):
+    r = client.put("/admin/settings", json={
+        "reminder_days": [30, 14, 7, 3],
+        "notify_hour": 9,
+        "alert_on_review_overdue": True,
+    })
+    assert r.status_code == 200
+    assert r.json()["alert_on_review_overdue"] is True
+
+    r = client.put("/admin/settings", json={
+        "reminder_days": [30, 14, 7, 3],
+        "notify_hour": 9,
+        "alert_on_review_overdue": False,
+    })
+    assert r.status_code == 200
+    assert r.json()["alert_on_review_overdue"] is False
+
+
 def test_reviews_due_report_disabled(client):
     """When review cadence is not set, report should still return a CSV."""
     r = client.get("/admin/reports/reviews-due")
