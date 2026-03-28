@@ -12,6 +12,7 @@ from ..database import get_db
 from ..dependencies import get_current_user, require_write_access
 from ..cert_utils import extract_expiry_from_pem, fetch_cert_expiry_from_endpoint
 from ..scheduler import send_deletion_notification, send_admin_deletion_notification, _TRIBAL_FOOTER
+from .. import providers
 
 router = APIRouter(prefix="/api/resources", tags=["resources"])
 
@@ -116,6 +117,45 @@ async def test_webhook(
                 raise HTTPException(status_code=400, detail=f"Webhook returned HTTP {r.status_code}. Check the URL and try again.")
     except (httpx.RequestError, httpx.InvalidURL) as e:
         raise HTTPException(status_code=400, detail=f"Could not reach webhook: {e}")
+
+
+@router.get("/providers", response_model=list[str])
+def list_providers(
+    _: models.User = Depends(get_current_user),
+):
+    """Return the names of all registered credential providers."""
+    return providers.list_providers()
+
+
+@router.post("/identify", response_model=schemas.KeyIdentifyResponse)
+async def identify_key(
+    req: schemas.KeyIdentifyRequest,
+    _: models.User = Depends(get_current_user),
+):
+    """Identify a credential's provider and optionally introspect it.
+
+    The key is held only in memory for the duration of this request and
+    is never persisted, logged, or stored.
+    """
+    provider = providers.identify(req.key)
+    if not provider:
+        return schemas.KeyIdentifyResponse(matched=False)
+
+    if req.introspect:
+        result = await provider.introspect(req.key)
+        return schemas.KeyIdentifyResponse(
+            provider=result.provider,
+            expires_at=result.expires_at,
+            metadata=result.metadata,
+            rotation_url=result.rotation_url,
+            rotation_steps=result.rotation_steps,
+            matched=True,
+        )
+
+    return schemas.KeyIdentifyResponse(
+        provider=provider.name,
+        matched=True,
+    )
 
 
 @router.get("/", response_model=list[schemas.ResourceResponse])
@@ -338,6 +378,8 @@ def get_resource_report(
         pdf.ln(1)
 
     _field("Type", resource.type)
+    if resource.provider:
+        _field("Provider", resource.provider)
     _field("DRI", resource.dri)
     if resource.does_not_expire or resource.expiration_date is None:
         _field("Expiration / Rotation Date", "Does not expire")
@@ -361,10 +403,12 @@ def get_resource_report(
     )
     _field("Created", created_label)
     now = datetime.now(timezone.utc)
-    updated_ago = (now - resource.updated_at).days
+    updated_at = resource.updated_at.replace(tzinfo=timezone.utc) if resource.updated_at.tzinfo is None else resource.updated_at
+    updated_ago = (now - updated_at).days
     _field("Last Updated", f"{resource.updated_at.strftime('%Y-%m-%d %H:%M UTC')} ({updated_ago} day(s) ago)")
     if resource.last_reviewed_at:
-        reviewed_ago = (now - resource.last_reviewed_at).days
+        reviewed_at = resource.last_reviewed_at.replace(tzinfo=timezone.utc) if resource.last_reviewed_at.tzinfo is None else resource.last_reviewed_at
+        reviewed_ago = (now - reviewed_at).days
         _field("Last Reviewed", f"{resource.last_reviewed_at.strftime('%Y-%m-%d %H:%M UTC')} ({reviewed_ago} day(s) ago)")
 
     pdf.ln(3)

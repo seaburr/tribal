@@ -767,7 +767,8 @@ textarea { resize: vertical; min-height: 80px; }
 .cert-section p { font-size: 12px; color: var(--text-mut); margin-bottom: 10px; }
 
 .cert-lookup-row { display: flex; gap: 8px; align-items: center; }
-.cert-lookup-row input[type="text"] {
+.cert-lookup-row input[type="text"],
+.cert-lookup-row input[type="password"] {
   flex: 1;
   font-size: 12px;
   color: var(--text);
@@ -777,7 +778,8 @@ textarea { resize: vertical; min-height: 80px; }
   padding: 6px 8px;
   outline: none;
 }
-.cert-lookup-row input[type="text"]:focus { border-color: var(--blue); }
+.cert-lookup-row input[type="text"]:focus,
+.cert-lookup-row input[type="password"]:focus { border-color: var(--blue); }
 .cert-lookup-row .btn-secondary { white-space: nowrap; }
 
 .cert-status { font-size: 12px; margin-top: 8px; font-weight: 500; }

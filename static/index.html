@@ -346,7 +346,7 @@
       <h3>What Tribal Tracks</h3>
       <ul>
         <li><strong>Certificates</strong> — upload a PEM or CRT file and Tribal extracts the expiry date automatically, or point it at a live TLS endpoint</li>
-        <li><strong>API Keys</strong> — track third-party API keys with rotation deadlines and generation instructions</li>
+        <li><strong>API Keys</strong> — track third-party API keys with rotation deadlines and generation instructions. Paste a key to auto-detect the provider (GitHub, Stripe, AWS, Azure, OpenAI, Anthropic, Slack, SendGrid), look up its expiry, and pre-fill rotation steps. The key is never stored.</li>
         <li><strong>SSH Keys</strong> — log SSH key expiry and who's responsible for rotation</li>
         <li><strong>Any credential</strong> — use the "Other" type for anything else that needs monitoring</li>
       </ul>
@@ -480,6 +480,16 @@ resource "tribal_resource" "prod_cert" {
           </label>
         </div>
 
+        <div id="apikey-section" class="form-group cert-section" style="display:none">
+          <h4>Key Detection <span class="optional">(optional)</span></h4>
+          <p>Paste the API key to auto-detect the provider, populate rotation instructions, and look up the expiry if supported. The key is <strong>never stored</strong>.</p>
+          <div class="cert-lookup-row">
+            <input type="password" id="f-apikey-input" placeholder="Paste key here (e.g. sk-live_…, ghp_…)" autocomplete="off" />
+            <button type="button" class="btn-secondary" onclick="detectApiKey()">Detect</button>
+          </div>
+          <div id="apikey-status" class="cert-status"></div>
+        </div>
+
         <div class="form-group">
           <label class="checkbox-label">
             <input type="checkbox" id="f-does-not-expire" onchange="onDoesNotExpireChange()" />
@@ -543,6 +553,10 @@ resource "tribal_resource" "prod_cert" {
           <div class="detail-label">Expiration</div>
           <div class="detail-value" id="detail-expiration"></div>
         </div>
+      </div>
+      <div class="detail-field" id="detail-provider-wrap" style="display:none">
+        <div class="detail-label">Provider</div>
+        <div class="detail-value" id="detail-provider"></div>
       </div>
       <div class="detail-field">
         <div class="detail-label">DRI</div>

@@ -88,6 +88,7 @@ class Resource(Base):
     public_key_pem = Column(Text, nullable=True)
     certificate_url = Column(String(1000), nullable=True)
     auto_refresh_expiry = Column(Boolean, nullable=False, default=False)
+    provider = Column(String(100), nullable=True)
     last_reviewed_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=_utcnow)
     updated_at = Column(DateTime, default=_utcnow)

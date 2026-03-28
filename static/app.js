@@ -568,6 +568,14 @@ function showResourceDetail(id) {
       `${isoToDisplay(r.expiration_date)} &nbsp; ${statusBadge(r.expiration_date, r.does_not_expire)} ${reviewBadge(r)}`;
   }
 
+  const providerWrap = document.getElementById("detail-provider-wrap");
+  if (r.provider) {
+    document.getElementById("detail-provider").textContent = r.provider;
+    providerWrap.style.display = "block";
+  } else {
+    providerWrap.style.display = "none";
+  }
+
   document.getElementById("detail-purpose").innerHTML = linkify(r.purpose);
   document.getElementById("detail-instructions").innerHTML = linkify(r.generation_instructions);
 
@@ -837,6 +845,7 @@ async function openModal(id = null) {
       document.getElementById("f-webhook").value = r.slack_webhook;
       document.getElementById("f-cert-endpoint").value = r.certificate_url || "";
       document.getElementById("f-auto-refresh").checked = r.auto_refresh_expiry || false;
+      _detectedProvider = r.provider || null;
       onTypeChange();
       onDoesNotExpireChange();
     } catch (e) {
@@ -852,6 +861,7 @@ async function openModal(id = null) {
 function closeModal() {
   document.getElementById("modal").classList.add("hidden");
   editingId = null;
+  _detectedProvider = null;
 }
 
 function clearForm() {
@@ -866,6 +876,10 @@ function clearForm() {
   document.getElementById("cert-status").textContent = "";
   document.getElementById("cert-status").className = "cert-status";
   document.getElementById("cert-section").style.display = "none";
+  document.getElementById("apikey-section").style.display = "none";
+  document.getElementById("f-apikey-input").value = "";
+  document.getElementById("apikey-status").textContent = "";
+  document.getElementById("apikey-status").className = "cert-status";
   document.getElementById("webhook-test-status").textContent = "";
   document.getElementById("webhook-test-status").className = "webhook-test-status";
   hideError();
@@ -874,6 +888,17 @@ function clearForm() {
 function onTypeChange() {
   const type = document.getElementById("f-type").value;
   document.getElementById("cert-section").style.display = type === "Certificate" ? "block" : "none";
+  document.getElementById("apikey-section").style.display = type === "API Key" ? "block" : "none";
+
+  // Show existing detected provider when editing
+  const statusEl = document.getElementById("apikey-status");
+  if (type === "API Key" && _detectedProvider) {
+    statusEl.textContent = `Provider: ${_detectedProvider}`;
+    statusEl.className = "cert-status success";
+  } else if (type === "API Key") {
+    statusEl.textContent = "";
+    statusEl.className = "cert-status";
+  }
 }
 
 function onDoesNotExpireChange() {
@@ -934,6 +959,7 @@ async function saveResource(event) {
   if (!doesNotExpire && !dateISO) { showError("Please select an expiration date."); return; }
 
   const isCert = document.getElementById("f-type").value === "Certificate";
+  const isApiKey = document.getElementById("f-type").value === "API Key";
   const payload = {
     name:                    document.getElementById("f-name").value.trim(),
     dri:                     document.getElementById("f-dri").value.trim(),
@@ -946,6 +972,7 @@ async function saveResource(event) {
     slack_webhook:           document.getElementById("f-webhook").value.trim(),
     certificate_url:         isCert ? (document.getElementById("f-cert-endpoint").value.trim() || null) : null,
     auto_refresh_expiry:     isCert && document.getElementById("f-auto-refresh").checked,
+    provider:                isApiKey ? (_detectedProvider || null) : null,
   };
 
   const saveBtn = document.getElementById("save-btn");
@@ -1019,6 +1046,89 @@ async function lookupCertExpiry() {
     statusEl.className = "cert-status error";
   }
 }
+
+// ── API Key detection ─────────────────────────────────────────────────────────
+async function detectApiKey() {
+  const key = document.getElementById("f-apikey-input").value.trim();
+  const statusEl = document.getElementById("apikey-status");
+
+  if (!key) {
+    statusEl.textContent = "Paste an API key first.";
+    statusEl.className = "cert-status error";
+    return;
+  }
+
+  statusEl.textContent = "Detecting…";
+  statusEl.className = "cert-status";
+
+  try {
+    const res = await fetch("/api/resources/identify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key, introspect: true }),
+    });
+
+    if (!res.ok) {
+      statusEl.textContent = "Detection failed.";
+      statusEl.className = "cert-status error";
+      return;
+    }
+
+    const data = await res.json();
+
+    // Clear the key from the input immediately
+    document.getElementById("f-apikey-input").value = "";
+
+    if (!data.matched) {
+      statusEl.textContent = "Key format not recognised. You can still add the resource manually.";
+      statusEl.className = "cert-status error";
+      return;
+    }
+
+    // Auto-populate provider
+    _detectedProvider = data.provider;
+
+    // Auto-populate expiry if found
+    if (data.expires_at) {
+      document.getElementById("f-date-picker").value = data.expires_at;
+      document.getElementById("f-does-not-expire").checked = false;
+      onDoesNotExpireChange();
+    } else if (data.metadata && data.metadata.note && data.metadata.note.includes("do not expire")) {
+      document.getElementById("f-does-not-expire").checked = true;
+      onDoesNotExpireChange();
+    }
+
+    // Auto-populate rotation instructions if available
+    if (data.rotation_steps && data.rotation_steps.length > 0) {
+      const instructionsEl = document.getElementById("f-instructions");
+      if (!instructionsEl.value.trim()) {
+        instructionsEl.value = data.rotation_steps.map((s, i) => `${i + 1}. ${s}`).join("\n");
+      }
+    }
+
+    // Build status message
+    let msg = `Detected: ${data.provider}`;
+    if (data.expires_at) {
+      msg += ` — expires ${isoToDisplay(data.expires_at)}`;
+    } else if (data.metadata && data.metadata.status === "invalid_or_expired") {
+      msg += " — key appears invalid or expired";
+    } else {
+      msg += " — no expiry info available";
+    }
+    if (data.rotation_url) {
+      msg += ` — ${data.rotation_url}`;
+    }
+    statusEl.textContent = msg;
+    statusEl.className = "cert-status success";
+  } catch (e) {
+    document.getElementById("f-apikey-input").value = "";
+    statusEl.textContent = "Network error. Please try again.";
+    statusEl.className = "cert-status error";
+  }
+}
+
+// Holds the detected provider name between detection and save
+let _detectedProvider = null;
 
 // ── Delete modal ──────────────────────────────────────────────────────────────
 function openDeleteModal(id, name) {

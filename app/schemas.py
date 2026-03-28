@@ -157,6 +157,7 @@ class ResourceCreate(BaseModel):
     team_id: Optional[int] = None
     certificate_url: Optional[str] = None
     auto_refresh_expiry: bool = False
+    provider: Optional[str] = None
 
     @field_validator("type", mode="before")
     @classmethod
@@ -190,6 +191,7 @@ class ResourceUpdate(BaseModel):
     team_id: Optional[int] = None
     certificate_url: Optional[str] = None
     auto_refresh_expiry: Optional[bool] = None
+    provider: Optional[str] = None
 
     @field_validator("type", mode="before")
     @classmethod
@@ -217,6 +219,7 @@ class ResourceResponse(BaseModel):
     public_key_pem: Optional[str]
     certificate_url: Optional[str] = None
     auto_refresh_expiry: bool = False
+    provider: Optional[str] = None
     last_reviewed_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
@@ -226,3 +229,24 @@ class ResourceResponse(BaseModel):
 
 class DeletedResourceResponse(ResourceResponse):
     deleted_at: datetime
+
+
+# ── Provider introspection ───────────────────────────────────────────────────
+
+class KeyIdentifyRequest(BaseModel):
+    """Transient key submission for provider identification.
+
+    The key is used only for pattern matching and optional API
+    introspection, then discarded.  It is never persisted or logged.
+    """
+    key: str
+    introspect: bool = False  # If True, call the provider's API
+
+
+class KeyIdentifyResponse(BaseModel):
+    provider: Optional[str] = None
+    expires_at: Optional[date] = None
+    metadata: dict = {}
+    rotation_url: Optional[str] = None
+    rotation_steps: list[str] = []
+    matched: bool = False

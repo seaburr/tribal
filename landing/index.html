@@ -220,6 +220,7 @@
       <span class="pill">TLS Certificates</span>
       <span class="pill">API Keys</span>
       <span class="pill">SSH Keys</span>
+      <span class="pill">Key Auto-Detection</span>
       <span class="pill">Audit Logs</span>
       <span class="pill">Slack Reminders</span>
       <span class="pill">Soft Deletes</span>
@@ -235,6 +236,11 @@
       <div class="feature-icon">🔐</div>
       <h3>Certificate Intelligence</h3>
       <p>Upload a PEM or CRT file — Tribal extracts the expiry date automatically. Or point it at a live TLS endpoint to fetch the cert directly.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">🔍</div>
+      <h3>API Key Auto-Detection</h3>
+      <p>Paste an API key and Tribal identifies the provider (GitHub, Stripe, AWS, Azure, OpenAI, and more), looks up its expiry, and pre-fills rotation instructions. The key is never stored.</p>
     </div>
     <div class="feature">
       <div class="feature-icon">📋</div>
@@ -275,6 +281,11 @@
       <div class="feature-icon">📄</div>
       <h3>Resource Reports</h3>
       <p>Generate a PDF snapshot of any resource — full details, ownership history, and a filtered audit log of every change — available to all users regardless of role.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">🔌</div>
+      <h3>Extensible Providers</h3>
+      <p>Plugin-based architecture for key detection. Add support for a new service by dropping a single file — auto-discovered, no configuration needed. Built for community contributions.</p>
     </div>
   </div>
 
