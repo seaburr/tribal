@@ -8,9 +8,6 @@ export default defineConfig({
   build: {
     outDir: '../static',
     emptyOutDir: false,
-    rollupOptions: {
-      external: (id) => id.startsWith('/static/'),
-    },
   },
   resolve: {
     alias: {
