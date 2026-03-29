@@ -396,3 +396,5 @@ $RECYCLE.BIN/
 # Custom
 data/
 test.txt
+node_modules/
+static/assets/
