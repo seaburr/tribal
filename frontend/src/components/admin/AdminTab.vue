@@ -356,8 +356,8 @@ async function handlePurge(id: number, name: string) {
 
         <!-- Slack webhook -->
         <div>
-          <label class="block text-sm font-medium text-zinc-300 mb-1">Global Slack Webhook URL</label>
-          <p class="text-zinc-500 text-xs mb-1">Fallback notification channel for admin alerts. Individual resources can specify their own webhook to notify the owning team directly.</p>
+          <label class="block text-sm font-medium text-zinc-300 mb-1">Tribal Admins Slack Webhook URL</label>
+          <p class="text-zinc-500 text-xs mb-1">Slack webhook used to notify Tribal admins when resources expire, reviews become overdue, or resources are deleted.</p>
           <div class="flex gap-2">
             <input
               v-model="settingsForm.slack_webhook"
@@ -376,19 +376,20 @@ async function handlePurge(id: number, name: string) {
           </div>
         </div>
 
-        <!-- Alert checkboxes -->
+        <!-- Admin alert checkboxes -->
         <div class="space-y-2">
+          <p class="text-zinc-500 text-xs">Notify admins via the webhook above when:</p>
           <label class="flex items-center gap-2 cursor-pointer">
             <input v-model="settingsForm.alert_on_overdue" type="checkbox" class="rounded" />
-            <span class="text-sm text-zinc-300">Alert when resources become overdue</span>
+            <span class="text-sm text-zinc-300">Resources become overdue</span>
           </label>
           <label class="flex items-center gap-2 cursor-pointer">
             <input v-model="settingsForm.alert_on_delete" type="checkbox" class="rounded" />
-            <span class="text-sm text-zinc-300">Alert when resources are deleted</span>
+            <span class="text-sm text-zinc-300">Resources are deleted</span>
           </label>
           <label class="flex items-center gap-2 cursor-pointer">
             <input v-model="settingsForm.alert_on_review_overdue" type="checkbox" class="rounded" />
-            <span class="text-sm text-zinc-300">Alert when reviews are overdue</span>
+            <span class="text-sm text-zinc-300">Reviews are overdue</span>
           </label>
         </div>
 
