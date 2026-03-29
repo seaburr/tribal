@@ -227,7 +227,8 @@ async function handlePurge(id: number, name: string) {
 
     <!-- ── Team Settings ────────────────────────────────────────────────────── -->
     <section class="bg-tribal-panel rounded-xl border border-tribal-border p-6">
-      <h2 class="text-base font-semibold text-white mb-4">Team Settings</h2>
+      <h2 class="text-base font-semibold text-white mb-1">Team Settings</h2>
+      <p class="text-zinc-500 text-sm mb-4">The team name is displayed across the application and included in Slack notifications.</p>
       <div class="space-y-3">
         <div v-if="teams.length > 0" class="space-y-2">
           <div
@@ -273,12 +274,14 @@ async function handlePurge(id: number, name: string) {
 
     <!-- ── Notification Settings ─────────────────────────────────────────────── -->
     <section class="bg-tribal-panel rounded-xl border border-tribal-border p-6">
-      <h2 class="text-base font-semibold text-white mb-4">Notification Settings</h2>
+      <h2 class="text-base font-semibold text-white mb-1">Notification Settings</h2>
+      <p class="text-zinc-500 text-sm mb-5">Configure when and where Tribal sends Slack reminders about expiring resources.</p>
 
       <div class="space-y-5">
         <!-- Reminder days -->
         <div>
-          <label class="block text-sm font-medium text-zinc-300 mb-2">Reminder days before expiry</label>
+          <label class="block text-sm font-medium text-zinc-300 mb-1">Reminder days before expiry</label>
+          <p class="text-zinc-500 text-xs mb-2">Tribal will send a Slack notification on each selected day before a resource expires.</p>
           <div class="flex flex-wrap gap-2">
             <label
               v-for="day in reminderOptions"
@@ -304,6 +307,7 @@ async function handlePurge(id: number, name: string) {
         <!-- Notify hour -->
         <div>
           <label class="block text-sm font-medium text-zinc-300 mb-1">Notify hour (UTC)</label>
+          <p class="text-zinc-500 text-xs mb-1">Notifications are dispatched once daily at this hour.</p>
           <select
             v-model.number="settingsForm.notify_hour"
             class="bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500 transition-colors"
@@ -315,6 +319,7 @@ async function handlePurge(id: number, name: string) {
         <!-- Review cadence -->
         <div>
           <label class="block text-sm font-medium text-zinc-300 mb-1">Periodic review cadence</label>
+          <p class="text-zinc-500 text-xs mb-1">When enabled, resources not reviewed within this window will be flagged as overdue for review. Members can mark a resource reviewed from its detail view.</p>
           <select
             v-model="settingsForm.review_cadence_months"
             class="bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500 transition-colors"
@@ -329,6 +334,7 @@ async function handlePurge(id: number, name: string) {
         <!-- Slack webhook -->
         <div>
           <label class="block text-sm font-medium text-zinc-300 mb-1">Global Slack Webhook URL</label>
+          <p class="text-zinc-500 text-xs mb-1">Fallback notification channel for admin alerts. Individual resources can specify their own webhook to notify the owning team directly.</p>
           <div class="flex gap-2">
             <input
               v-model="settingsForm.slack_webhook"
@@ -375,25 +381,29 @@ async function handlePurge(id: number, name: string) {
 
     <!-- ── Reports ────────────────────────────────────────────────────────────── -->
     <section class="bg-tribal-panel rounded-xl border border-tribal-border p-6">
-      <h2 class="text-base font-semibold text-white mb-4">Reports</h2>
-      <div class="flex flex-wrap gap-3">
+      <h2 class="text-base font-semibold text-white mb-1">Reports</h2>
+      <p class="text-zinc-500 text-sm mb-5">Download CSV snapshots for offline review or sharing with your team.</p>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <button
-          class="px-4 py-2 border border-tribal-border text-zinc-300 hover:border-blue-500/50 hover:text-blue-400 rounded-lg text-sm transition-colors"
+          class="flex flex-col items-start gap-1 px-4 py-3 border border-tribal-border text-left rounded-lg hover:border-blue-500/50 transition-colors group"
           @click="openReport('/admin/reports/upcoming')"
         >
-          📊 Upcoming Expiry (CSV)
+          <span class="text-zinc-300 group-hover:text-blue-400 text-sm font-medium transition-colors">📊 Upcoming Expiry</span>
+          <span class="text-zinc-500 text-xs">Resources expiring within the next 30 days.</span>
         </button>
         <button
-          class="px-4 py-2 border border-tribal-border text-zinc-300 hover:border-blue-500/50 hover:text-blue-400 rounded-lg text-sm transition-colors"
+          class="flex flex-col items-start gap-1 px-4 py-3 border border-tribal-border text-left rounded-lg hover:border-blue-500/50 transition-colors group"
           @click="openReport('/admin/reports/recent-changes')"
         >
-          📋 Recent Changes (CSV)
+          <span class="text-zinc-300 group-hover:text-blue-400 text-sm font-medium transition-colors">📋 Recent Changes</span>
+          <span class="text-zinc-500 text-xs">All audit log events from the last 30 days.</span>
         </button>
         <button
-          class="px-4 py-2 border border-tribal-border text-zinc-300 hover:border-blue-500/50 hover:text-blue-400 rounded-lg text-sm transition-colors"
+          class="flex flex-col items-start gap-1 px-4 py-3 border border-tribal-border text-left rounded-lg hover:border-blue-500/50 transition-colors group"
           @click="openReport('/admin/reports/reviews-due')"
         >
-          📅 Reviews Due (CSV)
+          <span class="text-zinc-300 group-hover:text-blue-400 text-sm font-medium transition-colors">📅 Reviews Due</span>
+          <span class="text-zinc-500 text-xs">Resources overdue for their periodic review.</span>
         </button>
       </div>
     </section>
@@ -554,6 +564,7 @@ async function handlePurge(id: number, name: string) {
     <section class="bg-tribal-panel rounded-xl border border-tribal-border overflow-hidden">
       <div class="px-6 py-4 border-b border-tribal-border">
         <h2 class="text-base font-semibold text-white">Deleted Resources</h2>
+        <p class="text-zinc-500 text-sm mt-1">Restore returns a resource to the active list. Purge permanently removes it and cannot be undone.</p>
       </div>
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
