@@ -1,0 +1,18 @@
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+.venv
+.env
+.git
+
+# Frontend build artifacts — generated inside Docker by npm run build
+frontend/node_modules
+static/assets
+
+# Test and dev files
+tests/
+loadtest.py
+*.md
+terraform/
+.github/
+data/

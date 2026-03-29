@@ -1,78 +1,81 @@
 # Tribal
 
-A basic tool for tracking expiration dates on certificates, API keys, DRIs, and renewal/generation process.
+Credential lifecycle management for teams. Track TLS certificates, API keys, SSH keys, and other secrets — get Slack reminders before they expire, auto-detect expiry from live endpoints, and maintain a full audit trail.
 
-## Goal
+## Tech stack
 
-Goal: Build a basic web application with minimal external dependencies that allows teams to define a resource that expires and/or needs to be rotated perodically. When they define the resource they need to provide data regarding the following:
+| Layer | Technology |
+|---|---|
+| Backend | Python 3.14, FastAPI, SQLAlchemy, APScheduler |
+| Database | MySQL 8 (Docker) |
+| Frontend | Vue 3, TypeScript, Vite, Tailwind CSS, Pinia |
+| Auth | Session cookies + Bearer API keys |
+| Infra | Docker, DigitalOcean App Platform, Terraform |
 
-* Name of resource
-* DRI
-* Expiration / Rotation date
-* Purpose / Usage
-* Generation Instructions
-* Link to resource in secret manager
-* Reminder Contact (Slack webhook)
+---
 
-The tool will send reminders 30, 14, 7, and 3 days before a change is required and stop if the resource is updated in Tribal. It should also have support for uploading a PUBLIC KEY (no private keys, no .p12, no .p7b, no .key, no PKCS#12, etc.) and extracting the expiry date automatically.
-
-The expiry/rotation should be available in a date picker or with the choice to enter the date via a text field in MM/DD/YYYY format.
-
-## Tech
-
-* Python
-* FastAPI
-* SQLite (for now)
-
-## Running Locally
-
-### Quick start
+## Running locally
 
 Requires Docker and Docker Compose.
 
 ```bash
-# Build the image
-docker compose build
+# Build and start (first run downloads images and builds the frontend)
+docker compose up --build
 
-# Start the app (accessible at http://localhost:8000)
-docker compose up
-```
-
-On first launch, the database is created automatically. Open `http://localhost:8000` in your browser and register an account — the first account created becomes an admin.
-
-To stop:
-
-```bash
+# Stop
 docker compose down
 ```
 
-### Running tests
+The Docker build compiles the Vue frontend (Node 22) then packages it into the Python image. On first launch the database schema is created automatically. Open `http://localhost:8000` and register — the first account becomes the admin.
+
+### Running backend tests
 
 ```bash
-docker compose build           # ensure the image is up to date
-docker compose run --rm --no-deps tribal python -m pytest tests/ -q
+docker compose build
+docker compose run --rm --no-deps tribal python -m pytest tests/ -v
 ```
 
-All tests should pass. Tests use an in-memory SQLite database and do not require the app to be running.
+Tests use an in-memory SQLite database and do not require the stack to be running.
+
+### Frontend development
+
+For hot-reload during UI work, run the Vite dev server alongside the backend:
+
+```bash
+# Terminal 1 — backend
+docker compose up
+
+# Terminal 2 — frontend dev server (proxies /api, /auth, /admin to :8000)
+cd frontend
+npm install
+npm run dev        # http://localhost:5173
+```
+
+Other frontend scripts:
+
+```bash
+npm run build      # production build → outputs to ../static/
+npm run typecheck  # TypeScript type check (vue-tsc --noEmit)
+npm run preview    # preview the production build locally
+```
+
+The production build outputs content-hashed assets to `static/assets/`. These are served by FastAPI at `/static/*` and do not need to be committed — they are generated during `docker compose up --build`.
 
 ### Local environment variables
 
-By default no environment variables are required — a random `JWT_SECRET` is generated at startup (sessions will be lost on restart). To pin it for local dev:
+No environment variables are required by default — a random `JWT_SECRET` is generated at startup (sessions are lost on restart). To pin it for local dev:
 
 ```bash
 # .env (not committed)
 JWT_SECRET=your-hex-secret-here
 ```
 
-Pass it to Docker Compose via:
+Pass it to Docker Compose:
 
 ```yaml
-# docker-compose.yml env_file or environment block
 environment:
   JWT_SECRET: "${JWT_SECRET}"
 ```
-
-Or export it before running `docker compose up`.
 
 ---
 

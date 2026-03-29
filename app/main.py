@@ -1,11 +1,8 @@
-import os
-import re
 from contextlib import asynccontextmanager
-from pathlib import Path
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from prometheus_client import CONTENT_TYPE_LATEST, REGISTRY, generate_latest
 from prometheus_fastapi_instrumentator import Instrumentator
@@ -16,8 +13,6 @@ from .routers import auth as auth_router
 from .routers import admin as admin_router
 from .routers import keys as keys_router
 from .scheduler import check_reminders, refresh_cert_expiry
-
-BUILD_SHA = os.environ.get("BUILD_SHA", "dev")
 
 
 @asynccontextmanager
@@ -35,8 +30,8 @@ Instrumentator().instrument(app)  # .expose() intentionally omitted — see /met
 
 # ── Auth middleware ────────────────────────────────────────────────────────────
 # Paths that do NOT require a valid session cookie.
-_AUTH_EXEMPT_PREFIXES = ("/auth/",)
-_AUTH_EXEMPT_EXACT = {"/login", "/healthz", "/metrics", "/static/tribal_logo.png", "/static/favicon.ico"}
+_AUTH_EXEMPT_PREFIXES = ("/auth/", "/static/")
+_AUTH_EXEMPT_EXACT = {"/login", "/healthz", "/metrics"}
 
 
 @app.middleware("http")
@@ -71,23 +66,6 @@ app.include_router(keys_router.router)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
-def _versioned_html(path: str) -> HTMLResponse:
-    """Serve an HTML file with versioned asset URLs and no-cache headers.
-
-    Appends ?v=<BUILD_SHA> to all /static/*.css and /static/*.js href/src
-    attributes so browsers fetch fresh assets after each deployment.
-    The HTML itself gets Cache-Control: no-cache so the version stamp is
-    always current without forcing a full re-download every time.
-    """
-    content = Path(path).read_text()
-    content = re.sub(
-        r'((?:href|src)="/static/[^"]+\.(?:css|js))"',
-        rf'\1?v={BUILD_SHA}"',
-        content,
-    )
-    return HTMLResponse(content, headers={"Cache-Control": "no-cache, must-revalidate"})
-
-
 _CONST_LABELS = {"app_name": "tribal"}
 
 
@@ -115,9 +93,9 @@ def healthz():
 
 @app.get("/login", include_in_schema=False)
 def login_page():
-    return _versioned_html("static/login.html")
+    return FileResponse("static/index.html")
 
 
-@app.get("/")
+@app.get("/", include_in_schema=False)
 def root():
-    return _versioned_html("static/index.html")
+    return FileResponse("static/index.html")

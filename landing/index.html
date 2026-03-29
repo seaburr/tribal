@@ -5,291 +5,144 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Tribal — Credential Lifecycle Management</title>
   <link rel="icon" type="image/x-icon" href="favicon.ico" />
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --bg:       #0f172a;
-      --surface:  #1e293b;
-      --border:   #334155;
-      --text:     #f1f5f9;
-      --text-sec: #94a3b8;
-      --blue:     #3b82f6;
-      --blue-dk:  #2563eb;
-      --green:    #22c55e;
-      --amber:    #f59e0b;
-      --red:      #ef4444;
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            tribal: {
+              bg: '#0d0d14',
+              panel: '#1a1a2e',
+              card: '#16213e',
+              border: '#2d2d4e',
+              muted: '#3d3d5e',
+            },
+          },
+        },
+      },
     }
-
-    html, body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      line-height: 1.6;
-      min-height: 100vh;
-    }
-
-    /* ── Top nav ── */
-    .top-nav {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 100;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0.9rem 2rem;
-      background: rgba(15, 23, 42, 0.85);
-      backdrop-filter: blur(8px);
-      border-bottom: 1px solid var(--border);
-    }
-
-    .nav-brand {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 1.1rem;
-      font-weight: 700;
-      color: var(--text);
-      text-decoration: none;
-    }
-
-    .nav-brand img { height: 28px; width: 28px; object-fit: contain; }
-
-    .btn-login {
-      background: var(--blue);
-      color: #fff;
-      font-size: 0.875rem;
-      font-weight: 600;
-      padding: 0.45rem 1.25rem;
-      border-radius: 6px;
-      text-decoration: none;
-      transition: background 0.15s;
-    }
-
-    .btn-login:hover { background: var(--blue-dk); }
-
-    /* ── Hero ── */
-    .hero {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-      padding: 8rem 2rem 4rem;
-    }
-
-    .logo {
-      width: 100px;
-      height: 100px;
-      margin-bottom: 1.25rem;
-    }
-
-    h1 {
-      font-size: 2.75rem;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-      margin-bottom: 1.5rem;
-    }
-
-    /* ── Pull-quote card ── */
-    .quote-card {
-      position: relative;
-      background: rgba(30, 41, 59, 0.5);
-      border: 1px solid var(--border);
-      border-left: 3px solid var(--amber);
-      border-radius: 8px;
-      padding: 1.25rem 1.75rem;
-      max-width: 560px;
-      text-align: left;
-      margin-bottom: 1.5rem;
-    }
-
-    .quote-card p {
-      font-size: 0.95rem;
-      color: var(--text-sec);
-      line-height: 1.65;
-    }
-
-    .quote-card .highlight {
-      display: block;
-      text-align: center;
-      color: var(--amber);
-      font-weight: 600;
-      margin-top: 0.5rem;
-    }
-
-    .tagline {
-      font-size: 1.15rem;
-      color: var(--text-sec);
-      max-width: 500px;
-      margin-bottom: 2rem;
-    }
-
-    .pill-row {
-      display: flex;
-      gap: 0.5rem;
-      flex-wrap: wrap;
-      justify-content: center;
-      margin-bottom: 3rem;
-    }
-
-    .pill {
-      font-size: 0.75rem;
-      font-weight: 500;
-      padding: 0.25rem 0.75rem;
-      border-radius: 999px;
-      border: 1px solid var(--border);
-      color: var(--text-sec);
-    }
-
-    /* ── Features ── */
-    .features {
-      display: flex;
-      gap: 1.25rem;
-      flex-wrap: wrap;
-      justify-content: center;
-      padding: 0 2rem 4rem;
-      max-width: 900px;
-      margin: 0 auto;
-    }
-
-    .feature {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 1.25rem 1.5rem;
-      width: 240px;
-      text-align: left;
-    }
-
-    .feature-icon {
-      font-size: 1.4rem;
-      margin-bottom: 0.6rem;
-    }
-
-    .feature h3 {
-      font-size: 0.9rem;
-      font-weight: 600;
-      margin-bottom: 0.3rem;
-    }
-
-    .feature p {
-      font-size: 0.8rem;
-      color: var(--text-sec);
-    }
-
-    /* ── Footer ── */
-    footer {
-      text-align: center;
-      padding: 1.5rem;
-      font-size: 0.75rem;
-      color: var(--text-sec);
-      border-top: 1px solid var(--border);
-    }
-
-    @media (max-width: 480px) {
-      h1 { font-size: 2rem; }
-      .top-nav { padding: 0.75rem 1rem; }
-      .hero { padding-top: 6rem; }
-    }
-  </style>
+  </script>
 </head>
-<body>
+<body class="bg-tribal-bg text-white font-sans antialiased min-h-screen">
 
-  <nav class="top-nav">
-    <a class="nav-brand" href="#">
-      <img src="tribal_logo.png" alt="Tribal logo" />
-      Tribal
+  <!-- Fixed Navbar -->
+  <nav class="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 bg-tribal-bg/90 backdrop-blur-md border-b border-tribal-border">
+    <a href="#" class="flex items-center gap-2.5 no-underline">
+      <img src="tribal_logo.png" alt="Tribal" class="h-7 w-7 object-contain" />
+      <span class="text-white font-bold text-lg tracking-tight">Tribal</span>
     </a>
-    <a href="https://dev.tribal-app.xyz" class="btn-login">Login</a>
+    <a
+      href="https://dev.tribal-app.xyz"
+      class="bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm px-4 py-2 rounded-lg transition-colors no-underline"
+    >
+      Login →
+    </a>
   </nav>
 
-  <div class="hero">
-    <img src="tribal_logo.png" alt="Tribal logo" class="logo" />
-    <h1>Tribal</h1>
-    <div class="quote-card">
-      <p>
-        <i>It's 2 AM and a critical integration is failing because the API key just expired.</i>
-        <span class="highlight">Do you know who has access to regenerate it? <br>Do you know where it needs to be updated?</span>
-      </p>
-    </div>
-    <p class="tagline">Full audit visibility and automated Slack reminders for every certificate, API key, and secret your organization depends on.</p>
+  <!-- Hero -->
+  <section class="flex flex-col items-center text-center pt-32 pb-16 px-4">
+    <img src="tribal_logo.png" alt="Tribal" class="w-24 h-24 object-contain mb-6" />
+    <h1 class="text-4xl sm:text-5xl font-bold tracking-tight mb-4">
+      Credential Lifecycle<br class="hidden sm:block" /> Management
+    </h1>
+    <p class="text-zinc-400 text-lg max-w-xl mb-3 leading-relaxed">
+      Track your team's certificates, API keys, and secrets. Ensure documentation exists and is regularly reviewed. Get notified before they expire — and know exactly how to rotate them when they do.
+    </p>
+    <br>
+    <br>
 
-    <div class="pill-row">
-      <span class="pill">TLS Certificates</span>
-      <span class="pill">API Keys</span>
-      <span class="pill">SSH Keys</span>
-      <span class="pill">Key Auto-Detection</span>
-      <span class="pill">Audit Logs</span>
-      <span class="pill">Slack Reminders</span>
-      <span class="pill">Soft Deletes</span>
-      <span class="pill">REST API</span>
-      <span class="pill">Role-based Access</span>
-      <span class="pill">PDF Reports</span>
-      <span class="pill">Terraform Provider</span>
+    <!-- Feature pills -->
+    <div class="flex flex-wrap justify-center gap-2 mb-4">
+      <span v-for="pill in pills" class="text-xs font-medium px-3 py-1 rounded-full border border-tribal-border text-zinc-400">TLS Certificates</span>
+      <span class="text-xs font-medium px-3 py-1 rounded-full border border-tribal-border text-zinc-400">API Keys</span>
+      <span class="text-xs font-medium px-3 py-1 rounded-full border border-tribal-border text-zinc-400">SSH Keys</span>
+      <span class="text-xs font-medium px-3 py-1 rounded-full border border-tribal-border text-zinc-400">Auto-Detection</span>
+      <span class="text-xs font-medium px-3 py-1 rounded-full border border-tribal-border text-zinc-400">Audit Trail</span>
+      <span class="text-xs font-medium px-3 py-1 rounded-full border border-tribal-border text-zinc-400">Slack Alerts</span>
+      <span class="text-xs font-medium px-3 py-1 rounded-full border border-tribal-border text-zinc-400">Terraform Provider</span>
+      <span class="text-xs font-medium px-3 py-1 rounded-full border border-tribal-border text-zinc-400">RBAC</span>
+      <span class="text-xs font-medium px-3 py-1 rounded-full border border-tribal-border text-zinc-400">PDF Reports</span>
     </div>
-  </div>
+  </section>
 
-  <div class="features">
-    <div class="feature">
-      <div class="feature-icon">🔐</div>
-      <h3>Certificate Intelligence</h3>
-      <p>Upload a PEM or CRT file — Tribal extracts the expiry date automatically. Or point it at a live TLS endpoint to fetch the cert directly.</p>
-    </div>
-    <div class="feature">
-      <div class="feature-icon">🔍</div>
-      <h3>API Key Auto-Detection</h3>
-      <p>Paste an API key and Tribal identifies the provider (GitHub, Stripe, AWS, Azure, OpenAI, and more), looks up its expiry, and pre-fills rotation instructions. The key is never stored.</p>
-    </div>
-    <div class="feature">
-      <div class="feature-icon">📋</div>
-      <h3>Full Audit Trail</h3>
-      <p>Every create, update, delete, cert upload, login, and role change is logged with the acting user, timestamp, and source (UI or API).</p>
-    </div>
-    <div class="feature">
-      <div class="feature-icon">🔔</div>
-      <h3>Proactive Reminders</h3>
-      <p>Automatic Slack alerts at configurable intervals before expiration, with rotation instructions included so your team can act immediately.</p>
-    </div>
-    <div class="feature">
-      <div class="feature-icon">🔄</div>
-      <h3>Safe Deletion</h3>
-      <p>Deleted resources are soft-deleted and recoverable from the Admin panel. Deletion events notify both the owning team and admins via Slack.</p>
-    </div>
-    <div class="feature">
-      <div class="feature-icon">👥</div>
-      <h3>Role-based Access</h3>
-      <p>Three-tier access: admins control notification policies and user management, members manage resources, and read-only users get full visibility without edit access.</p>
-    </div>
-    <div class="feature">
-      <div class="feature-icon">🔑</div>
-      <h3>API & Automation</h3>
-      <p>REST API with API key authentication. All API activity is attributed in the audit log — distinguish UI-driven changes from automated pipelines.</p>
-    </div>
-    <div class="feature">
-      <div class="feature-icon">🏗️</div>
-      <h3>Terraform Provider</h3>
-      <p>Declare and version-control your credential policy alongside your infrastructure. Manage expiration dates and rotation instructions as code.</p>
-    </div>
-    <div class="feature">
-      <div class="feature-icon">📅</div>
-      <h3>Visual Calendar</h3>
-      <p>See everything expiring at a glance in month or year view. Overdue and urgent items are highlighted so nothing is missed.</p>
-    </div>
-    <div class="feature">
-      <div class="feature-icon">📄</div>
-      <h3>Resource Reports</h3>
-      <p>Generate a PDF snapshot of any resource — full details, ownership history, and a filtered audit log of every change — available to all users regardless of role.</p>
-    </div>
-    <div class="feature">
-      <div class="feature-icon">🔌</div>
-      <h3>Extensible Providers</h3>
-      <p>Plugin-based architecture for key detection. Add support for a new service by dropping a single file — auto-discovered, no configuration needed. Built for community contributions.</p>
-    </div>
-  </div>
+  <!-- Feature Cards -->
+  <section class="px-4 pb-16 max-w-5xl mx-auto">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
 
-  <footer>&copy; 2026 seaburr</footer>
+      <div class="bg-tribal-panel border border-tribal-border rounded-xl p-6 hover:border-blue-500/50 transition-colors">
+        <div class="text-2xl mb-3">🔐</div>
+        <h3 class="text-white font-semibold mb-2">Certificate Intelligence</h3>
+        <p class="text-zinc-400 text-sm leading-relaxed">Upload PEM files or enter a TLS endpoint URL. Tribal fetches the live certificate and automatically extracts the expiration date, keeping your records accurate without manual updates.</p>
+      </div>
+
+      <div class="bg-tribal-panel border border-tribal-border rounded-xl p-6 hover:border-blue-500/50 transition-colors">
+        <div class="text-2xl mb-3">🔑</div>
+        <h3 class="text-white font-semibold mb-2">API Key Auto-Detection</h3>
+        <p class="text-zinc-400 text-sm leading-relaxed">Paste any API key and Tribal identifies the provider (GitHub, Stripe, AWS, Azure, and more), looks up the expiry if available, and pre-fills rotation instructions automatically.</p>
+      </div>
+
+      <div class="bg-tribal-panel border border-tribal-border rounded-xl p-6 hover:border-blue-500/50 transition-colors">
+        <div class="text-2xl mb-3">📋</div>
+        <h3 class="text-white font-semibold mb-2">Full Audit Trail</h3>
+        <p class="text-zinc-400 text-sm leading-relaxed">Every action is logged — creations, updates, deletions, logins, and role changes. Admins can review the complete history with filtering and pagination.</p>
+      </div>
+
+      <div class="bg-tribal-panel border border-tribal-border rounded-xl p-6 hover:border-blue-500/50 transition-colors">
+        <div class="text-2xl mb-3">🔔</div>
+        <h3 class="text-white font-semibold mb-2">Proactive Reminders</h3>
+        <p class="text-zinc-400 text-sm leading-relaxed">Configure Slack notifications at 1, 3, 7, 14, 30, 45, or 60 days before expiry. Per-resource webhooks let different teams get notified in the right channels.</p>
+      </div>
+
+      <div class="bg-tribal-panel border border-tribal-border rounded-xl p-6 hover:border-blue-500/50 transition-colors">
+        <div class="text-2xl mb-3">🗑️</div>
+        <h3 class="text-white font-semibold mb-2">Safe Deletion</h3>
+        <p class="text-zinc-400 text-sm leading-relaxed">Deleted resources are soft-deleted and recoverable. Admins can restore or permanently purge them from the deleted resources panel.</p>
+      </div>
+
+      <div class="bg-tribal-panel border border-tribal-border rounded-xl p-6 hover:border-blue-500/50 transition-colors">
+        <div class="text-2xl mb-3">👥</div>
+        <h3 class="text-white font-semibold mb-2">Role-Based Access</h3>
+        <p class="text-zinc-400 text-sm leading-relaxed">Three roles: Admin (full control), Member (create and manage resources), and Read-only (view only). The account creator cannot be demoted.</p>
+      </div>
+
+      <div class="bg-tribal-panel border border-tribal-border rounded-xl p-6 hover:border-blue-500/50 transition-colors">
+        <div class="text-2xl mb-3">🤖</div>
+        <h3 class="text-white font-semibold mb-2">API &amp; Automation</h3>
+        <p class="text-zinc-400 text-sm leading-relaxed">Full REST API with Bearer token authentication. Create and manage resources programmatically with the same capabilities as the UI.</p>
+      </div>
+
+      <div class="bg-tribal-panel border border-tribal-border rounded-xl p-6 hover:border-blue-500/50 transition-colors">
+        <div class="text-2xl mb-3">🏗️</div>
+        <h3 class="text-white font-semibold mb-2">Terraform Provider</h3>
+        <p class="text-zinc-400 text-sm leading-relaxed">Manage credentials as infrastructure-as-code using the seaburr/tribal Terraform provider. Track resources alongside the infrastructure that uses them.</p>
+      </div>
+
+      <div class="bg-tribal-panel border border-tribal-border rounded-xl p-6 hover:border-blue-500/50 transition-colors">
+        <div class="text-2xl mb-3">📅</div>
+        <h3 class="text-white font-semibold mb-2">Visual Calendar</h3>
+        <p class="text-zinc-400 text-sm leading-relaxed">See all upcoming expirations on a monthly calendar view. Click any date to see what expires that day. Toggle to a year-at-a-glance view.</p>
+      </div>
+
+      <div class="bg-tribal-panel border border-tribal-border rounded-xl p-6 hover:border-blue-500/50 transition-colors">
+        <div class="text-2xl mb-3">📄</div>
+        <h3 class="text-white font-semibold mb-2">Resource Reports</h3>
+        <p class="text-zinc-400 text-sm leading-relaxed">Generate PDF snapshots of any resource including full details and filtered audit history. Useful for compliance reviews and handoffs.</p>
+      </div>
+
+      <div class="bg-tribal-panel border border-tribal-border rounded-xl p-6 hover:border-blue-500/50 transition-colors">
+        <div class="text-2xl mb-3">🔌</div>
+        <h3 class="text-white font-semibold mb-2">Extensible Providers</h3>
+        <p class="text-zinc-400 text-sm leading-relaxed">Built-in detection for GitHub, Stripe, AWS, Azure, OpenAI, Anthropic, Slack, and SendGrid. More providers added regularly.</p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="border-t border-tribal-border py-6 text-center text-zinc-500 text-xs">
+    &copy; 2026 seaburr
+  </footer>
 
 </body>
 </html>
