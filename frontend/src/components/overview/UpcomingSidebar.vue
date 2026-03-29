@@ -31,7 +31,7 @@ const upcoming = computed(() => {
     </h3>
 
     <div v-if="upcoming.length === 0" class="text-zinc-500 text-sm text-center py-8">
-      No resources expiring within 90 days.
+      Zarro items due.
     </div>
 
     <ul v-else class="space-y-2 overflow-y-auto max-h-[600px] pr-1">
