@@ -59,15 +59,33 @@ const cells = computed(() => buildCells(calYear.value, calMonth.value))
 
 const todayISO = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`
 
-function cellUrgency(iso: string | null): 'overdue' | 'upcoming' | null {
+// Returns the worst-case color bucket for a calendar cell.
+// Priority: overdue > critical > amber > green
+function cellColor(iso: string | null): 'overdue' | 'critical' | 'amber' | 'green' | null {
   if (!iso) return null
   const resources = resourcesStore.byDate[iso]
   if (!resources || resources.length === 0) return null
+  let best: 'overdue' | 'critical' | 'amber' | 'green' | null = null
+  const rank = { overdue: 4, critical: 3, amber: 2, green: 1 } as const
   for (const r of resources) {
     const u = urgency(r.expiration_date, r.does_not_expire)
-    if (u === 'overdue' || u === 'critical') return 'overdue'
+    const bucket: typeof best =
+      u === 'overdue'              ? 'overdue'  :
+      u === 'critical'             ? 'critical' :
+      u === 'warning'              ? 'amber'    :
+      (u === 'upcoming' || u === 'ok') ? 'green' : null
+    if (bucket && (best === null || rank[bucket] > rank[best])) best = bucket
   }
-  return 'upcoming'
+  return best
+}
+
+// Per-resource dot color used in the month view.
+function dotColor(r: { expiration_date: string | null; does_not_expire: boolean }): string {
+  const u = urgency(r.expiration_date, r.does_not_expire)
+  if (u === 'overdue')  return 'bg-red-500'
+  if (u === 'critical') return 'bg-red-400'
+  if (u === 'warning')  return 'bg-amber-400'
+  return 'bg-emerald-400'
 }
 
 function prevMonth() {
@@ -166,8 +184,10 @@ const yearMonths = computed(() =>
               ? 'cursor-pointer hover:bg-tribal-card'
               : 'opacity-0 pointer-events-none',
             cell.iso === todayISO ? 'ring-2 ring-amber-500' : '',
-            cellUrgency(cell.iso) === 'overdue' ? 'bg-red-500/10' : '',
-            cellUrgency(cell.iso) === 'upcoming' ? 'bg-amber-500/10' : '',
+            cellColor(cell.iso) === 'overdue'  ? 'bg-red-500/25 ring-1 ring-red-500/40' : '',
+            cellColor(cell.iso) === 'critical' ? 'bg-red-500/10'     : '',
+            cellColor(cell.iso) === 'amber'    ? 'bg-amber-500/10'   : '',
+            cellColor(cell.iso) === 'green'    ? 'bg-emerald-500/10' : '',
           ]"
           @click="cell.iso && emit('date-click', cell.iso)"
         >
@@ -188,16 +208,7 @@ const yearMonths = computed(() =>
             <span
               v-for="r in resourcesStore.byDate[cell.iso].slice(0, 3)"
               :key="r.id"
-              :class="[
-                'w-1.5 h-1.5 rounded-full',
-                urgency(r.expiration_date, r.does_not_expire) === 'overdue' || urgency(r.expiration_date, r.does_not_expire) === 'critical'
-                  ? 'bg-red-400'
-                  : urgency(r.expiration_date, r.does_not_expire) === 'warning'
-                    ? 'bg-amber-400'
-                    : urgency(r.expiration_date, r.does_not_expire) === 'upcoming'
-                      ? 'bg-yellow-400'
-                      : 'bg-emerald-400',
-              ]"
+              :class="['w-1.5 h-1.5 rounded-full', dotColor(r)]"
             />
             <span
               v-if="resourcesStore.byDate[cell.iso].length > 3"
@@ -226,8 +237,10 @@ const yearMonths = computed(() =>
                 'w-4 h-4 rounded-sm flex items-center justify-center text-[9px]',
                 !cell.day ? 'opacity-0' : '',
                 cell.iso === todayISO ? 'ring-1 ring-amber-500 text-amber-400' : 'text-zinc-500',
-                cellUrgency(cell.iso) === 'overdue' ? 'bg-red-500/30 text-red-300' : '',
-                cellUrgency(cell.iso) === 'upcoming' ? 'bg-amber-500/20 text-amber-300' : '',
+                cellColor(cell.iso) === 'overdue'  ? 'bg-red-600/70 text-red-100 font-bold' : '',
+                cellColor(cell.iso) === 'critical' ? 'bg-red-500/30 text-red-300'         : '',
+                cellColor(cell.iso) === 'amber'    ? 'bg-amber-500/20 text-amber-300'     : '',
+                cellColor(cell.iso) === 'green'    ? 'bg-emerald-500/20 text-emerald-300' : '',
               ]"
             >
               {{ cell.day ?? '' }}

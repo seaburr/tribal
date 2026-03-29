@@ -16,9 +16,16 @@ export function formatDate(isoDate: string | null): string {
   return `${m}/${d}/${y}`
 }
 
-export function formatDateTime(isoDatetime: string | null): string {
+/** Parse an ISO datetime string as UTC, even if it lacks a timezone suffix. */
+function parseUTC(isoDatetime: string): Date {
+  // Backend emits naive UTC datetimes without 'Z'; without it JS treats them as local time.
+  const hasOffset = isoDatetime.endsWith('Z') || /[+-]\d{2}:\d{2}$/.test(isoDatetime)
+  return new Date(hasOffset ? isoDatetime : isoDatetime + 'Z')
+}
+
+export function formatDateTime(isoDatetime: string | null, timezone?: string): string {
   if (!isoDatetime) return '—'
-  return new Date(isoDatetime).toLocaleString()
+  return parseUTC(isoDatetime).toLocaleString(undefined, timezone ? { timeZone: timezone } : undefined)
 }
 
 export type Urgency = 'overdue' | 'critical' | 'warning' | 'upcoming' | 'ok' | 'none'

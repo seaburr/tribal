@@ -4,7 +4,7 @@ import BaseModal from '../common/BaseModal.vue'
 import { useToast } from '../../composables/useToast'
 import { listApiKeys, createApiKey, revokeApiKey } from '../../api/keys'
 import type { ApiKey, ApiKeyCreated } from '../../types'
-import { formatDateTime } from '../../utils/date'
+import { useDateFormat } from '../../composables/useDateFormat'
 
 const props = defineProps<{
   open: boolean
@@ -15,6 +15,7 @@ const emit = defineEmits<{
 }>()
 
 const { show } = useToast()
+const { formatDateTime } = useDateFormat()
 
 const keys = ref<ApiKey[]>([])
 const loading = ref(false)

@@ -3,7 +3,8 @@ import { computed } from 'vue'
 import type { Resource } from '../../types'
 import BaseModal from '../common/BaseModal.vue'
 import StatusBadge from '../common/StatusBadge.vue'
-import { formatDate, formatDateTime } from '../../utils/date'
+import { formatDate } from '../../utils/date'
+import { useDateFormat } from '../../composables/useDateFormat'
 import { useAuthStore } from '../../stores/auth'
 import { reviewResource } from '../../api/resources'
 import { getResourceReportUrl } from '../../api/resources'
@@ -24,6 +25,7 @@ const emit = defineEmits<{
 
 const authStore = useAuthStore()
 const { show } = useToast()
+const { formatDateTime } = useDateFormat()
 
 function escapeHtml(text: string): string {
   return text

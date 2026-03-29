@@ -1,18 +1,19 @@
 <script setup lang="ts">
-import { ref, reactive, watch, onMounted } from 'vue'
+import { ref, reactive, watch, onMounted, computed } from 'vue'
 import type { Team } from '../../types'
 import { useAdminStore } from '../../stores/admin'
 import { useAuthStore } from '../../stores/auth'
 import { useToast } from '../../composables/useToast'
 import { useResourcesStore } from '../../stores/resources'
 import Pagination from '../common/Pagination.vue'
-import { formatDateTime } from '../../utils/date'
+import { useDateFormat } from '../../composables/useDateFormat'
 import * as adminApi from '../../api/admin'
 
 const adminStore = useAdminStore()
 const authStore = useAuthStore()
 const resourcesStore = useResourcesStore()
 const { show } = useToast()
+const { formatDateTime } = useDateFormat()
 
 const loaded = ref(false)
 
@@ -62,6 +63,19 @@ watch(
 )
 
 const reminderOptions = [1, 3, 7, 14, 30, 45, 60]
+
+// Show the notify_hour (UTC) in the user's local timezone as a hint.
+const notifyHourLocalHint = computed(() => {
+  const tz = authStore.user?.timezone
+  if (!tz) return null
+  try {
+    const utcDate = new Date(Date.UTC(2000, 0, 1, settingsForm.notify_hour, 0, 0))
+    const localTime = utcDate.toLocaleTimeString(undefined, { timeZone: tz, hour: '2-digit', minute: '2-digit' })
+    return `${localTime} in your timezone (${tz})`
+  } catch {
+    return null
+  }
+})
 
 function toggleReminderDay(day: number) {
   const idx = settingsForm.reminder_days.indexOf(day)
@@ -234,25 +248,33 @@ async function handlePurge(id: number, name: string) {
           <div
             v-for="team in teams"
             :key="team.id"
-            class="flex items-center gap-3"
+            class="flex items-center gap-2"
           >
             <input
-              v-if="editingTeam?.id === team.id"
-              v-model="teamName"
+              :value="editingTeam?.id === team.id ? teamName : team.name"
+              :disabled="editingTeam?.id !== team.id"
               type="text"
-              class="flex-1 bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500 transition-colors"
+              class="flex-1 bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-sm transition-colors focus:outline-none"
+              :class="editingTeam?.id === team.id
+                ? 'text-white focus:border-blue-500 cursor-text'
+                : 'text-zinc-500 cursor-default'"
+              @input="teamName = ($event.target as HTMLInputElement).value"
             />
-            <span v-else class="flex-1 text-white text-sm">{{ team.name }}</span>
+            <template v-if="editingTeam?.id === team.id">
+              <button
+                class="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-lg transition-colors"
+                @click="saveTeam"
+              >Save</button>
+              <button
+                class="text-xs px-3 py-1.5 border border-tribal-border text-zinc-400 hover:text-white rounded-lg transition-colors"
+                @click="editingTeam = null; teamName = ''"
+              >Cancel</button>
+            </template>
             <button
-              v-if="editingTeam?.id !== team.id"
+              v-else
               class="text-xs px-3 py-1.5 border border-tribal-border text-zinc-400 hover:border-blue-500/50 hover:text-blue-400 rounded-lg transition-colors"
               @click="editingTeam = { id: team.id, name: team.name }; teamName = team.name"
             >Edit</button>
-            <button
-              v-else
-              class="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-lg transition-colors"
-              @click="saveTeam"
-            >Save</button>
           </div>
         </div>
         <div v-else class="flex items-center gap-3">
@@ -314,6 +336,7 @@ async function handlePurge(id: number, name: string) {
           >
             <option v-for="h in 24" :key="h - 1" :value="h - 1">{{ String(h - 1).padStart(2, '0') }}:00 UTC</option>
           </select>
+          <p v-if="notifyHourLocalHint" class="text-zinc-500 text-xs mt-1">≈ {{ notifyHourLocalHint }}</p>
         </div>
 
         <!-- Review cadence -->
@@ -602,7 +625,7 @@ async function handlePurge(id: number, name: string) {
                     @click="handleRestore(resource.id)"
                   >
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
                   </button>
                   <button

@@ -9,8 +9,9 @@ echo "Starting database migrations..."
 # Apply any pending Alembic migrations
 alembic upgrade head
 
+echo "Database migrations complete."
+
 # Starting the application
-echo ""
 echo "  _____    _ _          _ ";
 echo " |_   _| _(_) |__  __ _| |";
 echo "   | || '_| | '_ \\/ _\` | |";

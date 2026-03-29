@@ -5,6 +5,7 @@ export interface User {
   is_admin: boolean
   is_readonly: boolean
   is_account_creator: boolean
+  timezone: string | null
 }
 
 export interface Resource {

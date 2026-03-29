@@ -16,3 +16,9 @@ export const register = (email: string, password: string, display_name?: string)
   })
 
 export const logout = () => apiFetch<void>('/auth/logout', { method: 'POST' })
+
+export const updateMe = (prefs: { timezone?: string }) =>
+  apiFetch<import('../types').User>('/auth/me', {
+    method: 'PATCH',
+    body: JSON.stringify(prefs),
+  })

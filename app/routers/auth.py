@@ -84,3 +84,21 @@ def logout():
 @router.get("/me", response_model=schemas.UserResponse)
 def me(current_user: models.User = Depends(get_current_user)):
     return current_user
+
+
+@router.patch("/me", response_model=schemas.UserResponse)
+def update_me(
+    req: schemas.UserPreferencesUpdate,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if req.timezone is not None:
+        try:
+            import zoneinfo
+            zoneinfo.ZoneInfo(req.timezone)
+        except (zoneinfo.ZoneInfoNotFoundError, KeyError):
+            raise HTTPException(status_code=422, detail=f"Unknown timezone: {req.timezone}")
+        current_user.timezone = req.timezone
+    db.commit()
+    db.refresh(current_user)
+    return current_user

@@ -19,6 +19,7 @@ class User(Base):
     is_admin = Column(Boolean, nullable=False, default=False)
     is_account_creator = Column(Boolean, nullable=False, default=False)
     is_readonly = Column(Boolean, nullable=False, default=False)
+    timezone = Column(String(100), nullable=True)
     created_at = Column(DateTime, default=_utcnow)
 
 

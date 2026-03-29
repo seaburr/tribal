@@ -24,8 +24,13 @@ class UserResponse(BaseModel):
     is_admin: bool = False
     is_account_creator: bool = False
     is_readonly: bool = False
+    timezone: Optional[str] = None
 
     model_config = {"from_attributes": True}
+
+
+class UserPreferencesUpdate(BaseModel):
+    timezone: Optional[str] = None
 
 
 class AdminSettingsResponse(BaseModel):
