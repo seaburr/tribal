@@ -56,9 +56,8 @@ const instructionsHtml = computed(() =>
 
 function isReviewDue(): boolean {
   if (!props.reviewCadenceMonths || !props.resource) return false
-  if (!props.resource.last_reviewed_at) return true
-  const reviewed = new Date(props.resource.last_reviewed_at)
-  const dueDate = new Date(reviewed)
+  const base = new Date(props.resource.last_reviewed_at ?? props.resource.created_at)
+  const dueDate = new Date(base)
   dueDate.setMonth(dueDate.getMonth() + props.reviewCadenceMonths)
   return dueDate <= new Date()
 }

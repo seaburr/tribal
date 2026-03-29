@@ -96,9 +96,8 @@ const paginated = computed(() => {
 
 function isReviewDue(resource: Resource): boolean {
   if (!props.reviewCadenceMonths) return false
-  if (!resource.last_reviewed_at) return true
-  const reviewed = new Date(resource.last_reviewed_at)
-  const dueDate = new Date(reviewed)
+  const base = new Date(resource.last_reviewed_at ?? resource.created_at)
+  const dueDate = new Date(base)
   dueDate.setMonth(dueDate.getMonth() + props.reviewCadenceMonths)
   return dueDate <= new Date()
 }

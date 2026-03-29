@@ -194,7 +194,9 @@ const yearMonths = computed(() =>
                   ? 'bg-red-400'
                   : urgency(r.expiration_date, r.does_not_expire) === 'warning'
                     ? 'bg-amber-400'
-                    : 'bg-yellow-400',
+                    : urgency(r.expiration_date, r.does_not_expire) === 'upcoming'
+                      ? 'bg-yellow-400'
+                      : 'bg-emerald-400',
               ]"
             />
             <span

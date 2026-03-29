@@ -8,13 +8,21 @@ import type { Resource } from '../../types'
 const resourcesStore = useResourcesStore()
 const openResourceDetail = inject<(resource: Resource) => void>('openResourceDetail')!
 
+function isReviewDue(r: Resource): boolean {
+  const cadence = resourcesStore.reviewCadenceMonths
+  if (!cadence) return false
+  const base = new Date(r.last_reviewed_at ?? r.created_at)
+  const dueDate = new Date(base)
+  dueDate.setMonth(dueDate.getMonth() + cadence)
+  return dueDate <= new Date()
+}
+
 const upcoming = computed(() => {
   return resourcesStore.resources
     .filter((r) => {
-      if (r.does_not_expire) return false
-      const days = daysUntil(r.expiration_date)
-      if (days === null) return false
-      return days <= 90
+      const days = r.does_not_expire ? null : daysUntil(r.expiration_date)
+      const expiryDue = days !== null && days <= 30
+      return expiryDue || isReviewDue(r)
     })
     .sort((a, b) => {
       const da = daysUntil(a.expiration_date) ?? 9999
@@ -27,7 +35,7 @@ const upcoming = computed(() => {
 <template>
   <div class="bg-tribal-panel rounded-xl border border-tribal-border p-4 h-full">
     <h3 class="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">
-      Upcoming Expirations
+      Upcoming Events
     </h3>
 
     <div v-if="upcoming.length === 0" class="text-zinc-500 text-sm text-center py-8">
@@ -48,8 +56,12 @@ const upcoming = computed(() => {
           </div>
           <span class="shrink-0 text-xs text-zinc-500 bg-tribal-muted/30 px-2 py-0.5 rounded">{{ resource.type }}</span>
         </div>
-        <div class="mt-2">
+        <div class="mt-2 flex items-center gap-1.5 flex-wrap">
           <StatusBadge :resource="resource" />
+          <span
+            v-if="isReviewDue(resource)"
+            class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-500/20 text-purple-400"
+          >Review Due</span>
         </div>
       </li>
     </ul>
