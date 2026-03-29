@@ -136,7 +136,8 @@ async function handleDetect() {
       if (result.expires_at) {
         form.value.expiration_date = result.expires_at.slice(0, 10)
       }
-      show(`Detected: ${result.provider ?? 'unknown provider'}`, 'success')
+      const expiryNote = result.expires_at ? 'expiry auto-filled.' : 'expiry unavailable — enter manually.'
+      show(`Detected: ${result.provider ?? 'unknown provider'} — ${expiryNote}`, 'success')
     } else {
       show('Provider not recognized', 'error')
     }
