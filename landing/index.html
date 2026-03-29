@@ -44,25 +44,21 @@
   <section class="flex flex-col items-center text-center pt-32 pb-16 px-4">
     <img src="tribal_logo.png" alt="Tribal" class="w-24 h-24 object-contain mb-6" />
     <h1 class="text-4xl sm:text-5xl font-bold tracking-tight mb-4">
-      Credential Lifecycle<br class="hidden sm:block" /> Management
+      Stop finding out credentials<br class="hidden sm:block" /> expired in production.
     </h1>
-    <p class="text-zinc-400 text-lg max-w-xl mb-3 leading-relaxed">
-      Track your team's certificates, API keys, and secrets. Ensure documentation exists and is regularly reviewed. Get notified before they expire — and know exactly how to rotate them when they do.
+    <p class="text-zinc-400 text-lg max-w-xl mb-8 leading-relaxed">
+      Tribal keeps track of your team's certificates, API keys, and secrets — who owns them, when they expire, and how to rotate them. It notifies you before things break, not after.
     </p>
-    <br>
-    <br>
 
     <!-- Feature pills -->
-    <div class="flex flex-wrap justify-center gap-2 mb-4">
-      <span v-for="pill in pills" class="text-xs font-medium px-3 py-1 rounded-full border border-tribal-border text-zinc-400">TLS Certificates</span>
+    <div class="flex flex-wrap justify-center gap-2">
+      <span class="text-xs font-medium px-3 py-1 rounded-full border border-tribal-border text-zinc-400">TLS Certificates</span>
       <span class="text-xs font-medium px-3 py-1 rounded-full border border-tribal-border text-zinc-400">API Keys</span>
       <span class="text-xs font-medium px-3 py-1 rounded-full border border-tribal-border text-zinc-400">SSH Keys</span>
-      <span class="text-xs font-medium px-3 py-1 rounded-full border border-tribal-border text-zinc-400">Auto-Detection</span>
-      <span class="text-xs font-medium px-3 py-1 rounded-full border border-tribal-border text-zinc-400">Audit Trail</span>
       <span class="text-xs font-medium px-3 py-1 rounded-full border border-tribal-border text-zinc-400">Slack Alerts</span>
+      <span class="text-xs font-medium px-3 py-1 rounded-full border border-tribal-border text-zinc-400">Audit Trail</span>
       <span class="text-xs font-medium px-3 py-1 rounded-full border border-tribal-border text-zinc-400">Terraform Provider</span>
-      <span class="text-xs font-medium px-3 py-1 rounded-full border border-tribal-border text-zinc-400">RBAC</span>
-      <span class="text-xs font-medium px-3 py-1 rounded-full border border-tribal-border text-zinc-400">PDF Reports</span>
+      <span class="text-xs font-medium px-3 py-1 rounded-full border border-tribal-border text-zinc-400">Open Source</span>
     </div>
   </section>
 
@@ -71,69 +67,57 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
 
       <div class="bg-tribal-panel border border-tribal-border rounded-xl p-6 hover:border-blue-500/50 transition-colors">
-        <div class="text-2xl mb-3">🔐</div>
-        <h3 class="text-white font-semibold mb-2">Certificate Intelligence</h3>
-        <p class="text-zinc-400 text-sm leading-relaxed">Upload PEM files or enter a TLS endpoint URL. Tribal fetches the live certificate and automatically extracts the expiration date, keeping your records accurate without manual updates.</p>
+        <div class="text-2xl mb-3">🔔</div>
+        <h3 class="text-white font-semibold mb-2">Know before it breaks</h3>
+        <p class="text-zinc-400 text-sm leading-relaxed">Tribal sends Slack reminders on a schedule you control — days or weeks before a credential expires. The right team gets notified in the right channel, not just the person who set it up.</p>
       </div>
 
       <div class="bg-tribal-panel border border-tribal-border rounded-xl p-6 hover:border-blue-500/50 transition-colors">
         <div class="text-2xl mb-3">🔑</div>
-        <h3 class="text-white font-semibold mb-2">API Key Auto-Detection</h3>
-        <p class="text-zinc-400 text-sm leading-relaxed">Paste any API key and Tribal identifies the provider (GitHub, Stripe, AWS, Azure, and more), looks up the expiry if available, and pre-fills rotation instructions automatically.</p>
+        <h3 class="text-white font-semibold mb-2">Stop starting from scratch</h3>
+        <p class="text-zinc-400 text-sm leading-relaxed">Paste an API key and Tribal identifies the provider, looks up the expiry where possible, and pre-fills rotation steps. Works with GitHub, Stripe, AWS, Azure, OpenAI, Slack, and more.</p>
       </div>
 
       <div class="bg-tribal-panel border border-tribal-border rounded-xl p-6 hover:border-blue-500/50 transition-colors">
         <div class="text-2xl mb-3">📋</div>
-        <h3 class="text-white font-semibold mb-2">Full Audit Trail</h3>
-        <p class="text-zinc-400 text-sm leading-relaxed">Every action is logged — creations, updates, deletions, logins, and role changes. Admins can review the complete history with filtering and pagination.</p>
-      </div>
-
-      <div class="bg-tribal-panel border border-tribal-border rounded-xl p-6 hover:border-blue-500/50 transition-colors">
-        <div class="text-2xl mb-3">🔔</div>
-        <h3 class="text-white font-semibold mb-2">Proactive Reminders</h3>
-        <p class="text-zinc-400 text-sm leading-relaxed">Configure Slack notifications at 1, 3, 7, 14, 30, 45, or 60 days before expiry. Per-resource webhooks let different teams get notified in the right channels.</p>
-      </div>
-
-      <div class="bg-tribal-panel border border-tribal-border rounded-xl p-6 hover:border-blue-500/50 transition-colors">
-        <div class="text-2xl mb-3">🗑️</div>
-        <h3 class="text-white font-semibold mb-2">Safe Deletion</h3>
-        <p class="text-zinc-400 text-sm leading-relaxed">Deleted resources are soft-deleted and recoverable. Admins can restore or permanently purge them from the deleted resources panel.</p>
-      </div>
-
-      <div class="bg-tribal-panel border border-tribal-border rounded-xl p-6 hover:border-blue-500/50 transition-colors">
-        <div class="text-2xl mb-3">👥</div>
-        <h3 class="text-white font-semibold mb-2">Role-Based Access</h3>
-        <p class="text-zinc-400 text-sm leading-relaxed">Three roles: Admin (full control), Member (create and manage resources), and Read-only (view only). The account creator cannot be demoted.</p>
-      </div>
-
-      <div class="bg-tribal-panel border border-tribal-border rounded-xl p-6 hover:border-blue-500/50 transition-colors">
-        <div class="text-2xl mb-3">🤖</div>
-        <h3 class="text-white font-semibold mb-2">API &amp; Automation</h3>
-        <p class="text-zinc-400 text-sm leading-relaxed">Full REST API with Bearer token authentication. Create and manage resources programmatically with the same capabilities as the UI.</p>
-      </div>
-
-      <div class="bg-tribal-panel border border-tribal-border rounded-xl p-6 hover:border-blue-500/50 transition-colors">
-        <div class="text-2xl mb-3">🏗️</div>
-        <h3 class="text-white font-semibold mb-2">Terraform Provider</h3>
-        <p class="text-zinc-400 text-sm leading-relaxed">Manage credentials as infrastructure-as-code using the seaburr/tribal Terraform provider. Track resources alongside the infrastructure that uses them.</p>
+        <h3 class="text-white font-semibold mb-2">Always know who's responsible</h3>
+        <p class="text-zinc-400 text-sm leading-relaxed">Every resource has a designated owner, a purpose, and rotation instructions. No more hunting through Slack history or hoping the person who set it up still works there.</p>
       </div>
 
       <div class="bg-tribal-panel border border-tribal-border rounded-xl p-6 hover:border-blue-500/50 transition-colors">
         <div class="text-2xl mb-3">📅</div>
-        <h3 class="text-white font-semibold mb-2">Visual Calendar</h3>
-        <p class="text-zinc-400 text-sm leading-relaxed">See all upcoming expirations on a monthly calendar view. Click any date to see what expires that day. Toggle to a year-at-a-glance view.</p>
+        <h3 class="text-white font-semibold mb-2">See what's coming</h3>
+        <p class="text-zinc-400 text-sm leading-relaxed">A visual calendar shows every upcoming expiry at a glance — monthly or year-at-a-glance. Color-coded by urgency so you can see trouble at a distance.</p>
+      </div>
+
+      <div class="bg-tribal-panel border border-tribal-border rounded-xl p-6 hover:border-blue-500/50 transition-colors">
+        <div class="text-2xl mb-3">🔍</div>
+        <h3 class="text-white font-semibold mb-2">Full audit trail</h3>
+        <p class="text-zinc-400 text-sm leading-relaxed">Every change is logged — who created it, who updated it, who deleted it, and when. Useful for compliance, handoffs, and post-mortems.</p>
+      </div>
+
+      <div class="bg-tribal-panel border border-tribal-border rounded-xl p-6 hover:border-blue-500/50 transition-colors">
+        <div class="text-2xl mb-3">🔄</div>
+        <h3 class="text-white font-semibold mb-2">Keep credentials reviewed</h3>
+        <p class="text-zinc-400 text-sm leading-relaxed">Configure a review cadence and Tribal flags anything that hasn't been looked at recently — even credentials that don't technically expire but still need attention.</p>
+      </div>
+
+      <div class="bg-tribal-panel border border-tribal-border rounded-xl p-6 hover:border-blue-500/50 transition-colors">
+        <div class="text-2xl mb-3">🤖</div>
+        <h3 class="text-white font-semibold mb-2">Fits into your existing workflow</h3>
+        <p class="text-zinc-400 text-sm leading-relaxed">Full REST API so you can integrate Tribal into CI pipelines, internal tooling, or scripts. A Terraform provider lets you manage credentials alongside the infrastructure that uses them.</p>
       </div>
 
       <div class="bg-tribal-panel border border-tribal-border rounded-xl p-6 hover:border-blue-500/50 transition-colors">
         <div class="text-2xl mb-3">📄</div>
-        <h3 class="text-white font-semibold mb-2">Resource Reports</h3>
-        <p class="text-zinc-400 text-sm leading-relaxed">Generate PDF snapshots of any resource including full details and filtered audit history. Useful for compliance reviews and handoffs.</p>
+        <h3 class="text-white font-semibold mb-2">Shareable reports</h3>
+        <p class="text-zinc-400 text-sm leading-relaxed">Generate PDF snapshots of any resource with full details and audit history. Export CSV reports of upcoming expiries and recent changes for compliance reviews or team handoffs.</p>
       </div>
 
       <div class="bg-tribal-panel border border-tribal-border rounded-xl p-6 hover:border-blue-500/50 transition-colors">
-        <div class="text-2xl mb-3">🔌</div>
-        <h3 class="text-white font-semibold mb-2">Extensible Providers</h3>
-        <p class="text-zinc-400 text-sm leading-relaxed">Built-in detection for GitHub, Stripe, AWS, Azure, OpenAI, Anthropic, Slack, and SendGrid. More providers added regularly.</p>
+        <div class="text-2xl mb-3">🌱</div>
+        <h3 class="text-white font-semibold mb-2">Open source</h3>
+        <p class="text-zinc-400 text-sm leading-relaxed">Tribal is open source and self-hostable. Run it on your own infrastructure, keep your data where it belongs, and contribute providers for the tools your team uses.</p>
       </div>
 
     </div>

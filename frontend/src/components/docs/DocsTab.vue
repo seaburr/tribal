@@ -1,27 +1,4 @@
 <script setup lang="ts">
-const trackItems = [
-  {
-    icon: '🔐',
-    title: 'TLS Certificates',
-    desc: 'Enter a domain or TLS endpoint URL. Tribal fetches the live certificate and automatically extracts the expiration date.',
-  },
-  {
-    icon: '🔑',
-    title: 'API Keys',
-    desc: 'Paste any API key and Tribal identifies the provider, looks up the expiry if available, and pre-fills rotation instructions.',
-  },
-  {
-    icon: '🗝️',
-    title: 'SSH Keys',
-    desc: 'Track SSH key pairs with expiration dates, owners, and rotation instructions.',
-  },
-  {
-    icon: '📦',
-    title: 'Custom Credentials',
-    desc: 'Track any other secret or credential your team manages — database passwords, webhook secrets, signing keys.',
-  },
-]
-
 const roles = [
   {
     name: 'Admin',
@@ -96,26 +73,10 @@ class MyServiceProvider(Provider):
     <section class="bg-tribal-panel rounded-xl border border-tribal-border p-6">
       <h2 class="text-lg font-semibold text-white mb-3">What is Tribal?</h2>
       <p class="text-zinc-400 leading-relaxed">
-        Tribal is a credential lifecycle manager that tracks certificates, API keys, SSH keys, and
-        other secrets your organization depends on. It sends automated Slack reminders before
-        credentials expire and provides a full audit trail of every change.
+        Tribal is a credential lifecycle manager for teams who are tired of finding out a certificate
+        or API key expired in production. It keeps all your secrets in one place, tells you what's
+        expiring and when, and makes sure the right people know before it becomes an incident.
       </p>
-    </section>
-
-    <!-- What Tribal tracks -->
-    <section class="bg-tribal-panel rounded-xl border border-tribal-border p-6">
-      <h2 class="text-lg font-semibold text-white mb-4">What Tribal Tracks</h2>
-      <div class="grid grid-cols-2 gap-3">
-        <div
-          v-for="item in trackItems"
-          :key="item.title"
-          class="bg-tribal-card rounded-lg border border-tribal-border p-4"
-        >
-          <span class="text-xl mb-2 block">{{ item.icon }}</span>
-          <h3 class="text-white font-medium text-sm mb-1">{{ item.title }}</h3>
-          <p class="text-zinc-400 text-xs leading-relaxed">{{ item.desc }}</p>
-        </div>
-      </div>
     </section>
 
     <!-- Roles -->
@@ -142,41 +103,27 @@ class MyServiceProvider(Provider):
 
     <!-- Admin features -->
     <section class="bg-tribal-panel rounded-xl border border-tribal-border p-6">
-      <h2 class="text-lg font-semibold text-white mb-4">Admin Features</h2>
+      <h2 class="text-lg font-semibold text-white mb-3">Admin Features</h2>
+      <p class="text-zinc-400 text-sm leading-relaxed mb-4">
+        Admins have visibility and control over the full system — not just their own resources.
+      </p>
       <ul class="space-y-2 text-zinc-400 text-sm">
-        <li class="flex gap-2"><span class="text-blue-400">•</span> Configure Slack notification schedules and reminder intervals</li>
-        <li class="flex gap-2"><span class="text-blue-400">•</span> View the full audit log — every create, update, delete, and login event</li>
-        <li class="flex gap-2"><span class="text-blue-400">•</span> Manage users and assign roles (Admin, Member, Read-only)</li>
-        <li class="flex gap-2"><span class="text-blue-400">•</span> Soft-delete recovery — restore or permanently purge deleted resources</li>
-        <li class="flex gap-2"><span class="text-blue-400">•</span> Download CSV reports: upcoming expiries, recent changes, and reviews due</li>
-        <li class="flex gap-2"><span class="text-blue-400">•</span> Revoke API keys from any user in the system</li>
-        <li class="flex gap-2"><span class="text-blue-400">•</span> Configure periodic review cadence for resources</li>
+        <li class="flex gap-2"><span class="text-blue-400">•</span> Full audit log of every create, update, delete, and login event</li>
+        <li class="flex gap-2"><span class="text-blue-400">•</span> User management with role assignment</li>
+        <li class="flex gap-2"><span class="text-blue-400">•</span> Slack notification scheduling and reminder intervals</li>
+        <li class="flex gap-2"><span class="text-blue-400">•</span> Periodic review cadence enforcement — flag resources that haven't been reviewed recently</li>
+        <li class="flex gap-2"><span class="text-blue-400">•</span> Soft-delete with recovery — restore accidentally deleted resources or purge them permanently</li>
+        <li class="flex gap-2"><span class="text-blue-400">•</span> CSV reports for upcoming expiries, recent changes, and reviews due</li>
       </ul>
     </section>
 
-    <!-- Timezone -->
+    <!-- Smart key detection -->
     <section class="bg-tribal-panel rounded-xl border border-tribal-border p-6">
-      <h2 class="text-lg font-semibold text-white mb-3">Timezone Support</h2>
-      <p class="text-zinc-400 text-sm leading-relaxed">
-        Tribal automatically detects your browser's timezone on first login and stores it with your
-        account. All timestamps in the UI — audit logs, resource activity, API key usage — are
-        displayed in your local timezone. You can change your timezone at any time from the user
-        menu in the top-right corner.
-      </p>
-      <p class="text-zinc-400 text-sm leading-relaxed mt-3">
-        CSV and PDF reports always use UTC and label timestamps accordingly, so they remain
-        consistent regardless of who downloads them.
-      </p>
-    </section>
-
-    <!-- Provider detection -->
-    <section class="bg-tribal-panel rounded-xl border border-tribal-border p-6">
-      <h2 class="text-lg font-semibold text-white mb-3">Automatic Key Detection</h2>
+      <h2 class="text-lg font-semibold text-white mb-3">Smart Key Detection</h2>
       <p class="text-zinc-400 text-sm leading-relaxed mb-4">
-        When adding an API key resource, Tribal can identify the provider from the key's format and
-        — where the provider's API supports it — automatically retrieve the expiration date and
-        pre-fill rotation instructions. The key is never stored during identification; it exists
-        only in memory for the duration of the request.
+        Paste an API key when adding a resource and Tribal identifies the provider, pulls the
+        expiration date where available, and pre-fills rotation instructions — so you're not
+        starting from scratch every time. Keys are never stored during this process.
       </p>
       <div class="flex flex-wrap gap-2">
         <span
@@ -190,13 +137,10 @@ class MyServiceProvider(Provider):
     <!-- API Access -->
     <section class="bg-tribal-panel rounded-xl border border-tribal-border p-6">
       <h2 class="text-lg font-semibold text-white mb-3">API Access</h2>
-      <p class="text-zinc-400 text-sm leading-relaxed mb-3">
-        Tribal provides a full REST API with Bearer token authentication. Generate an API key from
-        the user menu (API Keys). All API activity is attributed to your account in the audit log.
-      </p>
-      <p class="text-zinc-400 text-sm">
-        The API supports all operations available in the UI: creating, updating, and deleting
-        resources, as well as reading the audit log and generating reports.
+      <p class="text-zinc-400 text-sm leading-relaxed">
+        Everything you can do in the UI is available via the REST API — useful for integrating
+        Tribal into your existing tooling, CI pipelines, or scripts. Generate an API key from the
+        user menu to get started.
       </p>
     </section>
 
@@ -204,14 +148,15 @@ class MyServiceProvider(Provider):
     <section class="bg-tribal-panel rounded-xl border border-tribal-border p-6">
       <h2 class="text-lg font-semibold text-white mb-3">Terraform Provider</h2>
       <p class="text-zinc-400 text-sm leading-relaxed mb-4">
-        Manage credentials as infrastructure-as-code using the
+        If you're already managing infrastructure as code, you can manage your credentials the same
+        way. The
         <a
           href="https://registry.terraform.io/providers/seaburr/tribal/latest"
           target="_blank"
           rel="noopener noreferrer"
           class="text-blue-400 hover:text-blue-300 underline"
         >seaburr/tribal</a>
-        Terraform provider. Track resources alongside the infrastructure that uses them.
+        Terraform provider lets you track credentials alongside the infrastructure that uses them.
       </p>
 
       <pre class="bg-tribal-bg border border-tribal-border rounded-lg p-4 text-sm text-zinc-300 overflow-x-auto leading-relaxed"><code>terraform {
@@ -245,17 +190,17 @@ resource "tribal_resource" "github_token" {
           rel="noopener noreferrer"
           class="text-blue-400 hover:text-blue-300 underline"
         >github.com/seaburr/Tribal</a>.
-        The provider system is designed to make adding new key detection plugins straightforward —
-        drop a single file in <code class="text-zinc-300 bg-tribal-bg px-1 py-0.5 rounded text-xs">app/providers/</code>
-        and it's automatically discovered at startup with no registration required.
+        Adding support for a new key provider means dropping a single file into
+        <code class="text-zinc-300 bg-tribal-bg px-1 py-0.5 rounded text-xs">app/providers/</code>
+        — no registration or wiring required.
       </p>
 
       <h3 class="text-white font-medium text-sm mb-2">How it works</h3>
       <ul class="space-y-1.5 text-zinc-400 text-sm mb-5">
         <li class="flex gap-2"><span class="text-blue-400">1.</span> Subclass <code class="text-zinc-300 bg-tribal-bg px-1 py-0.5 rounded text-xs">Provider</code> from <code class="text-zinc-300 bg-tribal-bg px-1 py-0.5 rounded text-xs">app/providers/base.py</code></li>
-        <li class="flex gap-2"><span class="text-blue-400">2.</span> Define <code class="text-zinc-300 bg-tribal-bg px-1 py-0.5 rounded text-xs">name</code> (display string) and <code class="text-zinc-300 bg-tribal-bg px-1 py-0.5 rounded text-xs">patterns</code> (list of compiled regexes that match the key format)</li>
+        <li class="flex gap-2"><span class="text-blue-400">2.</span> Define <code class="text-zinc-300 bg-tribal-bg px-1 py-0.5 rounded text-xs">name</code> and <code class="text-zinc-300 bg-tribal-bg px-1 py-0.5 rounded text-xs">patterns</code> — regexes that match the key format</li>
         <li class="flex gap-2"><span class="text-blue-400">3.</span> Implement <code class="text-zinc-300 bg-tribal-bg px-1 py-0.5 rounded text-xs">introspect(key)</code> — call the provider's API and return an <code class="text-zinc-300 bg-tribal-bg px-1 py-0.5 rounded text-xs">IntrospectionResult</code></li>
-        <li class="flex gap-2"><span class="text-blue-400">4.</span> The key is never logged or persisted — treat it as transient and handle errors gracefully</li>
+        <li class="flex gap-2"><span class="text-blue-400">4.</span> Keys are never logged or persisted — handle errors gracefully and always return a result</li>
       </ul>
 
       <h3 class="text-white font-medium text-sm mb-2">IntrospectionResult fields</h3>
