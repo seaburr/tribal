@@ -22,7 +22,7 @@ onClickOutside(menuRef, () => {
     <!-- Left: Logo + Brand -->
     <div class="flex items-center gap-3">
       <img src="/tribal_logo.png" alt="Tribal" class="h-6 w-6 object-contain" />
-      <span class="text-amber-400 font-bold text-lg tracking-tight">Tribal</span>
+      <span class="text-white font-bold text-lg tracking-tight">Tribal</span>
     </div>
 
     <!-- Right: Add Resource + User Menu -->
