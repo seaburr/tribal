@@ -233,7 +233,7 @@ async function handleSave() {
         <label class="block text-sm font-medium text-zinc-300 mb-1">Type</label>
         <select
           v-model="form.type"
-          class="w-full bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500 transition-colors"
+          class="w-full bg-tribal-card border border-tribal-border rounded-lg px-3 pr-8 py-2 text-white focus:outline-none focus:border-blue-500 transition-colors"
         >
           <option value="Certificate">Certificate</option>
           <option value="API Key">API Key</option>
@@ -288,7 +288,7 @@ async function handleSave() {
             {{ detectLoading ? 'Detecting...' : 'Detect' }}
           </button>
         </div>
-        <p class="text-xs text-zinc-500">The key is used only for detection and is never stored.</p>
+        <p class="text-xs text-zinc-500">The key is used only for detection and is <b>never stored within Tribal.</b></p>
       </div>
 
       <!-- Provider -->
@@ -323,7 +323,7 @@ async function handleSave() {
         <label class="block text-sm font-medium text-zinc-300 mb-1">Team</label>
         <select
           v-model="form.team_id"
-          class="w-full bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500 transition-colors"
+          class="w-full bg-tribal-card border border-tribal-border rounded-lg px-3 pr-8 py-2 text-white focus:outline-none focus:border-blue-500 transition-colors"
         >
           <option :value="null">No team</option>
           <option v-for="team in teams" :key="team.id" :value="team.id">{{ team.name }}</option>

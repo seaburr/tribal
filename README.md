@@ -307,3 +307,13 @@ Feedback from the first round of testing that needs to be addressed:
 ## Iteration 22
 * feat: Implement a scheduled review/approval mechanism for resources defined in Tribal. Admins should be able to configure the cadence (for now offer 6 months, 1 year, and 2 years) initially based on the resource creation date. Review consists of a new modal which shows all of the information and an Approval button affirming that this information is still accurate. Alternatively, they can click edit on the item and update whatever fields need to be updated. Upon saving, the "last reviewed" date would update on the item. The driving force behind this is to ensure that resources are peodically reviewed to ensure that has processes change, the data in Tribal is reasonably if not completely up to date. Finally, if the item is reviewed and approved without changes, this event should be logged with a new status in the event log that indicates "reviewed but no changes required." Notifications for these should go to the same Slack channel URL. There needs to be a new report for "nearing/overdue for review" and notifications optionally sent for things overdue for review to admins. This also means the overview page needs to indicate the same thing as things are nearing review as well.
 * feat: Ability to mark something as "does not expire" something things, like API keys, do not expire. In part, the feature requested above helps to ensure that for these items that do not expire still get reviewed occassionally so the information does not become stale.
+
+## Iteration 23
+UI: Actions rollovers should have text explaining what they do.
+UI: On the admin page, button to delete user should be replaced with a trash can like resource delete.
+UI: On admin page, button to revoke an API key should probably be replaced with a "no symbol".
+UI: On admin page, clicking Global Slack Webhook URL test button results in UI error: "[{"type":"missing","loc":["body"],"msg":"Field required","input":null}]"
+UI: On admin change, changing a users Role results in an error: [{"type":"missing","loc":["query","is_readonly"],"msg":"Field required","input":null}]
+UI: h1 "Tribal" text on login page is blue but should be white.
+UI: Carrot/arrow on dropdowns is really close to the edge of the field. Can it be moved closer inward or the dropdown made slightly wider so it's not close close to the edge? 
+UI: Make sure "Reviews due" report shows things nearing review (within 30) days and past due.

@@ -95,7 +95,7 @@ async function saveSettings() {
 
 async function testAdminWebhook() {
   try {
-    await adminApi.testAdminWebhook()
+    await adminApi.testAdminWebhook(settingsForm.slack_webhook)
     show('Test webhook sent', 'success')
   } catch (e: unknown) {
     show(e instanceof Error ? e.message : 'Webhook test failed', 'error')
@@ -310,7 +310,7 @@ async function handlePurge(id: number, name: string) {
           <p class="text-zinc-500 text-xs mb-1">Notifications are dispatched once daily at this hour.</p>
           <select
             v-model.number="settingsForm.notify_hour"
-            class="bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500 transition-colors"
+            class="bg-tribal-card border border-tribal-border rounded-lg px-3 pr-8 py-2 text-white focus:outline-none focus:border-blue-500 transition-colors"
           >
             <option v-for="h in 24" :key="h - 1" :value="h - 1">{{ String(h - 1).padStart(2, '0') }}:00 UTC</option>
           </select>
@@ -322,7 +322,7 @@ async function handlePurge(id: number, name: string) {
           <p class="text-zinc-500 text-xs mb-1">When enabled, resources not reviewed within this window will be flagged as overdue for review. Members can mark a resource reviewed from its detail view.</p>
           <select
             v-model="settingsForm.review_cadence_months"
-            class="bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500 transition-colors"
+            class="bg-tribal-card border border-tribal-border rounded-lg px-3 pr-8 py-2 text-white focus:outline-none focus:border-blue-500 transition-colors"
           >
             <option :value="null">Disabled</option>
             <option :value="6">Every 6 months</option>
@@ -403,7 +403,7 @@ async function handlePurge(id: number, name: string) {
           @click="openReport('/admin/reports/reviews-due')"
         >
           <span class="text-zinc-300 group-hover:text-blue-400 text-sm font-medium transition-colors">📅 Reviews Due</span>
-          <span class="text-zinc-500 text-xs">Resources overdue for their periodic review.</span>
+          <span class="text-zinc-500 text-xs">Resources nearing (within 30 days) or overdue for review.</span>
         </button>
       </div>
     </section>
@@ -437,7 +437,7 @@ async function handlePurge(id: number, name: string) {
                 <select
                   :value="getUserRole(user)"
                   :disabled="user.id === authStore.user?.id || user.is_account_creator"
-                  class="bg-tribal-card border border-tribal-border rounded px-2 py-1 text-white text-sm focus:outline-none focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  class="bg-tribal-card border border-tribal-border rounded px-2 pr-7 py-1 text-white text-sm focus:outline-none focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                   @change="handleRoleChange(user.id, ($event.target as HTMLSelectElement).value)"
                 >
                   <option value="admin">Admin</option>
@@ -448,10 +448,13 @@ async function handlePurge(id: number, name: string) {
               <td class="px-4 py-3 text-right">
                 <button
                   :disabled="user.id === authStore.user?.id || user.is_account_creator"
-                  class="text-red-400 hover:text-red-300 text-sm transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  class="text-red-400 hover:text-red-300 transition-colors p-1 disabled:opacity-30 disabled:cursor-not-allowed"
+                  title="Delete user"
                   @click="handleDeleteUser(user.id)"
                 >
-                  Delete
+                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
                 </button>
               </td>
             </tr>
@@ -500,10 +503,14 @@ async function handlePurge(id: number, name: string) {
               <td class="px-4 py-3 text-right">
                 <button
                   v-if="!key.revoked_at"
-                  class="text-red-400 hover:text-red-300 text-sm transition-colors"
+                  class="text-red-400 hover:text-red-300 transition-colors p-1"
+                  title="Revoke API key"
                   @click="handleRevokeAdminKey(key.id)"
                 >
-                  Revoke
+                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <circle cx="12" cy="12" r="9" stroke-width="2" />
+                    <path stroke-linecap="round" stroke-width="2" d="M4.929 4.929l14.142 14.142" />
+                  </svg>
                 </button>
                 <span v-else class="text-zinc-600 text-xs">Revoked</span>
               </td>

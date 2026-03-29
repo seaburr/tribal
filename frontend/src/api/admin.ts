@@ -9,8 +9,11 @@ export const updateAdminSettings = (data: AdminSettings) =>
     body: JSON.stringify(data),
   })
 
-export const testAdminWebhook = () =>
-  apiFetch<void>('/admin/webhook-test', { method: 'POST' })
+export const testAdminWebhook = (webhook_url: string) =>
+  apiFetch<void>('/admin/webhook-test', {
+    method: 'POST',
+    body: JSON.stringify({ webhook_url }),
+  })
 
 export const listAdminTeams = () => apiFetch<Team[]>('/admin/teams')
 
@@ -29,16 +32,10 @@ export const updateTeam = (id: number, name: string) =>
 export const listUsers = () => apiFetch<User[]>('/admin/users')
 
 export const setUserRole = (id: number, is_admin: boolean) =>
-  apiFetch<User>(`/admin/users/${id}/role`, {
-    method: 'PUT',
-    body: JSON.stringify({ is_admin }),
-  })
+  apiFetch<User>(`/admin/users/${id}/role?is_admin=${is_admin}`, { method: 'PUT' })
 
 export const setUserReadonly = (id: number, is_readonly: boolean) =>
-  apiFetch<User>(`/admin/users/${id}/readonly`, {
-    method: 'PUT',
-    body: JSON.stringify({ is_readonly }),
-  })
+  apiFetch<User>(`/admin/users/${id}/readonly?is_readonly=${is_readonly}`, { method: 'PUT' })
 
 export const deleteUser = (id: number) =>
   apiFetch<void>(`/admin/users/${id}`, { method: 'DELETE' })

@@ -73,7 +73,7 @@ async function handleRegister() {
           alt="Tribal"
           class="w-16 h-16 object-contain mx-auto mb-3"
         />
-        <h1 class="text-2xl font-bold text-blue-400">Tribal</h1>
+        <h1 class="text-2xl font-bold text-white">Tribal</h1>
         <p class="text-zinc-500 text-sm mt-1">Credential Lifecycle Management</p>
       </div>
 

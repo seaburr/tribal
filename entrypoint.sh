@@ -15,7 +15,9 @@ echo "  _____    _ _          _ ";
 echo " |_   _| _(_) |__  __ _| |";
 echo "   | || '_| | '_ \\/ _\` | |";
 echo "   |_||_| |_|_.__/\\__,_|_|";
-echo "                          ";                       
+echo "                          ";
+echo "Live in stere-ereo.";
+echo ""
 exec uvicorn app.main:app \
   --host 0.0.0.0 \
   --port 8000 \
