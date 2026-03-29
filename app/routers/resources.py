@@ -136,10 +136,18 @@ async def identify_key(
 
     The key is held only in memory for the duration of this request and
     is never persisted, logged, or stored.
+
+    Pass ``provider`` to skip pattern matching and target a specific provider
+    directly — necessary for providers that have no distinctive key prefix.
     """
-    provider = providers.identify(req.key)
-    if not provider:
-        return schemas.KeyIdentifyResponse(matched=False)
+    if req.provider:
+        provider = providers.find_by_name(req.provider)
+        if not provider:
+            return schemas.KeyIdentifyResponse(matched=False)
+    else:
+        provider = providers.identify(req.key)
+        if not provider:
+            return schemas.KeyIdentifyResponse(matched=False)
 
     if req.introspect:
         result = await provider.introspect(req.key)

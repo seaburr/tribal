@@ -45,6 +45,20 @@ def identify(key: str) -> Provider | None:
     return None
 
 
+def find_by_name(name: str) -> Provider | None:
+    """Return the provider with the given name, or None.
+
+    Case-insensitive to be forgiving of UI inconsistencies.
+    Used when the caller knows which provider to use and wants to skip
+    pattern matching (e.g. for providers with no distinctive key prefix).
+    """
+    name_lower = name.lower()
+    for provider in _registry:
+        if provider.name.lower() == name_lower:
+            return provider
+    return None
+
+
 async def introspect(key: str) -> IntrospectionResult | None:
     """Identify a key and fetch its metadata in one call.
 
@@ -61,5 +75,6 @@ __all__ = [
     "IntrospectionResult",
     "list_providers",
     "identify",
+    "find_by_name",
     "introspect",
 ]

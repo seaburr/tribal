@@ -243,9 +243,14 @@ class KeyIdentifyRequest(BaseModel):
 
     The key is used only for pattern matching and optional API
     introspection, then discarded.  It is never persisted or logged.
+
+    If ``provider`` is supplied, pattern matching is skipped and the named
+    provider is used directly — required for providers that have no
+    distinctive key prefix (Cloudflare, Fastly, PagerDuty, Vercel, etc.).
     """
     key: str
     introspect: bool = False  # If True, call the provider's API
+    provider: Optional[str] = None  # Force a specific provider by name
 
 
 class KeyIdentifyResponse(BaseModel):

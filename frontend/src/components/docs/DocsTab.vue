@@ -19,7 +19,8 @@ const roles = [
 
 const detectionProviders = [
   'GitHub', 'GitLab', 'Stripe', 'OpenAI', 'Anthropic', 'AWS', 'Azure',
-  'Slack', 'SendGrid', 'Terraform Cloud', 'DigitalOcean',
+  'GCP', 'Cloudflare', 'Fastly', 'Slack', 'SendGrid', 'PagerDuty',
+  'Vercel', 'Terraform Cloud', 'DigitalOcean',
 ]
 
 const providerExample = `import re
@@ -157,6 +158,13 @@ class MyServiceProvider(Provider):
           class="text-blue-400 hover:text-blue-300 underline"
         >seaburr/tribal</a>
         Terraform provider lets you track credentials alongside the infrastructure that uses them.
+        Source on
+        <a
+          href="https://github.com/seaburr/terraform-provider-tribal"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="text-blue-400 hover:text-blue-300 underline"
+        >GitHub</a>.
       </p>
 
       <pre class="bg-tribal-bg border border-tribal-border rounded-lg p-4 text-sm text-zinc-300 overflow-x-auto leading-relaxed"><code>terraform {
@@ -198,7 +206,7 @@ resource "tribal_resource" "github_token" {
       <h3 class="text-white font-medium text-sm mb-2">How it works</h3>
       <ul class="space-y-1.5 text-zinc-400 text-sm mb-5">
         <li class="flex gap-2"><span class="text-blue-400">1.</span> Subclass <code class="text-zinc-300 bg-tribal-bg px-1 py-0.5 rounded text-xs">Provider</code> from <code class="text-zinc-300 bg-tribal-bg px-1 py-0.5 rounded text-xs">app/providers/base.py</code></li>
-        <li class="flex gap-2"><span class="text-blue-400">2.</span> Define <code class="text-zinc-300 bg-tribal-bg px-1 py-0.5 rounded text-xs">name</code> and <code class="text-zinc-300 bg-tribal-bg px-1 py-0.5 rounded text-xs">patterns</code> — regexes that match the key format</li>
+        <li class="flex gap-2"><span class="text-blue-400">2.</span> Define <code class="text-zinc-300 bg-tribal-bg px-1 py-0.5 rounded text-xs">name</code> and <code class="text-zinc-300 bg-tribal-bg px-1 py-0.5 rounded text-xs">patterns</code> — regexes that match the key format. If the key has no distinctive prefix, set <code class="text-zinc-300 bg-tribal-bg px-1 py-0.5 rounded text-xs">patterns = []</code> and users will select the provider manually from the dropdown.</li>
         <li class="flex gap-2"><span class="text-blue-400">3.</span> Implement <code class="text-zinc-300 bg-tribal-bg px-1 py-0.5 rounded text-xs">introspect(key)</code> — call the provider's API and return an <code class="text-zinc-300 bg-tribal-bg px-1 py-0.5 rounded text-xs">IntrospectionResult</code></li>
         <li class="flex gap-2"><span class="text-blue-400">4.</span> Keys are never logged or persisted — handle errors gracefully and always return a result</li>
       </ul>
