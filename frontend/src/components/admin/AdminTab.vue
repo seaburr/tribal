@@ -239,17 +239,17 @@ async function handlePurge(id: number, name: string) {
               v-if="editingTeam?.id === team.id"
               v-model="teamName"
               type="text"
-              class="flex-1 bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white focus:outline-none focus:border-amber-500 transition-colors"
+              class="flex-1 bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500 transition-colors"
             />
             <span v-else class="flex-1 text-white text-sm">{{ team.name }}</span>
             <button
               v-if="editingTeam?.id !== team.id"
-              class="text-xs px-3 py-1.5 border border-tribal-border text-zinc-400 hover:border-amber-500/50 hover:text-amber-400 rounded-lg transition-colors"
+              class="text-xs px-3 py-1.5 border border-tribal-border text-zinc-400 hover:border-blue-500/50 hover:text-blue-400 rounded-lg transition-colors"
               @click="editingTeam = { id: team.id, name: team.name }; teamName = team.name"
             >Edit</button>
             <button
               v-else
-              class="text-xs px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-black font-medium rounded-lg transition-colors"
+              class="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-lg transition-colors"
               @click="saveTeam"
             >Save</button>
           </div>
@@ -259,10 +259,10 @@ async function handlePurge(id: number, name: string) {
             v-model="teamName"
             type="text"
             placeholder="Team name"
-            class="flex-1 bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500 transition-colors"
+            class="flex-1 bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 transition-colors"
           />
           <button
-            class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-black font-semibold rounded-lg text-sm transition-colors"
+            class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg text-sm transition-colors"
             @click="saveTeam"
           >
             Create Team
@@ -286,8 +286,8 @@ async function handlePurge(id: number, name: string) {
               :class="[
                 'flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm cursor-pointer transition-colors',
                 settingsForm.reminder_days.includes(day)
-                  ? 'bg-amber-500/20 border-amber-500/50 text-amber-400'
-                  : 'bg-tribal-card border-tribal-border text-zinc-400 hover:border-amber-500/30',
+                  ? 'bg-blue-500/20 border-blue-500/50 text-blue-400'
+                  : 'bg-tribal-card border-tribal-border text-zinc-400 hover:border-blue-500/30',
               ]"
             >
               <input
@@ -306,7 +306,7 @@ async function handlePurge(id: number, name: string) {
           <label class="block text-sm font-medium text-zinc-300 mb-1">Notify hour (UTC)</label>
           <select
             v-model.number="settingsForm.notify_hour"
-            class="bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white focus:outline-none focus:border-amber-500 transition-colors"
+            class="bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500 transition-colors"
           >
             <option v-for="h in 24" :key="h - 1" :value="h - 1">{{ String(h - 1).padStart(2, '0') }}:00 UTC</option>
           </select>
@@ -317,7 +317,7 @@ async function handlePurge(id: number, name: string) {
           <label class="block text-sm font-medium text-zinc-300 mb-1">Periodic review cadence</label>
           <select
             v-model="settingsForm.review_cadence_months"
-            class="bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white focus:outline-none focus:border-amber-500 transition-colors"
+            class="bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500 transition-colors"
           >
             <option :value="null">Disabled</option>
             <option :value="6">Every 6 months</option>
@@ -334,11 +334,11 @@ async function handlePurge(id: number, name: string) {
               v-model="settingsForm.slack_webhook"
               type="url"
               placeholder="https://hooks.slack.com/..."
-              class="flex-1 bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500 transition-colors"
+              class="flex-1 bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 transition-colors"
             />
             <button
               :disabled="!settingsForm.slack_webhook"
-              class="px-4 py-2 border border-tribal-border text-zinc-400 hover:border-amber-500/50 hover:text-amber-400 rounded-lg text-sm transition-colors disabled:opacity-50"
+              class="px-4 py-2 border border-tribal-border text-zinc-400 hover:border-blue-500/50 hover:text-blue-400 rounded-lg text-sm transition-colors disabled:opacity-50"
               type="button"
               @click="testAdminWebhook"
             >
@@ -365,7 +365,7 @@ async function handlePurge(id: number, name: string) {
 
         <button
           :disabled="savingSettings"
-          class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-black font-semibold rounded-lg text-sm transition-colors disabled:opacity-50"
+          class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg text-sm transition-colors disabled:opacity-50"
           @click="saveSettings"
         >
           {{ savingSettings ? 'Saving...' : 'Save Settings' }}
@@ -378,19 +378,19 @@ async function handlePurge(id: number, name: string) {
       <h2 class="text-base font-semibold text-white mb-4">Reports</h2>
       <div class="flex flex-wrap gap-3">
         <button
-          class="px-4 py-2 border border-tribal-border text-zinc-300 hover:border-amber-500/50 hover:text-amber-400 rounded-lg text-sm transition-colors"
+          class="px-4 py-2 border border-tribal-border text-zinc-300 hover:border-blue-500/50 hover:text-blue-400 rounded-lg text-sm transition-colors"
           @click="openReport('/admin/reports/upcoming')"
         >
           📊 Upcoming Expiry (CSV)
         </button>
         <button
-          class="px-4 py-2 border border-tribal-border text-zinc-300 hover:border-amber-500/50 hover:text-amber-400 rounded-lg text-sm transition-colors"
+          class="px-4 py-2 border border-tribal-border text-zinc-300 hover:border-blue-500/50 hover:text-blue-400 rounded-lg text-sm transition-colors"
           @click="openReport('/admin/reports/recent-changes')"
         >
           📋 Recent Changes (CSV)
         </button>
         <button
-          class="px-4 py-2 border border-tribal-border text-zinc-300 hover:border-amber-500/50 hover:text-amber-400 rounded-lg text-sm transition-colors"
+          class="px-4 py-2 border border-tribal-border text-zinc-300 hover:border-blue-500/50 hover:text-blue-400 rounded-lg text-sm transition-colors"
           @click="openReport('/admin/reports/reviews-due')"
         >
           📅 Reviews Due (CSV)
@@ -421,13 +421,13 @@ async function handlePurge(id: number, name: string) {
               <td class="px-4 py-3">
                 <p class="text-white">{{ user.display_name || user.email }}</p>
                 <p v-if="user.display_name" class="text-zinc-500 text-xs">{{ user.email }}</p>
-                <span v-if="user.is_account_creator" class="text-xs text-amber-500">Account Creator</span>
+                <span v-if="user.is_account_creator" class="text-xs text-blue-400">Account Creator</span>
               </td>
               <td class="px-4 py-3">
                 <select
                   :value="getUserRole(user)"
                   :disabled="user.id === authStore.user?.id || user.is_account_creator"
-                  class="bg-tribal-card border border-tribal-border rounded px-2 py-1 text-white text-sm focus:outline-none focus:border-amber-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  class="bg-tribal-card border border-tribal-border rounded px-2 py-1 text-white text-sm focus:outline-none focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                   @change="handleRoleChange(user.id, ($event.target as HTMLSelectElement).value)"
                 >
                   <option value="admin">Admin</option>

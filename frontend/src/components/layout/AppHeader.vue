@@ -30,7 +30,7 @@ onClickOutside(menuRef, () => {
       <!-- Add Resource button (hidden for readonly users) -->
       <button
         v-if="authStore.user && !authStore.user.is_readonly"
-        class="bg-amber-500 hover:bg-amber-400 text-black font-semibold rounded-lg px-4 py-2 text-sm transition-colors"
+        class="bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg px-4 py-2 text-sm transition-colors"
         @click="$emit('add-resource')"
       >
         + Add Resource

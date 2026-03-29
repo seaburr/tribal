@@ -42,7 +42,7 @@ function linkify(text: string): string {
       if (i % 2 === 1) {
         // URL match
         const escaped = escapeHtml(part)
-        return `<a href="${escaped}" target="_blank" rel="noopener noreferrer" class="text-amber-400 hover:text-amber-300 underline">${escaped}</a>`
+        return `<a href="${escaped}" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-blue-300 underline">${escaped}</a>`
       }
       return escapeHtml(part).replace(/\n/g, '<br>')
     })
@@ -155,7 +155,7 @@ function openReport() {
           :href="resource.secret_manager_link"
           target="_blank"
           rel="noopener noreferrer"
-          class="text-amber-400 hover:text-amber-300 underline text-sm"
+          class="text-blue-400 hover:text-blue-300 underline text-sm"
         >
           {{ resource.secret_manager_link }}
         </a>
@@ -178,7 +178,7 @@ function openReport() {
         </button>
         <button
           v-if="!authStore.user?.is_readonly"
-          class="px-4 py-2 border border-amber-500/50 text-amber-400 hover:border-amber-500 rounded-lg text-sm transition-colors"
+          class="px-4 py-2 border border-blue-500/50 text-blue-400 hover:border-blue-500 rounded-lg text-sm transition-colors"
           @click="emit('edit', resource)"
         >
           ✏️ Edit

@@ -38,7 +38,7 @@ const upcoming = computed(() => {
       <li
         v-for="resource in upcoming"
         :key="resource.id"
-        class="p-3 bg-tribal-card rounded-lg border border-tribal-border hover:border-amber-500/30 cursor-pointer transition-colors"
+        class="p-3 bg-tribal-card rounded-lg border border-tribal-border hover:border-blue-500/30 cursor-pointer transition-colors"
         @click="openResourceDetail(resource)"
       >
         <div class="flex items-start justify-between gap-2">

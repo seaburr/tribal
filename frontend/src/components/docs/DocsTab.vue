@@ -25,7 +25,7 @@ const trackItems = [
 const roles = [
   {
     name: 'Admin',
-    color: 'bg-amber-500/20 text-amber-400',
+    color: 'bg-blue-500/20 text-blue-400',
     desc: 'Full control over all resources, users, and notification settings. The account creator cannot be demoted.',
   },
   {
@@ -95,13 +95,13 @@ const roles = [
     <section class="bg-tribal-panel rounded-xl border border-tribal-border p-6">
       <h2 class="text-lg font-semibold text-white mb-4">Admin Features</h2>
       <ul class="space-y-2 text-zinc-400 text-sm">
-        <li class="flex gap-2"><span class="text-amber-400">•</span> Configure Slack notification schedules and reminder intervals</li>
-        <li class="flex gap-2"><span class="text-amber-400">•</span> View the full audit log — every create, update, delete, and login event</li>
-        <li class="flex gap-2"><span class="text-amber-400">•</span> Manage users and assign roles (Admin, Member, Read-only)</li>
-        <li class="flex gap-2"><span class="text-amber-400">•</span> Soft-delete recovery — restore or permanently purge deleted resources</li>
-        <li class="flex gap-2"><span class="text-amber-400">•</span> Download CSV reports: upcoming expiries, recent changes, and reviews due</li>
-        <li class="flex gap-2"><span class="text-amber-400">•</span> Revoke API keys from any user in the system</li>
-        <li class="flex gap-2"><span class="text-amber-400">•</span> Configure periodic review cadence for resources</li>
+        <li class="flex gap-2"><span class="text-blue-400">•</span> Configure Slack notification schedules and reminder intervals</li>
+        <li class="flex gap-2"><span class="text-blue-400">•</span> View the full audit log — every create, update, delete, and login event</li>
+        <li class="flex gap-2"><span class="text-blue-400">•</span> Manage users and assign roles (Admin, Member, Read-only)</li>
+        <li class="flex gap-2"><span class="text-blue-400">•</span> Soft-delete recovery — restore or permanently purge deleted resources</li>
+        <li class="flex gap-2"><span class="text-blue-400">•</span> Download CSV reports: upcoming expiries, recent changes, and reviews due</li>
+        <li class="flex gap-2"><span class="text-blue-400">•</span> Revoke API keys from any user in the system</li>
+        <li class="flex gap-2"><span class="text-blue-400">•</span> Configure periodic review cadence for resources</li>
       </ul>
     </section>
 
@@ -127,7 +127,7 @@ const roles = [
           href="https://registry.terraform.io/providers/seaburr/tribal"
           target="_blank"
           rel="noopener noreferrer"
-          class="text-amber-400 hover:text-amber-300 underline"
+          class="text-blue-400 hover:text-blue-300 underline"
         >seaburr/tribal</a>
         Terraform provider. Track resources alongside the infrastructure that uses them.
       </p>

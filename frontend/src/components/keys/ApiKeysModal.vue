@@ -114,12 +114,12 @@ const activeKeys = () => keys.value.filter(k => !k.revoked_at)
             v-model="newKeyName"
             type="text"
             placeholder="Key name (e.g., CI/CD Pipeline)"
-            class="flex-1 bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500 transition-colors"
+            class="flex-1 bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 transition-colors"
             @keyup.enter="handleCreate"
           />
           <button
             :disabled="creating || !newKeyName"
-            class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-black font-semibold rounded-lg text-sm transition-colors disabled:opacity-50"
+            class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg text-sm transition-colors disabled:opacity-50"
             @click="handleCreate"
           >
             {{ creating ? 'Creating...' : 'Generate' }}

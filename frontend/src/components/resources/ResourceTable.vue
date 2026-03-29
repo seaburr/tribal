@@ -135,7 +135,7 @@ function isReviewDue(resource: Resource): boolean {
           >
             <td class="px-4 py-3">
               <button
-                class="text-white hover:text-amber-400 font-medium transition-colors text-left"
+                class="text-white hover:text-blue-400 font-medium transition-colors text-left"
                 @click="emit('view', resource)"
               >
                 {{ resource.name }}
@@ -174,7 +174,7 @@ function isReviewDue(resource: Resource): boolean {
                 <!-- Edit (non-readonly) -->
                 <button
                   v-if="!authStore.user?.is_readonly"
-                  class="text-zinc-400 hover:text-amber-400 transition-colors p-1"
+                  class="text-zinc-400 hover:text-blue-400 transition-colors p-1"
                   title="Edit"
                   @click="emit('edit', resource)"
                 >
