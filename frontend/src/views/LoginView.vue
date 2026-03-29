@@ -69,7 +69,7 @@ async function handleRegister() {
       <!-- Logo + Title -->
       <div class="text-center mb-8">
         <img
-          src="/static/tribal_logo.png"
+          src="/tribal_logo.png"
           alt="Tribal"
           class="w-16 h-16 object-contain mx-auto mb-3"
         />

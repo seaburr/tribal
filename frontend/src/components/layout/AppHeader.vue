@@ -21,7 +21,7 @@ onClickOutside(menuRef, () => {
   <header class="bg-tribal-panel border-b border-tribal-border px-6 py-3 flex items-center justify-between">
     <!-- Left: Logo + Brand -->
     <div class="flex items-center gap-3">
-      <img src="/static/tribal_logo.png" alt="Tribal" class="h-6 w-6 object-contain" />
+      <img src="/tribal_logo.png" alt="Tribal" class="h-6 w-6 object-contain" />
       <span class="text-amber-400 font-bold text-lg tracking-tight">Tribal</span>
     </div>
 
