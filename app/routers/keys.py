@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from .. import models, schemas
@@ -62,6 +62,45 @@ def create_key(
         last_used_at=api_key.last_used_at,
         revoked_at=api_key.revoked_at,
         full_key=raw_key,
+    )
+
+
+@router.get("/verify", response_model=schemas.KeyVerifyResponse)
+def verify_key(request: Request, db: Session = Depends(get_db)):
+    """Validate a Tribal API key and return its metadata.
+
+    Accepts ``Authorization: Bearer tribal_sk_...``.  Returns 401 if the key
+    is missing, not a Tribal key, or revoked.  ``expires_at`` is always null
+    (Tribal keys do not currently expire).
+    """
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Bearer token required")
+    raw_key = auth_header[7:]
+    if not raw_key.startswith("tribal_sk_"):
+        raise HTTPException(status_code=400, detail="Not a Tribal API key")
+
+    key_hash = hash_api_key(raw_key)
+    api_key = (
+        db.query(models.ApiKey)
+        .filter(
+            models.ApiKey.key_hash == key_hash,
+            models.ApiKey.revoked_at.is_(None),
+        )
+        .first()
+    )
+    if not api_key:
+        raise HTTPException(status_code=401, detail="Invalid or revoked key")
+
+    user = db.get(models.User, api_key.user_id)
+    return schemas.KeyVerifyResponse(
+        valid=True,
+        name=api_key.name,
+        key_prefix=api_key.key_prefix,
+        created_at=api_key.created_at,
+        last_used_at=api_key.last_used_at,
+        expires_at=None,
+        owner=user.email if user else None,
     )
 
 

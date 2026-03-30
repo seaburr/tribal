@@ -130,6 +130,7 @@ def list_providers(
 @router.post("/identify", response_model=schemas.KeyIdentifyResponse)
 async def identify_key(
     req: schemas.KeyIdentifyRequest,
+    db: Session = Depends(get_db),
     _: models.User = Depends(get_current_user),
 ):
     """Identify a credential's provider and optionally introspect it.
@@ -150,7 +151,8 @@ async def identify_key(
             return schemas.KeyIdentifyResponse(matched=False)
 
     if req.introspect:
-        result = await provider.introspect(req.key)
+        local = provider.introspect_local(db, req.key)
+        result = local if local is not None else await provider.introspect(req.key)
         return schemas.KeyIdentifyResponse(
             provider=result.provider,
             expires_at=result.expires_at,
@@ -345,20 +347,21 @@ def get_resource_report(
             status_str = f"{delta} day(s) remaining"
 
     def _s(text) -> str:
-        """Convert to a latin-1-safe string for the PDF core font."""
         if text is None:
             return "-"
-        return str(text).encode("latin-1", errors="replace").decode("latin-1")
+        return str(text)
 
     pdf = FPDF()
+    pdf.add_font("DejaVu", "",  "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")
+    pdf.add_font("DejaVu", "B", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf")
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.add_page()
     pdf.set_margins(15, 15, 15)
 
     # ── Title ────────────────────────────────────────────────────────────────
-    pdf.set_font("Helvetica", "B", 18)
+    pdf.set_font("DejaVu", "B", 18)
     pdf.multi_cell(0, 9, _s(resource.name), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-    pdf.set_font("Helvetica", "", 9)
+    pdf.set_font("DejaVu","", 9)
     pdf.set_text_color(120, 120, 120)
     pdf.cell(
         0, 5,
@@ -372,16 +375,16 @@ def get_resource_report(
     pdf.ln(5)
 
     # ── Resource Details ──────────────────────────────────────────────────────
-    pdf.set_font("Helvetica", "B", 12)
+    pdf.set_font("DejaVu","B", 12)
     pdf.cell(0, 7, "Resource Details", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     pdf.ln(1)
 
     def _field(label: str, value) -> None:
         if not value and value != 0:
             return
-        pdf.set_font("Helvetica", "B", 9)
+        pdf.set_font("DejaVu","B", 9)
         pdf.cell(0, 5, _s(label), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-        pdf.set_font("Helvetica", "", 9)
+        pdf.set_font("DejaVu","", 9)
         pdf.multi_cell(0, 5, _s(value), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         pdf.ln(1)
 
@@ -425,18 +428,18 @@ def get_resource_report(
     pdf.ln(5)
 
     # ── Change History ────────────────────────────────────────────────────────
-    pdf.set_font("Helvetica", "B", 12)
+    pdf.set_font("DejaVu","B", 12)
     pdf.cell(0, 7, "Change History", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     pdf.ln(1)
 
     if not audit_entries:
-        pdf.set_font("Helvetica", "", 9)
+        pdf.set_font("DejaVu","", 9)
         pdf.set_text_color(120, 120, 120)
         pdf.cell(0, 5, "No audit entries recorded.", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         pdf.set_text_color(0, 0, 0)
     else:
         # Header row
-        pdf.set_font("Helvetica", "B", 8)
+        pdf.set_font("DejaVu","B", 8)
         pdf.set_fill_color(235, 235, 235)
         w_date, w_user, w_action, w_detail = 42, 52, 34, 52
         pdf.cell(w_date,   6, "Date / Time (UTC)", border=1, fill=True)
@@ -445,7 +448,7 @@ def get_resource_report(
         pdf.cell(w_detail, 6, "Detail",            border=1, fill=True,
                  new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
-        pdf.set_font("Helvetica", "", 8)
+        pdf.set_font("DejaVu","", 8)
         for entry in audit_entries:
             dt_str = entry.created_at.strftime("%Y-%m-%d %H:%M") if entry.created_at else "—"
             user_str = _s(entry.user_email or "system")[:28]

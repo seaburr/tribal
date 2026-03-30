@@ -106,6 +106,17 @@ class ApiKeyAdminResponse(ApiKeyResponse):
     user_email: str
 
 
+class KeyVerifyResponse(BaseModel):
+    """Returned by /api/keys/verify — describes the authenticated API key."""
+    valid: bool
+    name: Optional[str] = None
+    key_prefix: Optional[str] = None
+    created_at: Optional[datetime] = None
+    last_used_at: Optional[datetime] = None
+    expires_at: Optional[date] = None
+    owner: Optional[str] = None
+
+
 def _parse_date(v):
     if v is None:
         return v

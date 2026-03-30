@@ -52,6 +52,16 @@ class Provider(ABC):
         - Handle network errors gracefully
         """
 
+    def introspect_local(self, db, key: str) -> "IntrospectionResult | None":
+        """Optional in-process introspection using a live database session.
+
+        Override this for providers that run on the same host and can query
+        the local database directly, avoiding an outbound HTTP round-trip.
+        Return ``None`` to signal that the caller should fall back to
+        ``introspect()``.
+        """
+        return None
+
     def matches(self, key: str) -> bool:
         """Return True if ``key`` matches any of this provider's patterns."""
         return any(p.match(key) for p in self.patterns)
