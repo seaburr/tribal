@@ -134,7 +134,7 @@ const yearMonths = computed(() =>
         >◀</button>
         <span class="font-semibold text-white text-center px-1">
           <template v-if="showYearView">{{ calYear }}</template>
-          <template v-else>{{ MONTH_NAMES[calMonth] }} {{ calYear }}</template>
+          <template v-else>{{ MONTH_NAMES[calMonth].slice(0, 3) }} {{ calYear }}</template>
         </span>
         <button
           class="text-zinc-400 hover:text-white transition-colors p-2 rounded hover:bg-tribal-card min-w-[2rem] min-h-[2rem]"
