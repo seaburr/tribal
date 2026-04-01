@@ -65,7 +65,7 @@ async function saveTimezone() {
 </script>
 
 <template>
-  <header class="bg-tribal-panel border-b border-tribal-border px-6 py-3 flex items-center justify-between">
+  <header class="bg-tribal-panel border-b border-tribal-border px-4 sm:px-6 py-3 flex items-center justify-between">
     <!-- Left: Logo + Brand -->
     <div class="flex items-center gap-3">
       <img src="/tribal_logo.png" alt="Tribal" class="h-6 w-6 object-contain" />
@@ -73,25 +73,36 @@ async function saveTimezone() {
     </div>
 
     <!-- Right: Add Resource + User Menu -->
-    <div class="flex items-center gap-3">
+    <div class="flex items-center gap-2 sm:gap-3">
       <!-- Add Resource button (hidden for readonly users) -->
       <button
         v-if="authStore.user && !authStore.user.is_readonly"
-        class="bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg px-4 py-2 text-sm transition-colors"
+        class="bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg transition-colors"
+        :class="['sm:px-4 sm:py-2 sm:text-sm', 'px-2.5 py-2']"
+        :title="'Add Resource'"
         @click="$emit('add-resource')"
       >
-        + Add Resource
+        <span class="hidden sm:inline">+ Add Resource</span>
+        <svg class="sm:hidden w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+        </svg>
       </button>
 
       <!-- User menu -->
       <div ref="menuRef" class="relative">
         <button
-          class="flex items-center gap-2 text-zinc-300 hover:text-white transition-colors px-3 py-2 rounded-lg hover:bg-tribal-card text-sm"
+          class="flex items-center gap-2 text-zinc-300 hover:text-white transition-colors rounded-lg hover:bg-tribal-card"
+          :class="['sm:px-3 sm:py-2 sm:text-sm', 'px-2 py-2']"
           @click="menuOpen = !menuOpen"
         >
-          <span>{{ authStore.user?.display_name || authStore.user?.email }}</span>
+          <!-- Mobile: user icon only -->
+          <svg class="sm:hidden w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+          </svg>
+          <!-- Desktop: name + chevron -->
+          <span class="hidden sm:inline">{{ authStore.user?.display_name || authStore.user?.email }}</span>
           <svg
-            :class="['w-4 h-4 transition-transform', menuOpen ? 'rotate-180' : '']"
+            :class="['hidden sm:block w-4 h-4 transition-transform', menuOpen ? 'rotate-180' : '']"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"

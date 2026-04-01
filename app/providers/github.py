@@ -48,10 +48,14 @@ class GitHubProvider(Provider):
         exp_header = resp.headers.get("github-authentication-token-expiration")
         if exp_header:
             try:
-                from datetime import datetime
-                expiry = datetime.strptime(
-                    exp_header.split(" ")[0], "%Y-%m-%d"
-                ).date()
+                from datetime import datetime, timedelta
+                # Header format: "2026-05-01 00:00:00 UTC" — the moment the
+                # token becomes invalid. Subtract 1 second so a midnight
+                # timestamp resolves to the last valid day (Apr 30, not May 1).
+                exp_dt = datetime.strptime(
+                    " ".join(exp_header.split()[:2]), "%Y-%m-%d %H:%M:%S"
+                )
+                expiry = (exp_dt - timedelta(seconds=1)).date()
             except (ValueError, IndexError):
                 pass
 
