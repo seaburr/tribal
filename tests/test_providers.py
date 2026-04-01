@@ -189,7 +189,9 @@ class TestIntrospection:
         mock_resp = MagicMock()
         mock_resp.status_code = 200
         mock_resp.headers = {
-            "github-authentication-token-expiration": "2025-12-31 UTC",
+            # GitHub returns the first moment the token is *invalid* (midnight),
+            # so the last valid day should be the day before.
+            "github-authentication-token-expiration": "2026-01-01 00:00:00 UTC",
             "x-oauth-scopes": "repo, read:org",
         }
         mock_resp.json.return_value = {"login": "testuser"}
@@ -202,10 +204,10 @@ class TestIntrospection:
 
             result = asyncio.run(introspect("ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghij"))
 
+        from datetime import date
         assert result is not None
         assert result.provider == "GitHub"
-        assert result.expires_at is not None
-        assert result.expires_at.year == 2025
+        assert result.expires_at == date(2025, 12, 31)  # midnight Jan 1 → last valid day Dec 31
         assert result.metadata["login"] == "testuser"
         assert len(result.rotation_steps) > 0
 
