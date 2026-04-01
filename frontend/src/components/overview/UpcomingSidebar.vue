@@ -46,7 +46,7 @@ const upcoming = computed(() => {
       <li
         v-for="resource in upcoming"
         :key="resource.id"
-        class="p-3 bg-tribal-card rounded-lg border border-tribal-border hover:border-blue-500/30 cursor-pointer transition-colors"
+        class="p-3 bg-tribal-card rounded-lg border border-tribal-border hover:border-accent-blue/30 cursor-pointer transition-colors"
         @click="openResourceDetail(resource)"
       >
         <div class="flex items-start justify-between gap-2">
@@ -60,7 +60,7 @@ const upcoming = computed(() => {
           <StatusBadge :resource="resource" />
           <span
             v-if="isReviewDue(resource)"
-            class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-500/20 text-purple-400"
+            class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-accent-purple/20 text-accent-purple"
           >Review Due</span>
         </div>
       </li>

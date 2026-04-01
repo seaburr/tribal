@@ -208,23 +208,23 @@ async function handleSave() {
     <form v-else class="space-y-4" @submit.prevent="handleSave">
       <!-- Name -->
       <div>
-        <label class="block text-sm font-medium text-zinc-300 mb-1">Name <span class="text-red-400">*</span></label>
+        <label class="block text-sm font-medium text-zinc-300 mb-1">Name <span class="text-danger">*</span></label>
         <input
           v-model="form.name"
           type="text"
           placeholder="e.g., GitHub Actions Token"
-          class="w-full bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 transition-colors"
+          class="w-full bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-accent-blue transition-colors"
         />
       </div>
 
       <!-- DRI -->
       <div>
-        <label class="block text-sm font-medium text-zinc-300 mb-1">DRI (Directly Responsible Individual) <span class="text-red-400">*</span></label>
+        <label class="block text-sm font-medium text-zinc-300 mb-1">DRI (Directly Responsible Individual) <span class="text-danger">*</span></label>
         <input
           v-model="form.dri"
           type="text"
           placeholder="e.g., platform-team"
-          class="w-full bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 transition-colors"
+          class="w-full bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-accent-blue transition-colors"
         />
       </div>
 
@@ -233,7 +233,7 @@ async function handleSave() {
         <label class="block text-sm font-medium text-zinc-300 mb-1">Type</label>
         <select
           v-model="form.type"
-          class="w-full bg-tribal-card border border-tribal-border rounded-lg px-3 pr-8 py-2 text-white focus:outline-none focus:border-blue-500 transition-colors"
+          class="w-full bg-tribal-card border border-tribal-border rounded-lg px-3 pr-8 py-2 text-white focus:outline-none focus:border-accent-blue transition-colors"
         >
           <option value="Certificate">Certificate</option>
           <option value="API Key">API Key</option>
@@ -251,12 +251,12 @@ async function handleSave() {
               v-model="certEndpoint"
               type="text"
               placeholder="e.g., example.com or https://example.com"
-              class="flex-1 bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 transition-colors"
+              class="flex-1 bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-accent-blue transition-colors"
             />
             <button
               type="button"
               :disabled="certLoading || !certEndpoint"
-              class="px-4 py-2 border border-blue-500/50 text-blue-400 hover:border-blue-500 rounded-lg text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              class="px-4 py-2 border border-accent-blue/50 text-accent-blue hover:border-accent-blue rounded-lg text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               @click="handleCertLookup"
             >
               {{ certLoading ? 'Loading...' : 'Get Expiry' }}
@@ -277,12 +277,12 @@ async function handleSave() {
             v-model="apiKeyInput"
             type="password"
             placeholder="Paste API key to auto-detect provider"
-            class="flex-1 bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 transition-colors"
+            class="flex-1 bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-accent-blue transition-colors"
           />
           <button
             type="button"
             :disabled="detectLoading || !apiKeyInput"
-            class="px-4 py-2 border border-blue-500/50 text-blue-400 hover:border-blue-500 rounded-lg text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            class="px-4 py-2 border border-accent-blue/50 text-accent-blue hover:border-accent-blue rounded-lg text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             @click="handleDetect"
           >
             {{ detectLoading ? 'Detecting...' : 'Detect' }}
@@ -298,7 +298,7 @@ async function handleSave() {
           v-model="form.provider"
           type="text"
           placeholder="e.g., GitHub, AWS, Stripe"
-          class="w-full bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 transition-colors"
+          class="w-full bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-accent-blue transition-colors"
         />
       </div>
 
@@ -314,7 +314,7 @@ async function handleSave() {
         <input
           v-model="form.expiration_date"
           type="date"
-          class="w-full bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500 transition-colors [color-scheme:dark]"
+          class="w-full bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white focus:outline-none focus:border-accent-blue transition-colors [color-scheme:dark]"
         />
       </div>
 
@@ -323,7 +323,7 @@ async function handleSave() {
         <label class="block text-sm font-medium text-zinc-300 mb-1">Team</label>
         <select
           v-model="form.team_id"
-          class="w-full bg-tribal-card border border-tribal-border rounded-lg px-3 pr-8 py-2 text-white focus:outline-none focus:border-blue-500 transition-colors"
+          class="w-full bg-tribal-card border border-tribal-border rounded-lg px-3 pr-8 py-2 text-white focus:outline-none focus:border-accent-blue transition-colors"
         >
           <option :value="null">No team</option>
           <option v-for="team in teams" :key="team.id" :value="team.id">{{ team.name }}</option>
@@ -337,7 +337,7 @@ async function handleSave() {
           v-model="form.purpose"
           rows="2"
           placeholder="What is this credential used for?"
-          class="w-full bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 transition-colors resize-none"
+          class="w-full bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-accent-blue transition-colors resize-none"
         />
       </div>
 
@@ -348,7 +348,7 @@ async function handleSave() {
           v-model="form.generation_instructions"
           rows="3"
           placeholder="Steps to generate or rotate this credential"
-          class="w-full bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 transition-colors resize-none"
+          class="w-full bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-accent-blue transition-colors resize-none"
         />
       </div>
 
@@ -359,7 +359,7 @@ async function handleSave() {
           v-model="form.secret_manager_link"
           type="url"
           placeholder="https://..."
-          class="w-full bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 transition-colors"
+          class="w-full bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-accent-blue transition-colors"
         />
       </div>
 
@@ -371,12 +371,12 @@ async function handleSave() {
             v-model="form.slack_webhook"
             type="url"
             placeholder="https://hooks.slack.com/..."
-            class="flex-1 bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 transition-colors"
+            class="flex-1 bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-accent-blue transition-colors"
           />
           <button
             type="button"
             :disabled="!form.slack_webhook"
-            class="px-4 py-2 border border-tribal-border text-zinc-400 hover:border-blue-500/50 hover:text-blue-400 rounded-lg text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            class="px-4 py-2 border border-tribal-border text-zinc-400 hover:border-accent-blue/50 hover:text-accent-blue rounded-lg text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             @click="handleTestWebhook"
           >
             Send Test
@@ -396,7 +396,7 @@ async function handleSave() {
         <button
           type="submit"
           :disabled="loading"
-          class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg text-sm transition-colors disabled:opacity-50"
+          class="px-4 py-2 bg-accent-blue-dark hover:bg-accent-blue text-white font-semibold rounded-lg text-sm transition-colors disabled:opacity-50"
         >
           {{ loading ? 'Saving...' : (isNew ? 'Create Resource' : 'Save Changes') }}
         </button>

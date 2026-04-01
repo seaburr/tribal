@@ -30,8 +30,8 @@ const canDelete = computed(
 <template>
   <BaseModal title="Delete Resource" :open="open" @close="emit('close')">
     <div v-if="resource" class="space-y-4">
-      <div class="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
-        <p class="text-red-400 text-sm font-medium">⚠️ This action cannot be easily undone</p>
+      <div class="bg-danger/10 border border-danger/25 rounded-lg p-4">
+        <p class="text-danger text-sm font-medium">⚠️ This action cannot be easily undone</p>
         <p class="text-zinc-400 text-sm mt-1">
           The resource will be soft-deleted and can be restored by an admin from the Admin panel.
         </p>
@@ -45,7 +45,7 @@ const canDelete = computed(
         v-model="confirmInput"
         type="text"
         :placeholder="resource.name"
-        class="w-full bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white placeholder-zinc-600 focus:outline-none focus:border-red-500 transition-colors"
+        class="w-full bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white placeholder-zinc-600 focus:outline-none focus:border-danger transition-colors"
       />
 
       <div class="flex justify-end gap-3 pt-2 border-t border-tribal-border">
@@ -58,7 +58,7 @@ const canDelete = computed(
         </button>
         <button
           :disabled="!canDelete"
-          class="px-4 py-2 bg-red-600 hover:bg-red-500 text-white font-semibold rounded-lg text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          class="px-4 py-2 bg-danger-dark hover:bg-danger text-white font-semibold rounded-lg text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           @click="emit('confirmed')"
         >
           Delete Resource

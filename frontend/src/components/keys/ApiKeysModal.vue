@@ -89,17 +89,17 @@ const activeKeys = () => keys.value.filter(k => !k.revoked_at)
       <!-- Newly created key banner -->
       <div
         v-if="createdKey"
-        class="bg-emerald-900/30 border border-emerald-500/30 rounded-lg p-4 space-y-2"
+        class="bg-accent-green-dark/30 border border-accent-green/30 rounded-lg p-4 space-y-2"
       >
-        <p class="text-emerald-400 font-medium text-sm">
+        <p class="text-accent-green font-medium text-sm">
           ✓ Key created — copy it now. It will not be shown again.
         </p>
         <div class="flex items-center gap-2">
-          <code class="flex-1 bg-[#0d0d14] rounded px-3 py-2 text-sm text-emerald-300 font-mono truncate border border-emerald-800/50">
+          <code class="flex-1 bg-[#0d0d14] rounded px-3 py-2 text-sm text-accent-green-light font-mono truncate border border-accent-green-dark/50">
             {{ createdKey.full_key }}
           </code>
           <button
-            class="px-3 py-2 border border-emerald-500/50 text-emerald-400 hover:border-emerald-500 rounded-lg text-sm transition-colors whitespace-nowrap"
+            class="px-3 py-2 border border-accent-green/50 text-accent-green hover:border-accent-green rounded-lg text-sm transition-colors whitespace-nowrap"
             @click="copyKey"
           >
             {{ copied ? 'Copied!' : 'Copy' }}
@@ -115,12 +115,12 @@ const activeKeys = () => keys.value.filter(k => !k.revoked_at)
             v-model="newKeyName"
             type="text"
             placeholder="Key name (e.g., CI/CD Pipeline)"
-            class="flex-1 bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 transition-colors"
+            class="flex-1 bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-accent-blue transition-colors"
             @keyup.enter="handleCreate"
           />
           <button
             :disabled="creating || !newKeyName"
-            class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg text-sm transition-colors disabled:opacity-50"
+            class="px-4 py-2 bg-accent-blue-dark hover:bg-accent-blue text-white font-semibold rounded-lg text-sm transition-colors disabled:opacity-50"
             @click="handleCreate"
           >
             {{ creating ? 'Creating...' : 'Generate' }}
@@ -155,7 +155,7 @@ const activeKeys = () => keys.value.filter(k => !k.revoked_at)
               <td class="px-3 py-2.5 text-zinc-400 text-xs">{{ formatDateTime(key.last_used_at) }}</td>
               <td class="px-3 py-2.5 text-right">
                 <button
-                  class="text-red-400 hover:text-red-300 text-xs transition-colors"
+                  class="text-danger hover:text-danger-light text-xs transition-colors"
                   @click="handleRevoke(key.id)"
                 >
                   Revoke

@@ -2,12 +2,12 @@
 const roles = [
   {
     name: 'Admin',
-    color: 'bg-blue-500/20 text-blue-400',
+    color: 'bg-accent-blue/20 text-accent-blue',
     desc: 'Full control over all resources, users, and notification settings. The account creator cannot be demoted.',
   },
   {
     name: 'Member',
-    color: 'bg-emerald-500/20 text-emerald-400',
+    color: 'bg-accent-green/20 text-accent-green',
     desc: 'Can create and manage resources, generate API keys, and download reports.',
   },
   {
@@ -109,12 +109,12 @@ class MyServiceProvider(Provider):
         Admins have visibility and control over the full system — not just their own resources.
       </p>
       <ul class="space-y-2 text-zinc-400 text-sm">
-        <li class="flex gap-2"><span class="text-blue-400">•</span> Full audit log of every create, update, delete, and login event</li>
-        <li class="flex gap-2"><span class="text-blue-400">•</span> User management with role assignment</li>
-        <li class="flex gap-2"><span class="text-blue-400">•</span> Slack notification scheduling and reminder intervals</li>
-        <li class="flex gap-2"><span class="text-blue-400">•</span> Periodic review cadence enforcement — flag resources that haven't been reviewed recently</li>
-        <li class="flex gap-2"><span class="text-blue-400">•</span> Soft-delete with recovery — restore accidentally deleted resources or purge them permanently</li>
-        <li class="flex gap-2"><span class="text-blue-400">•</span> CSV reports for upcoming expiries, recent changes, and reviews due</li>
+        <li class="flex gap-2"><span class="text-accent-blue">•</span> Full audit log of every create, update, delete, and login event</li>
+        <li class="flex gap-2"><span class="text-accent-blue">•</span> User management with role assignment</li>
+        <li class="flex gap-2"><span class="text-accent-blue">•</span> Slack notification scheduling and reminder intervals</li>
+        <li class="flex gap-2"><span class="text-accent-blue">•</span> Periodic review cadence enforcement — flag resources that haven't been reviewed recently</li>
+        <li class="flex gap-2"><span class="text-accent-blue">•</span> Soft-delete with recovery — restore accidentally deleted resources or purge them permanently</li>
+        <li class="flex gap-2"><span class="text-accent-blue">•</span> CSV reports for upcoming expiries, recent changes, and reviews due</li>
       </ul>
     </section>
 
@@ -155,7 +155,7 @@ class MyServiceProvider(Provider):
           href="https://registry.terraform.io/providers/seaburr/tribal/latest"
           target="_blank"
           rel="noopener noreferrer"
-          class="text-blue-400 hover:text-blue-300 underline"
+          class="text-accent-blue hover:text-accent-blue-light underline"
         >seaburr/tribal</a>
         Terraform provider lets you track credentials alongside the infrastructure that uses them.
         Source on
@@ -163,7 +163,7 @@ class MyServiceProvider(Provider):
           href="https://github.com/seaburr/terraform-provider-tribal"
           target="_blank"
           rel="noopener noreferrer"
-          class="text-blue-400 hover:text-blue-300 underline"
+          class="text-accent-blue hover:text-accent-blue-light underline"
         >GitHub</a>.
       </p>
 
@@ -196,7 +196,7 @@ resource "tribal_resource" "github_token" {
           href="https://github.com/seaburr/Tribal"
           target="_blank"
           rel="noopener noreferrer"
-          class="text-blue-400 hover:text-blue-300 underline"
+          class="text-accent-blue hover:text-accent-blue-light underline"
         >github.com/seaburr/Tribal</a>.
         Adding support for a new key provider means dropping a single file into
         <code class="text-zinc-300 bg-tribal-bg px-1 py-0.5 rounded text-xs">app/providers/</code>
@@ -205,10 +205,10 @@ resource "tribal_resource" "github_token" {
 
       <h3 class="text-white font-medium text-sm mb-2">How it works</h3>
       <ul class="space-y-1.5 text-zinc-400 text-sm mb-5">
-        <li class="flex gap-2"><span class="text-blue-400">1.</span> Subclass <code class="text-zinc-300 bg-tribal-bg px-1 py-0.5 rounded text-xs">Provider</code> from <code class="text-zinc-300 bg-tribal-bg px-1 py-0.5 rounded text-xs">app/providers/base.py</code></li>
-        <li class="flex gap-2"><span class="text-blue-400">2.</span> Define <code class="text-zinc-300 bg-tribal-bg px-1 py-0.5 rounded text-xs">name</code> and <code class="text-zinc-300 bg-tribal-bg px-1 py-0.5 rounded text-xs">patterns</code> — regexes that match the key format. If the key has no distinctive prefix, set <code class="text-zinc-300 bg-tribal-bg px-1 py-0.5 rounded text-xs">patterns = []</code> and users will select the provider manually from the dropdown.</li>
-        <li class="flex gap-2"><span class="text-blue-400">3.</span> Implement <code class="text-zinc-300 bg-tribal-bg px-1 py-0.5 rounded text-xs">introspect(key)</code> — call the provider's API and return an <code class="text-zinc-300 bg-tribal-bg px-1 py-0.5 rounded text-xs">IntrospectionResult</code></li>
-        <li class="flex gap-2"><span class="text-blue-400">4.</span> Keys are never logged or persisted — handle errors gracefully and always return a result</li>
+        <li class="flex gap-2"><span class="text-accent-blue">1.</span> Subclass <code class="text-zinc-300 bg-tribal-bg px-1 py-0.5 rounded text-xs">Provider</code> from <code class="text-zinc-300 bg-tribal-bg px-1 py-0.5 rounded text-xs">app/providers/base.py</code></li>
+        <li class="flex gap-2"><span class="text-accent-blue">2.</span> Define <code class="text-zinc-300 bg-tribal-bg px-1 py-0.5 rounded text-xs">name</code> and <code class="text-zinc-300 bg-tribal-bg px-1 py-0.5 rounded text-xs">patterns</code> — regexes that match the key format. If the key has no distinctive prefix, set <code class="text-zinc-300 bg-tribal-bg px-1 py-0.5 rounded text-xs">patterns = []</code> and users will select the provider manually from the dropdown.</li>
+        <li class="flex gap-2"><span class="text-accent-blue">3.</span> Implement <code class="text-zinc-300 bg-tribal-bg px-1 py-0.5 rounded text-xs">introspect(key)</code> — call the provider's API and return an <code class="text-zinc-300 bg-tribal-bg px-1 py-0.5 rounded text-xs">IntrospectionResult</code></li>
+        <li class="flex gap-2"><span class="text-accent-blue">4.</span> Keys are never logged or persisted — handle errors gracefully and always return a result</li>
       </ul>
 
       <h3 class="text-white font-medium text-sm mb-2">IntrospectionResult fields</h3>
@@ -220,7 +220,7 @@ resource "tribal_resource" "github_token" {
           { name: 'rotation_url', desc: 'Link to the provider\'s key management page' },
           { name: 'rotation_steps', desc: 'Step-by-step rotation instructions' },
         ]" :key="field.name" class="bg-tribal-bg border border-tribal-border rounded-lg p-3">
-          <code class="text-blue-300 text-xs">{{ field.name }}</code>
+          <code class="text-accent-blue-light text-xs">{{ field.name }}</code>
           <p class="text-zinc-500 text-xs mt-0.5">{{ field.desc }}</p>
         </div>
       </div>

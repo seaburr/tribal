@@ -19,6 +19,12 @@
               border: '#2d2d4e',
               muted: '#3d3d5e',
             },
+            accent: {
+              blue: { DEFAULT: '#4a78c2', dark: '#233775', light: '#7aa0d4' },
+              purple: { DEFAULT: '#8a52a0', dark: '#623B75', light: '#b07bc4' },
+              green: { DEFAULT: '#6a9e4a', dark: '#50753B', light: '#8fbf6a' },
+              gray: '#7a7a8c',
+            },
           },
         },
       },
@@ -47,7 +53,7 @@
       </a>
       <a
         href="https://dev.tribal-app.xyz"
-        class="bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm px-4 py-2 rounded-lg transition-colors no-underline"
+        class="bg-accent-blue-dark hover:bg-accent-blue text-white font-semibold text-sm px-4 py-2 rounded-lg transition-colors no-underline"
       >
         Login →
       </a>
@@ -80,55 +86,55 @@
   <section class="px-4 pb-16 max-w-5xl mx-auto">
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
 
-      <div class="bg-tribal-panel border border-tribal-border rounded-xl p-6 hover:border-blue-500/50 transition-colors">
+      <div class="bg-tribal-panel border border-tribal-border rounded-xl p-6 hover:border-accent-blue/50 transition-colors">
         <div class="text-2xl mb-3">🔔</div>
         <h3 class="text-white font-semibold mb-2">Know before it breaks</h3>
         <p class="text-zinc-400 text-sm leading-relaxed">Tribal sends Slack reminders on a schedule you control — days or weeks before a credential expires. The right team gets notified in the right channel, not just the person who set it up.</p>
       </div>
 
-      <div class="bg-tribal-panel border border-tribal-border rounded-xl p-6 hover:border-blue-500/50 transition-colors">
+      <div class="bg-tribal-panel border border-tribal-border rounded-xl p-6 hover:border-accent-blue/50 transition-colors">
         <div class="text-2xl mb-3">🔑</div>
         <h3 class="text-white font-semibold mb-2">Stop starting from scratch</h3>
         <p class="text-zinc-400 text-sm leading-relaxed">Paste an API key and Tribal identifies the provider, looks up the expiry where possible, and pre-fills rotation steps. Works with GitHub, Stripe, AWS, Azure, GCP, OpenAI, Anthropic, Cloudflare, Fastly, Slack, and more.</p>
       </div>
 
-      <div class="bg-tribal-panel border border-tribal-border rounded-xl p-6 hover:border-blue-500/50 transition-colors">
+      <div class="bg-tribal-panel border border-tribal-border rounded-xl p-6 hover:border-accent-blue/50 transition-colors">
         <div class="text-2xl mb-3">📋</div>
         <h3 class="text-white font-semibold mb-2">Always know who's responsible</h3>
         <p class="text-zinc-400 text-sm leading-relaxed">Every resource has a designated owner, a purpose, and rotation instructions. No more hunting through Slack history or hoping the person who set it up still works there.</p>
       </div>
 
-      <div class="bg-tribal-panel border border-tribal-border rounded-xl p-6 hover:border-blue-500/50 transition-colors">
+      <div class="bg-tribal-panel border border-tribal-border rounded-xl p-6 hover:border-accent-blue/50 transition-colors">
         <div class="text-2xl mb-3">📅</div>
         <h3 class="text-white font-semibold mb-2">See what's coming</h3>
         <p class="text-zinc-400 text-sm leading-relaxed">A visual calendar shows every upcoming expiry at a glance — monthly or year-at-a-glance. Color-coded by urgency so you can see trouble at a distance.</p>
       </div>
 
-      <div class="bg-tribal-panel border border-tribal-border rounded-xl p-6 hover:border-blue-500/50 transition-colors">
+      <div class="bg-tribal-panel border border-tribal-border rounded-xl p-6 hover:border-accent-blue/50 transition-colors">
         <div class="text-2xl mb-3">🔍</div>
         <h3 class="text-white font-semibold mb-2">Full audit trail</h3>
         <p class="text-zinc-400 text-sm leading-relaxed">Every change is logged — who created it, who updated it, who deleted it, and when. Useful for compliance, handoffs, and post-mortems.</p>
       </div>
 
-      <div class="bg-tribal-panel border border-tribal-border rounded-xl p-6 hover:border-blue-500/50 transition-colors">
+      <div class="bg-tribal-panel border border-tribal-border rounded-xl p-6 hover:border-accent-blue/50 transition-colors">
         <div class="text-2xl mb-3">🔄</div>
         <h3 class="text-white font-semibold mb-2">Keep credentials reviewed</h3>
         <p class="text-zinc-400 text-sm leading-relaxed">Configure a review cadence and Tribal flags anything that hasn't been looked at recently — even credentials that don't technically expire but still need attention.</p>
       </div>
 
-      <div class="bg-tribal-panel border border-tribal-border rounded-xl p-6 hover:border-blue-500/50 transition-colors">
+      <div class="bg-tribal-panel border border-tribal-border rounded-xl p-6 hover:border-accent-blue/50 transition-colors">
         <div class="text-2xl mb-3">🤖</div>
         <h3 class="text-white font-semibold mb-2">Fits into your existing workflow</h3>
-        <p class="text-zinc-400 text-sm leading-relaxed">Full REST API so you can integrate Tribal into CI pipelines, internal tooling, or scripts. A <a href="https://registry.terraform.io/providers/seaburr/tribal/latest" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-blue-300 transition-colors no-underline">Terraform provider</a> lets you manage credentials alongside the infrastructure that uses them.</p>
+        <p class="text-zinc-400 text-sm leading-relaxed">Full REST API so you can integrate Tribal into CI pipelines, internal tooling, or scripts. A <a href="https://registry.terraform.io/providers/seaburr/tribal/latest" target="_blank" rel="noopener noreferrer" class="text-accent-blue hover:text-accent-blue-light transition-colors no-underline">Terraform provider</a> lets you manage credentials alongside the infrastructure that uses them.</p>
       </div>
 
-      <div class="bg-tribal-panel border border-tribal-border rounded-xl p-6 hover:border-blue-500/50 transition-colors">
+      <div class="bg-tribal-panel border border-tribal-border rounded-xl p-6 hover:border-accent-blue/50 transition-colors">
         <div class="text-2xl mb-3">📄</div>
         <h3 class="text-white font-semibold mb-2">Shareable reports</h3>
         <p class="text-zinc-400 text-sm leading-relaxed">Generate PDF snapshots of any resource with full details and audit history. Export CSV reports of upcoming expiries and recent changes for compliance reviews or team handoffs.</p>
       </div>
 
-      <div class="bg-tribal-panel border border-tribal-border rounded-xl p-6 hover:border-blue-500/50 transition-colors">
+      <div class="bg-tribal-panel border border-tribal-border rounded-xl p-6 hover:border-accent-blue/50 transition-colors">
         <div class="text-2xl mb-3">🌱</div>
         <h3 class="text-white font-semibold mb-2">Open source</h3>
         <p class="text-zinc-400 text-sm leading-relaxed">Tribal is open source and self-hostable. Run it on your own infrastructure, keep your data where it belongs, and contribute providers for the tools your team uses.</p>
@@ -136,7 +142,7 @@
           href="https://github.com/seaburr/Tribal"
           target="_blank"
           rel="noopener noreferrer"
-          class="inline-flex items-center gap-2 mt-4 text-sm text-blue-400 hover:text-blue-300 transition-colors no-underline"
+          class="inline-flex items-center gap-2 mt-4 text-sm text-accent-blue hover:text-accent-blue-light transition-colors no-underline"
         >
           <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844a9.59 9.59 0 012.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd" />

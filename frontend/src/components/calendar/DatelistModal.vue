@@ -28,7 +28,7 @@ const emit = defineEmits<{
       <li
         v-for="resource in resources"
         :key="resource.id"
-        class="flex items-center justify-between p-3 bg-tribal-card rounded-lg border border-tribal-border hover:border-blue-500/30 cursor-pointer transition-colors"
+        class="flex items-center justify-between p-3 bg-tribal-card rounded-lg border border-tribal-border hover:border-accent-blue/30 cursor-pointer transition-colors"
         @click="emit('view-resource', resource)"
       >
         <div>
