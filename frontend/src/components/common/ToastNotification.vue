@@ -13,12 +13,12 @@ const { toasts } = useToast()
         :class="[
           'pointer-events-auto flex items-start gap-3 rounded-lg border px-4 py-3 shadow-lg max-w-sm text-sm',
           toast.type === 'success'
-            ? 'bg-emerald-900/90 border-emerald-500/50 text-emerald-100'
-            : 'bg-red-900/90 border-red-500/50 text-red-100',
+            ? 'bg-accent-green-dark/90 border-accent-green/50 text-zinc-100'
+            : 'bg-danger-dark/90 border-danger/50 text-zinc-100',
         ]"
       >
-        <span v-if="toast.type === 'success'" class="text-emerald-400 mt-0.5">✓</span>
-        <span v-else class="text-red-400 mt-0.5">✕</span>
+        <span v-if="toast.type === 'success'" class="text-accent-green mt-0.5">✓</span>
+        <span v-else class="text-danger mt-0.5">✕</span>
         <span>{{ toast.message }}</span>
       </div>
     </TransitionGroup>

@@ -22,7 +22,7 @@ const emit = defineEmits<{
 
         <!-- Panel -->
         <div
-          class="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-tribal-panel rounded-xl border border-tribal-border border-t-2 border-t-blue-500 shadow-2xl"
+          class="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-tribal-panel rounded-xl border border-tribal-border border-t-2 border-t-accent-blue shadow-2xl"
         >
           <!-- Header -->
           <div class="flex items-center justify-between px-6 py-4 border-b border-tribal-border">

@@ -44,7 +44,7 @@ function linkify(text: string): string {
       if (i % 2 === 1) {
         // URL match
         const escaped = escapeHtml(part)
-        return `<a href="${escaped}" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-blue-300 underline">${escaped}</a>`
+        return `<a href="${escaped}" target="_blank" rel="noopener noreferrer" class="text-accent-blue hover:text-accent-blue-light underline">${escaped}</a>`
       }
       return escapeHtml(part).replace(/\n/g, '<br>')
     })
@@ -98,7 +98,7 @@ function openReport() {
         <StatusBadge :resource="resource" />
         <span
           v-if="isReviewDue()"
-          class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs bg-purple-500/20 text-purple-400 border border-purple-500/30"
+          class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs bg-accent-purple/20 text-accent-purple border border-accent-purple/30"
         >
           Review Due
         </span>
@@ -156,7 +156,7 @@ function openReport() {
           :href="resource.secret_manager_link"
           target="_blank"
           rel="noopener noreferrer"
-          class="text-blue-400 hover:text-blue-300 underline text-sm"
+          class="text-accent-blue hover:text-accent-blue-light underline text-sm"
         >
           {{ resource.secret_manager_link }}
         </a>
@@ -172,21 +172,21 @@ function openReport() {
         </button>
         <button
           v-if="reviewCadenceMonths && !authStore.user?.is_readonly"
-          class="px-4 py-2 border border-purple-500/50 text-purple-400 hover:border-purple-500 rounded-lg text-sm transition-colors"
+          class="px-4 py-2 border border-accent-purple/50 text-accent-purple hover:border-accent-purple rounded-lg text-sm transition-colors"
           @click="handleReview"
         >
           ✓ Mark Reviewed
         </button>
         <button
           v-if="!authStore.user?.is_readonly"
-          class="px-4 py-2 border border-blue-500/50 text-blue-400 hover:border-blue-500 rounded-lg text-sm transition-colors"
+          class="px-4 py-2 border border-accent-blue/50 text-accent-blue hover:border-accent-blue rounded-lg text-sm transition-colors"
           @click="emit('edit', resource)"
         >
           ✏️ Edit
         </button>
         <button
           v-if="!authStore.user?.is_readonly"
-          class="px-4 py-2 border border-red-500/50 text-red-400 hover:border-red-500 rounded-lg text-sm transition-colors"
+          class="px-4 py-2 border border-danger/50 text-danger hover:border-danger rounded-lg text-sm transition-colors"
           @click="emit('delete', resource)"
         >
           🗑️ Delete

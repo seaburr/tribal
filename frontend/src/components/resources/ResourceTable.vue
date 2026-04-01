@@ -135,14 +135,14 @@ function isReviewDue(resource: Resource): boolean {
           >
             <td class="px-4 py-3">
               <button
-                class="text-white hover:text-blue-400 font-medium transition-colors text-left"
+                class="text-white hover:text-accent-blue font-medium transition-colors text-left"
                 @click="emit('view', resource)"
               >
                 {{ resource.name }}
               </button>
               <span
                 v-if="isReviewDue(resource)"
-                class="ml-2 inline-flex items-center rounded-full px-2 py-0.5 text-xs bg-purple-500/20 text-purple-400 border border-purple-500/30"
+                class="ml-2 inline-flex items-center rounded-full px-2 py-0.5 text-xs bg-accent-purple/20 text-accent-purple border border-accent-purple/30"
               >
                 Review Due
               </span>
@@ -185,7 +185,7 @@ function isReviewDue(resource: Resource): boolean {
                 <!-- Edit (non-readonly) -->
                 <button
                   v-if="!authStore.user?.is_readonly"
-                  class="text-zinc-400 hover:text-blue-400 transition-colors p-1"
+                  class="text-zinc-400 hover:text-accent-blue transition-colors p-1"
                   title="Edit"
                   @click="emit('edit', resource)"
                 >
@@ -196,7 +196,7 @@ function isReviewDue(resource: Resource): boolean {
                 <!-- Delete (non-readonly) -->
                 <button
                   v-if="!authStore.user?.is_readonly"
-                  class="text-red-400 hover:text-red-300 transition-colors p-1"
+                  class="text-danger hover:text-danger-light transition-colors p-1"
                   title="Delete"
                   @click="emit('delete', resource)"
                 >

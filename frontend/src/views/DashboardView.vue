@@ -131,7 +131,7 @@ const tabs = computed(() => {
           :class="[
             'py-3 text-sm font-medium transition-colors',
             activeTab === tab.key
-              ? 'text-blue-400 border-b-2 border-blue-400'
+              ? 'text-accent-blue border-b-2 border-accent-blue'
               : 'text-zinc-400 hover:text-zinc-200',
           ]"
           @click="activeTab = tab.key"

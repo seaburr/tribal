@@ -82,10 +82,10 @@ function cellColor(iso: string | null): 'overdue' | 'critical' | 'amber' | 'gree
 // Per-resource dot color used in the month view.
 function dotColor(r: { expiration_date: string | null; does_not_expire: boolean }): string {
   const u = urgency(r.expiration_date, r.does_not_expire)
-  if (u === 'overdue')  return 'bg-red-500'
-  if (u === 'critical') return 'bg-red-400'
-  if (u === 'warning')  return 'bg-amber-400'
-  return 'bg-emerald-400'
+  if (u === 'overdue')  return 'bg-status-overdue'
+  if (u === 'critical') return 'bg-status-critical'
+  if (u === 'warning')  return 'bg-status-warning'
+  return 'bg-accent-green'
 }
 
 function prevMonth() {
@@ -144,7 +144,7 @@ const yearMonths = computed(() =>
       </div>
       <div class="flex gap-2">
         <button
-          class="text-xs px-3 py-1 rounded-lg border border-tribal-border text-zinc-400 hover:text-white hover:border-amber-500/50 transition-colors"
+          class="text-xs px-3 py-1 rounded-lg border border-tribal-border text-zinc-400 hover:text-white hover:border-status-warning/50 transition-colors"
           @click="goToday"
         >
           Today
@@ -153,8 +153,8 @@ const yearMonths = computed(() =>
           :class="[
             'text-xs px-3 py-1 rounded-lg border transition-colors',
             showYearView
-              ? 'border-amber-500 text-amber-400'
-              : 'border-tribal-border text-zinc-400 hover:border-amber-500/50 hover:text-white',
+              ? 'border-status-warning text-status-warning'
+              : 'border-tribal-border text-zinc-400 hover:border-status-warning/50 hover:text-white',
           ]"
           @click="showYearView = !showYearView"
         >
@@ -188,11 +188,11 @@ const yearMonths = computed(() =>
             cell.iso
               ? 'cursor-pointer hover:bg-tribal-card'
               : 'opacity-0 pointer-events-none',
-            cell.iso === todayISO ? 'ring-2 ring-amber-500' : '',
-            cellColor(cell.iso) === 'overdue'  ? 'bg-red-500/25 ring-1 ring-red-500/40' : '',
-            cellColor(cell.iso) === 'critical' ? 'bg-red-500/10'     : '',
-            cellColor(cell.iso) === 'amber'    ? 'bg-amber-500/10'   : '',
-            cellColor(cell.iso) === 'green'    ? 'bg-emerald-500/10' : '',
+            cell.iso === todayISO ? 'ring-2 ring-status-warning' : '',
+            cellColor(cell.iso) === 'overdue'  ? 'bg-status-overdue/20 ring-1 ring-status-overdue/35' : '',
+            cellColor(cell.iso) === 'critical' ? 'bg-status-critical/15'  : '',
+            cellColor(cell.iso) === 'amber'    ? 'bg-status-warning/10'   : '',
+            cellColor(cell.iso) === 'green'    ? 'bg-accent-green/10' : '',
           ]"
           @click="cell.iso && emit('date-click', cell.iso)"
         >
@@ -200,7 +200,7 @@ const yearMonths = computed(() =>
             v-if="cell.day"
             :class="[
               'text-xs font-medium',
-              cell.iso === todayISO ? 'text-amber-400' : 'text-zinc-300',
+              cell.iso === todayISO ? 'text-status-warning' : 'text-zinc-300',
             ]"
           >
             {{ cell.day }}
@@ -241,11 +241,11 @@ const yearMonths = computed(() =>
               :class="[
                 'w-4 h-4 rounded-sm flex items-center justify-center text-[9px]',
                 !cell.day ? 'opacity-0' : '',
-                cell.iso === todayISO ? 'ring-1 ring-amber-500 text-amber-400' : 'text-zinc-500',
-                cellColor(cell.iso) === 'overdue'  ? 'bg-red-600/70 text-red-100 font-bold' : '',
-                cellColor(cell.iso) === 'critical' ? 'bg-red-500/30 text-red-300'         : '',
-                cellColor(cell.iso) === 'amber'    ? 'bg-amber-500/20 text-amber-300'     : '',
-                cellColor(cell.iso) === 'green'    ? 'bg-emerald-500/20 text-emerald-300' : '',
+                cell.iso === todayISO ? 'ring-1 ring-status-warning text-status-warning' : 'text-zinc-500',
+                cellColor(cell.iso) === 'overdue'  ? 'bg-status-overdue/60 text-zinc-100 font-bold' : '',
+                cellColor(cell.iso) === 'critical' ? 'bg-status-critical/30 text-status-critical'   : '',
+                cellColor(cell.iso) === 'amber'    ? 'bg-status-warning/20 text-status-warning'     : '',
+                cellColor(cell.iso) === 'green'    ? 'bg-accent-green/20 text-accent-green-light' : '',
               ]"
             >
               {{ cell.day ?? '' }}

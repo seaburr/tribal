@@ -27,7 +27,7 @@ const to = computed(() => Math.min(props.page * perPage.value, props.total))
           'px-3 py-1.5 rounded-lg border transition-colors',
           page <= 1
             ? 'border-tribal-border text-zinc-600 cursor-not-allowed'
-            : 'border-tribal-border hover:border-blue-500/50 hover:text-blue-400',
+            : 'border-tribal-border hover:border-accent-blue/50 hover:text-accent-blue',
         ]"
         @click="emit('update:page', page - 1)"
       >
@@ -39,7 +39,7 @@ const to = computed(() => Math.min(props.page * perPage.value, props.total))
           'px-3 py-1.5 rounded-lg border transition-colors',
           page >= totalPages
             ? 'border-tribal-border text-zinc-600 cursor-not-allowed'
-            : 'border-tribal-border hover:border-blue-500/50 hover:text-blue-400',
+            : 'border-tribal-border hover:border-accent-blue/50 hover:text-accent-blue',
         ]"
         @click="emit('update:page', page + 1)"
       >

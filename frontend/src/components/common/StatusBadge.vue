@@ -29,15 +29,15 @@ const label = computed(() => {
 const cls = computed(() => {
   switch (u.value) {
     case 'overdue':
-      return 'bg-red-500/20 text-red-400 border border-red-500/30'
+      return 'bg-status-overdue/15 text-status-overdue border border-status-overdue/25'
     case 'critical':
-      return 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
+      return 'bg-status-critical/15 text-status-critical border border-status-critical/25'
     case 'warning':
-      return 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+      return 'bg-status-warning/15 text-status-warning border border-status-warning/25'
     case 'upcoming':
-      return 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
+      return 'bg-status-upcoming/15 text-status-upcoming border border-status-upcoming/25'
     case 'ok':
-      return 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+      return 'bg-accent-green/20 text-accent-green border border-accent-green/30'
     case 'none':
       return 'bg-zinc-700/50 text-zinc-400'
   }

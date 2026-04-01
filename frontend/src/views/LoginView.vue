@@ -85,7 +85,7 @@ async function handleRegister() {
             :class="[
               'pb-3 px-1 mr-6 text-sm font-medium transition-colors',
               activeTab === 'signin'
-                ? 'text-blue-400 border-b-2 border-blue-400'
+                ? 'text-accent-blue border-b-2 border-accent-blue'
                 : 'text-zinc-400 hover:text-zinc-200',
             ]"
             @click="activeTab = 'signin'; error = ''"
@@ -96,7 +96,7 @@ async function handleRegister() {
             :class="[
               'pb-3 px-1 text-sm font-medium transition-colors',
               activeTab === 'register'
-                ? 'text-blue-400 border-b-2 border-blue-400'
+                ? 'text-accent-blue border-b-2 border-accent-blue'
                 : 'text-zinc-400 hover:text-zinc-200',
             ]"
             @click="activeTab = 'register'; error = ''"
@@ -114,7 +114,7 @@ async function handleRegister() {
               type="email"
               required
               placeholder="you@example.com"
-              class="w-full bg-tribal-card border border-tribal-border rounded-lg px-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 transition-colors"
+              class="w-full bg-tribal-card border border-tribal-border rounded-lg px-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-accent-blue transition-colors"
             />
           </div>
           <div>
@@ -124,16 +124,16 @@ async function handleRegister() {
               type="password"
               required
               placeholder="••••••••"
-              class="w-full bg-tribal-card border border-tribal-border rounded-lg px-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 transition-colors"
+              class="w-full bg-tribal-card border border-tribal-border rounded-lg px-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-accent-blue transition-colors"
             />
           </div>
-          <div v-if="error" class="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
+          <div v-if="error" class="text-danger text-sm bg-danger/10 border border-danger/20 rounded-lg px-3 py-2">
             {{ error }}
           </div>
           <button
             type="submit"
             :disabled="loading"
-            class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg px-4 py-2.5 transition-colors disabled:opacity-50"
+            class="w-full bg-accent-blue-dark hover:bg-accent-blue text-white font-semibold rounded-lg px-4 py-2.5 transition-colors disabled:opacity-50"
           >
             {{ loading ? 'Signing in...' : 'Sign In' }}
           </button>
@@ -147,7 +147,7 @@ async function handleRegister() {
               v-model="registerForm.display_name"
               type="text"
               placeholder="Your Name"
-              class="w-full bg-tribal-card border border-tribal-border rounded-lg px-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 transition-colors"
+              class="w-full bg-tribal-card border border-tribal-border rounded-lg px-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-accent-blue transition-colors"
             />
           </div>
           <div>
@@ -157,7 +157,7 @@ async function handleRegister() {
               type="email"
               required
               placeholder="you@example.com"
-              class="w-full bg-tribal-card border border-tribal-border rounded-lg px-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 transition-colors"
+              class="w-full bg-tribal-card border border-tribal-border rounded-lg px-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-accent-blue transition-colors"
             />
           </div>
           <div>
@@ -167,16 +167,16 @@ async function handleRegister() {
               type="password"
               required
               placeholder="Min 8 chars, 1 digit, 1 special"
-              class="w-full bg-tribal-card border border-tribal-border rounded-lg px-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 transition-colors"
+              class="w-full bg-tribal-card border border-tribal-border rounded-lg px-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-accent-blue transition-colors"
             />
           </div>
-          <div v-if="error" class="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
+          <div v-if="error" class="text-danger text-sm bg-danger/10 border border-danger/20 rounded-lg px-3 py-2">
             {{ error }}
           </div>
           <button
             type="submit"
             :disabled="loading"
-            class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg px-4 py-2.5 transition-colors disabled:opacity-50"
+            class="w-full bg-accent-blue-dark hover:bg-accent-blue text-white font-semibold rounded-lg px-4 py-2.5 transition-colors disabled:opacity-50"
           >
             {{ loading ? 'Creating account...' : 'Create Account' }}
           </button>

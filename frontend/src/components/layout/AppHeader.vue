@@ -77,7 +77,7 @@ async function saveTimezone() {
       <!-- Add Resource button (hidden for readonly users) -->
       <button
         v-if="authStore.user && !authStore.user.is_readonly"
-        class="bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg transition-colors"
+        class="bg-accent-blue-dark hover:bg-accent-blue text-white font-semibold rounded-lg transition-colors"
         :class="['sm:px-4 sm:py-2 sm:text-sm', 'px-2.5 py-2']"
         :title="'Add Resource'"
         @click="$emit('add-resource')"
@@ -129,13 +129,13 @@ async function saveTimezone() {
               <div v-if="changingTimezone" class="flex flex-col gap-1.5">
                 <select
                   v-model="pendingTimezone"
-                  class="w-full bg-tribal-muted border border-tribal-border rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500 transition-colors"
+                  class="w-full bg-tribal-muted border border-tribal-border rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-accent-blue transition-colors"
                 >
                   <option v-for="tz in timezones" :key="tz" :value="tz">{{ tz }}</option>
                 </select>
                 <div class="flex gap-2">
                   <button
-                    class="flex-1 text-xs bg-blue-600 hover:bg-blue-500 text-white rounded-md px-2 py-1 transition-colors"
+                    class="flex-1 text-xs bg-accent-blue-dark hover:bg-accent-blue text-white rounded-md px-2 py-1 transition-colors"
                     @click="saveTimezone"
                   >
                     Save
@@ -151,7 +151,7 @@ async function saveTimezone() {
               <div v-else class="flex items-center justify-between gap-2">
                 <p class="text-xs text-white truncate">{{ currentTimezone }}</p>
                 <button
-                  class="text-xs text-blue-400 hover:text-blue-300 transition-colors shrink-0"
+                  class="text-xs text-accent-blue hover:text-accent-blue-light transition-colors shrink-0"
                   @click="startChangingTimezone"
                 >
                   Change
@@ -166,7 +166,7 @@ async function saveTimezone() {
               🔑 API Keys
             </button>
             <button
-              class="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors"
+              class="w-full text-left px-4 py-2.5 text-sm text-danger hover:text-danger-light hover:bg-danger/10 transition-colors"
               @click="authStore.signOut()"
             >
               Sign Out
