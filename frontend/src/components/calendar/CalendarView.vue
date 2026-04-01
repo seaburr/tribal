@@ -48,8 +48,8 @@ function buildCells(y: number, m: number) {
   for (let d = 1; d <= daysInMonth; d++) {
     cells.push({ day: d, iso: isoDate(y, m, d) })
   }
-  // Pad to full weeks
-  while (cells.length % 7 !== 0) {
+  // Pad to always 6 rows (42 cells) for a consistent calendar height
+  while (cells.length < 42) {
     cells.push({ day: null, iso: null })
   }
   return cells
@@ -126,13 +126,13 @@ const yearMonths = computed(() =>
   <div class="bg-tribal-panel rounded-xl border border-tribal-border p-4">
     <!-- Header -->
     <div class="flex items-center justify-between mb-4">
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-1">
         <button
           class="text-zinc-400 hover:text-white transition-colors p-2 rounded hover:bg-tribal-card min-w-[2rem] min-h-[2rem]"
           :aria-label="showYearView ? 'Previous year' : 'Previous month'"
           @click="showYearView ? calYear-- : prevMonth()"
         >◀</button>
-        <span class="font-semibold text-white min-w-40 text-center">
+        <span class="font-semibold text-white text-center px-1">
           <template v-if="showYearView">{{ calYear }}</template>
           <template v-else>{{ MONTH_NAMES[calMonth] }} {{ calYear }}</template>
         </span>
@@ -163,10 +163,13 @@ const yearMonths = computed(() =>
       </div>
     </div>
 
+    <!-- Fixed-height body shared by both views -->
+    <div class="h-[520px] flex flex-col">
+
     <!-- Month view -->
     <template v-if="!showYearView">
       <!-- Day name headers -->
-      <div class="grid grid-cols-7 mb-1">
+      <div class="grid grid-cols-7 mb-1 shrink-0">
         <div
           v-for="name in DAY_NAMES"
           :key="name"
@@ -175,13 +178,13 @@ const yearMonths = computed(() =>
           {{ name }}
         </div>
       </div>
-      <!-- Day cells -->
-      <div class="grid grid-cols-7 gap-0.5">
+      <!-- Day cells — flex-1 + grid-auto-rows:1fr makes cells fill the height and stay square -->
+      <div class="flex-1 grid grid-cols-7 gap-0.5" style="grid-auto-rows: 1fr">
         <div
           v-for="(cell, i) in cells"
           :key="i"
           :class="[
-            'relative min-h-12 rounded-lg p-1 text-sm transition-colors',
+            'relative rounded-lg p-1 text-sm transition-colors',
             cell.iso
               ? 'cursor-pointer hover:bg-tribal-card'
               : 'opacity-0 pointer-events-none',
@@ -223,11 +226,11 @@ const yearMonths = computed(() =>
 
     <!-- Year view -->
     <template v-else>
-      <div class="grid grid-cols-3 gap-4">
+      <div class="grid grid-cols-3 gap-2">
         <div
           v-for="month in yearMonths"
           :key="month.m"
-          class="cursor-pointer rounded-lg p-2 hover:bg-tribal-card/50 transition-colors"
+          class="cursor-pointer rounded-lg p-1 hover:bg-tribal-card/50 transition-colors"
           @click="calMonth = month.m; showYearView = false"
         >
           <p class="text-xs font-semibold text-zinc-400 mb-1 text-center">{{ month.label }}</p>
@@ -251,5 +254,7 @@ const yearMonths = computed(() =>
         </div>
       </div>
     </template>
+
+    </div> <!-- end fixed-height body -->
   </div>
 </template>
