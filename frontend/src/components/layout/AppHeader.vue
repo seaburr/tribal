@@ -68,7 +68,7 @@ async function saveTimezone() {
   <header class="bg-tribal-panel border-b border-tribal-border px-4 sm:px-6 py-3 flex items-center justify-between">
     <!-- Left: Logo + Brand -->
     <div class="flex items-center gap-3">
-      <img src="/tribal_logo.png" alt="Tribal" class="h-6 w-6 object-contain" />
+      <img src="/tribal_logo.png" alt="Tribal" class="h-6 w-6 object-contain" width="24" height="24" />
       <span class="text-white font-bold text-lg tracking-tight">Tribal</span>
     </div>
 
@@ -93,6 +93,8 @@ async function saveTimezone() {
         <button
           class="flex items-center gap-2 text-zinc-300 hover:text-white transition-colors rounded-lg hover:bg-tribal-card"
           :class="['sm:px-3 sm:py-2 sm:text-sm', 'px-2 py-2']"
+          :aria-label="menuOpen ? 'Close account menu' : 'Open account menu'"
+          :aria-expanded="menuOpen"
           @click="menuOpen = !menuOpen"
         >
           <!-- Mobile: user icon only -->

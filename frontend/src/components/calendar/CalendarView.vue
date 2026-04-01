@@ -128,7 +128,8 @@ const yearMonths = computed(() =>
     <div class="flex items-center justify-between mb-4">
       <div class="flex items-center gap-2">
         <button
-          class="text-zinc-400 hover:text-white transition-colors p-1 rounded hover:bg-tribal-card"
+          class="text-zinc-400 hover:text-white transition-colors p-2 rounded hover:bg-tribal-card min-w-[2rem] min-h-[2rem]"
+          :aria-label="showYearView ? 'Previous year' : 'Previous month'"
           @click="showYearView ? calYear-- : prevMonth()"
         >◀</button>
         <span class="font-semibold text-white min-w-40 text-center">
@@ -136,7 +137,8 @@ const yearMonths = computed(() =>
           <template v-else>{{ MONTH_NAMES[calMonth] }} {{ calYear }}</template>
         </span>
         <button
-          class="text-zinc-400 hover:text-white transition-colors p-1 rounded hover:bg-tribal-card"
+          class="text-zinc-400 hover:text-white transition-colors p-2 rounded hover:bg-tribal-card min-w-[2rem] min-h-[2rem]"
+          :aria-label="showYearView ? 'Next year' : 'Next month'"
           @click="showYearView ? calYear++ : nextMonth()"
         >▶</button>
       </div>

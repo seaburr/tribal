@@ -28,7 +28,8 @@ const emit = defineEmits<{
           <div class="flex items-center justify-between px-6 py-4 border-b border-tribal-border">
             <h2 class="text-lg font-semibold text-white">{{ title }}</h2>
             <button
-              class="text-zinc-400 hover:text-white transition-colors p-1 rounded"
+              class="text-zinc-400 hover:text-white transition-colors p-2 rounded min-w-[2rem] min-h-[2rem]"
+              aria-label="Close"
               @click="emit('close')"
             >
               <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

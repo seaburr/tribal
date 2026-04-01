@@ -8,6 +8,13 @@ export default defineConfig({
   build: {
     outDir: '../static',
     emptyOutDir: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vue: ['vue', 'pinia', '@vueuse/core'],
+        },
+      },
+    },
   },
   resolve: {
     alias: {

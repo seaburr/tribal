@@ -1,17 +1,17 @@
 <script setup lang="ts">
-import { ref, provide, computed, onMounted } from 'vue'
+import { ref, provide, computed, onMounted, defineAsyncComponent } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import { useResourcesStore } from '../stores/resources'
 import { useToast } from '../composables/useToast'
 import AppHeader from '../components/layout/AppHeader.vue'
 import OverviewTab from '../components/overview/OverviewTab.vue'
 import ResourcesTab from '../components/resources/ResourcesTab.vue'
-import AdminTab from '../components/admin/AdminTab.vue'
-import DocsTab from '../components/docs/DocsTab.vue'
 import ResourceModal from '../components/resources/ResourceModal.vue'
 import ResourceDetailModal from '../components/resources/ResourceDetailModal.vue'
 import DeleteConfirmModal from '../components/resources/DeleteConfirmModal.vue'
 import ApiKeysModal from '../components/keys/ApiKeysModal.vue'
+const AdminTab = defineAsyncComponent(() => import('../components/admin/AdminTab.vue'))
+const DocsTab = defineAsyncComponent(() => import('../components/docs/DocsTab.vue'))
 import { deleteResource } from '../api/resources'
 import type { Resource } from '../types'
 
