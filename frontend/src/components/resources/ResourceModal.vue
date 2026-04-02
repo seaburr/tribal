@@ -231,15 +231,22 @@ async function handleSave() {
       <!-- Type -->
       <div>
         <label class="block text-sm font-medium text-zinc-300 mb-1">Type</label>
-        <select
-          v-model="form.type"
-          class="w-full bg-tribal-card border border-tribal-border rounded-lg px-3 pr-8 py-2 text-white focus:outline-none focus:border-accent-blue transition-colors"
-        >
-          <option value="Certificate">Certificate</option>
-          <option value="API Key">API Key</option>
-          <option value="SSH Key">SSH Key</option>
-          <option value="Other">Other</option>
-        </select>
+        <div class="relative">
+          <select
+            v-model="form.type"
+            class="w-full appearance-none bg-tribal-card border border-tribal-border rounded-lg px-3 pr-10 py-2 text-white focus:outline-none focus:border-accent-blue transition-colors"
+          >
+            <option value="Certificate">Certificate</option>
+            <option value="API Key">API Key</option>
+            <option value="SSH Key">SSH Key</option>
+            <option value="Other">Other</option>
+          </select>
+          <div class="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+            <svg class="w-4 h-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+        </div>
       </div>
 
       <!-- Certificate-specific: endpoint lookup -->
@@ -321,13 +328,20 @@ async function handleSave() {
       <!-- Team -->
       <div v-if="teams.length > 0">
         <label class="block text-sm font-medium text-zinc-300 mb-1">Team</label>
-        <select
-          v-model="form.team_id"
-          class="w-full bg-tribal-card border border-tribal-border rounded-lg px-3 pr-8 py-2 text-white focus:outline-none focus:border-accent-blue transition-colors"
-        >
-          <option :value="null">No team</option>
-          <option v-for="team in teams" :key="team.id" :value="team.id">{{ team.name }}</option>
-        </select>
+        <div class="relative">
+          <select
+            v-model="form.team_id"
+            class="w-full appearance-none bg-tribal-card border border-tribal-border rounded-lg px-3 pr-10 py-2 text-white focus:outline-none focus:border-accent-blue transition-colors"
+          >
+            <option :value="null">No team</option>
+            <option v-for="team in teams" :key="team.id" :value="team.id">{{ team.name }}</option>
+          </select>
+          <div class="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+            <svg class="w-4 h-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+        </div>
       </div>
 
       <!-- Purpose -->

@@ -330,12 +330,19 @@ async function handlePurge(id: number, name: string) {
         <div>
           <label class="block text-sm font-medium text-zinc-300 mb-1">Notify hour (UTC)</label>
           <p class="text-zinc-500 text-xs mb-1">Notifications are dispatched once daily at this hour.</p>
-          <select
-            v-model.number="settingsForm.notify_hour"
-            class="bg-tribal-card border border-tribal-border rounded-lg px-3 pr-8 py-2 text-white focus:outline-none focus:border-accent-blue transition-colors"
-          >
-            <option v-for="h in 24" :key="h - 1" :value="h - 1">{{ String(h - 1).padStart(2, '0') }}:00 UTC</option>
-          </select>
+          <div class="relative inline-block">
+            <select
+              v-model.number="settingsForm.notify_hour"
+              class="appearance-none bg-tribal-card border border-tribal-border rounded-lg px-3 pr-10 py-2 text-white focus:outline-none focus:border-accent-blue transition-colors"
+            >
+              <option v-for="h in 24" :key="h - 1" :value="h - 1">{{ String(h - 1).padStart(2, '0') }}:00 UTC</option>
+            </select>
+            <div class="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+              <svg class="w-4 h-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </div>
           <p v-if="notifyHourLocalHint" class="text-zinc-500 text-xs mt-1">≈ {{ notifyHourLocalHint }}</p>
         </div>
 
@@ -343,15 +350,22 @@ async function handlePurge(id: number, name: string) {
         <div>
           <label class="block text-sm font-medium text-zinc-300 mb-1">Periodic review cadence</label>
           <p class="text-zinc-500 text-xs mb-1">When enabled, resources not reviewed within this window will be flagged as overdue for review. Members can mark a resource reviewed from its detail view.</p>
-          <select
-            v-model="settingsForm.review_cadence_months"
-            class="bg-tribal-card border border-tribal-border rounded-lg px-3 pr-8 py-2 text-white focus:outline-none focus:border-accent-blue transition-colors"
-          >
-            <option :value="null">Disabled</option>
-            <option :value="6">Every 6 months</option>
-            <option :value="12">Every 12 months</option>
-            <option :value="24">Every 24 months</option>
-          </select>
+          <div class="relative inline-block">
+            <select
+              v-model="settingsForm.review_cadence_months"
+              class="appearance-none bg-tribal-card border border-tribal-border rounded-lg px-3 pr-10 py-2 text-white focus:outline-none focus:border-accent-blue transition-colors"
+            >
+              <option :value="null">Disabled</option>
+              <option :value="6">Every 6 months</option>
+              <option :value="12">Every 12 months</option>
+              <option :value="24">Every 24 months</option>
+            </select>
+            <div class="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+              <svg class="w-4 h-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </div>
         </div>
 
         <!-- Slack webhook -->
@@ -458,16 +472,23 @@ async function handlePurge(id: number, name: string) {
                 <span v-if="user.is_account_creator" class="text-xs text-accent-blue">Account Creator</span>
               </td>
               <td class="px-4 py-3">
-                <select
-                  :value="getUserRole(user)"
-                  :disabled="user.id === authStore.user?.id || user.is_account_creator"
-                  class="bg-tribal-card border border-tribal-border rounded px-2 pr-7 py-1 text-white text-sm focus:outline-none focus:border-accent-blue disabled:opacity-50 disabled:cursor-not-allowed"
-                  @change="handleRoleChange(user.id, ($event.target as HTMLSelectElement).value)"
-                >
-                  <option value="admin">Admin</option>
-                  <option value="member">Member</option>
-                  <option value="readonly">Read-only</option>
-                </select>
+                <div class="relative inline-block">
+                  <select
+                    :value="getUserRole(user)"
+                    :disabled="user.id === authStore.user?.id || user.is_account_creator"
+                    class="appearance-none bg-tribal-card border border-tribal-border rounded px-2 pr-8 py-1 text-white text-sm focus:outline-none focus:border-accent-blue disabled:opacity-50 disabled:cursor-not-allowed"
+                    @change="handleRoleChange(user.id, ($event.target as HTMLSelectElement).value)"
+                  >
+                    <option value="admin">Admin</option>
+                    <option value="member">Member</option>
+                    <option value="readonly">Read-only</option>
+                  </select>
+                  <div class="pointer-events-none absolute inset-y-0 right-2 flex items-center">
+                    <svg class="w-3.5 h-3.5 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
               </td>
               <td class="px-4 py-3 text-right">
                 <button

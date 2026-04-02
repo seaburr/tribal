@@ -155,10 +155,14 @@ const activeKeys = () => keys.value.filter(k => !k.revoked_at)
               <td class="px-3 py-2.5 text-zinc-400 text-xs">{{ formatDateTime(key.last_used_at) }}</td>
               <td class="px-3 py-2.5 text-right">
                 <button
-                  class="text-danger hover:text-danger-light text-xs transition-colors"
+                  class="text-danger hover:text-danger-light transition-colors p-1"
+                  title="Revoke API key"
                   @click="handleRevoke(key.id)"
                 >
-                  Revoke
+                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <circle cx="12" cy="12" r="9" stroke-width="2" />
+                    <path stroke-linecap="round" stroke-width="2" d="M4.929 4.929l14.142 14.142" />
+                  </svg>
                 </button>
               </td>
             </tr>

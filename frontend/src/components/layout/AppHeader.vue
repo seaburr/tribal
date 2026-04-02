@@ -127,12 +127,19 @@ async function saveTimezone() {
             <div class="px-4 py-2.5 border-b border-tribal-border">
               <p class="text-xs text-zinc-500 mb-1">Timezone</p>
               <div v-if="changingTimezone" class="flex flex-col gap-1.5">
-                <select
-                  v-model="pendingTimezone"
-                  class="w-full bg-tribal-muted border border-tribal-border rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-accent-blue transition-colors"
-                >
-                  <option v-for="tz in timezones" :key="tz" :value="tz">{{ tz }}</option>
-                </select>
+                <div class="relative">
+                  <select
+                    v-model="pendingTimezone"
+                    class="w-full appearance-none bg-tribal-muted border border-tribal-border rounded-lg px-2 pr-7 py-1.5 text-xs text-white focus:outline-none focus:border-accent-blue transition-colors"
+                  >
+                    <option v-for="tz in timezones" :key="tz" :value="tz">{{ tz }}</option>
+                  </select>
+                  <div class="pointer-events-none absolute inset-y-0 right-2 flex items-center">
+                    <svg class="w-3.5 h-3.5 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
                 <div class="flex gap-2">
                   <button
                     class="flex-1 text-xs bg-accent-blue-dark hover:bg-accent-blue text-white rounded-md px-2 py-1 transition-colors"
