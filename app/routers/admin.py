@@ -289,7 +289,11 @@ def list_deleted_resources(db: Session = Depends(get_db)):
 
 
 @router.post("/resources/{resource_id}/restore", response_model=schemas.ResourceResponse)
-def restore_resource(resource_id: int, db: Session = Depends(get_db)):
+def restore_resource(
+    resource_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
     resource = (
         db.query(models.Resource)
         .filter(models.Resource.id == resource_id, models.Resource.deleted_at.isnot(None))
@@ -301,6 +305,14 @@ def restore_resource(resource_id: int, db: Session = Depends(get_db)):
     resource.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(resource)
+    write_audit(
+        db,
+        "resource.restore",
+        user_email=current_user.email,
+        resource_id=resource.id,
+        resource_name=resource.name,
+        detail={"type": resource.type},
+    )
     return resource
 
 

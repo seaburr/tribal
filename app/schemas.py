@@ -1,7 +1,23 @@
 from datetime import date, datetime
 from typing import Optional
+from urllib.parse import urlparse
 
 from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
+
+
+def _validate_https_url(v: Optional[str]) -> Optional[str]:
+    """Reject non-HTTPS and malformed URLs. Accepts None (optional fields)."""
+    if v is None:
+        return v
+    try:
+        parsed = urlparse(v)
+    except Exception:
+        raise ValueError("Invalid URL.")
+    if parsed.scheme != "https":
+        raise ValueError("URL must use HTTPS (https://).")
+    if not parsed.netloc:
+        raise ValueError("Invalid URL: missing host.")
+    return v
 
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
@@ -55,6 +71,11 @@ class AdminSettingsUpdate(BaseModel):
     alert_on_delete: bool = False
     alert_on_review_overdue: bool = False
     review_cadence_months: Optional[int] = None
+
+    @field_validator("slack_webhook")
+    @classmethod
+    def validate_slack_webhook(cls, v):
+        return _validate_https_url(v)
 
 
 class TeamCreate(BaseModel):
@@ -151,6 +172,11 @@ def normalize_resource_type(v: str) -> str:
 class WebhookTestRequest(BaseModel):
     webhook_url: str
 
+    @field_validator("webhook_url")
+    @classmethod
+    def validate_webhook_url(cls, v):
+        return _validate_https_url(v)
+
 
 class CertLookupRequest(BaseModel):
     endpoint: str
@@ -185,6 +211,16 @@ class ResourceCreate(BaseModel):
     def parse_date(cls, v):
         return _parse_date(v)
 
+    @field_validator("slack_webhook")
+    @classmethod
+    def validate_slack_webhook(cls, v):
+        return _validate_https_url(v)
+
+    @field_validator("certificate_url", "secret_manager_link")
+    @classmethod
+    def validate_optional_urls(cls, v):
+        return _validate_https_url(v)
+
     @model_validator(mode="after")
     def require_date_unless_no_expiry(self):
         if not self.does_not_expire and self.expiration_date is None:
@@ -218,6 +254,11 @@ class ResourceUpdate(BaseModel):
     @classmethod
     def parse_date(cls, v):
         return _parse_date(v)
+
+    @field_validator("slack_webhook", "certificate_url", "secret_manager_link")
+    @classmethod
+    def validate_optional_urls(cls, v):
+        return _validate_https_url(v)
 
 
 class ResourceResponse(BaseModel):

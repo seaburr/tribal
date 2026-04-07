@@ -70,21 +70,27 @@ def test_cert_expiry_accepts_host_port():
     assert isinstance(expiry, date)
 
 
+def _public_getaddrinfo(hostname, port, **kwargs):
+    """Stub getaddrinfo that returns a public IP so the SSRF guard passes."""
+    return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("1.1.1.1", port))]
+
+
 def test_cert_expiry_timeout(monkeypatch):
+    monkeypatch.setattr("app.cert_utils.socket.getaddrinfo", _public_getaddrinfo)
     monkeypatch.setattr(
         "app.cert_utils.socket.create_connection",
         lambda *a, **kw: (_ for _ in ()).throw(socket.timeout()),
     )
     with pytest.raises(socket.timeout):
-        fetch_cert_expiry_from_endpoint("unreachable.internal")
+        fetch_cert_expiry_from_endpoint("unreachable.example.com")
 
 
 def test_cert_expiry_bad_hostname(monkeypatch):
     monkeypatch.setattr(
-        "app.cert_utils.socket.create_connection",
+        "app.cert_utils.socket.getaddrinfo",
         lambda *a, **kw: (_ for _ in ()).throw(socket.gaierror("Name or service not known")),
     )
-    with pytest.raises(socket.gaierror):
+    with pytest.raises(ValueError, match="Could not resolve"):
         fetch_cert_expiry_from_endpoint("not-a-real-host.invalid")
 
 

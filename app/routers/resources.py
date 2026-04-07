@@ -19,6 +19,7 @@ router = APIRouter(prefix="/api/resources", tags=["resources"])
 BLOCKED_EXTENSIONS = {".key", ".p12", ".p7b", ".pfx"}
 ALLOWED_EXTENSIONS = {".pem", ".crt", ".cer"}
 PRIVATE_KEY_MARKERS = ["PRIVATE KEY", "RSA PRIVATE", "EC PRIVATE", "ENCRYPTED PRIVATE", "DSA PRIVATE"]
+MAX_CERT_UPLOAD_BYTES = 65_536  # 64 KB — sufficient for any real certificate chain
 
 
 _TYPE_DISPLAY: dict[str, str] = {
@@ -43,6 +44,10 @@ def _active(db: Session):
     return db.query(models.Resource).filter(models.Resource.deleted_at.is_(None))
 
 
+import logging as _logging
+_rlog = _logging.getLogger(__name__)
+
+
 def _audit(db: Session, action: str, resource: models.Resource, user: Optional[models.User], detail: Optional[dict] = None, via: str = "ui"):
     try:
         db.add(models.AuditLog(
@@ -54,7 +59,7 @@ def _audit(db: Session, action: str, resource: models.Resource, user: Optional[m
         ))
         db.commit()
     except Exception:
-        pass  # audit logging must never break the main flow
+        _rlog.exception("Failed to write audit log for action %r on resource %d", action, resource.id)
 
 
 @router.get("/teams", response_model=list[schemas.TeamResponse])
@@ -503,7 +508,9 @@ async def upload_certificate(
     if ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(status_code=400, detail="Only .pem, .crt, and .cer files are allowed.")
 
-    content = await file.read()
+    content = await file.read(MAX_CERT_UPLOAD_BYTES + 1)
+    if len(content) > MAX_CERT_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="Certificate file is too large. Maximum allowed size is 64 KB.")
 
     try:
         text = content.decode("utf-8", errors="replace")

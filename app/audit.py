@@ -1,9 +1,12 @@
 """Shared audit log helper — usable by any router without circular imports."""
+import logging
 from typing import Optional
 
 from sqlalchemy.orm import Session
 
 from . import models
+
+_log = logging.getLogger(__name__)
 
 
 def write_audit(
@@ -26,4 +29,5 @@ def write_audit(
         ))
         db.commit()
     except Exception:
-        pass
+        _log.exception("Failed to write audit log for action %r", action)
+
