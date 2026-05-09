@@ -96,6 +96,23 @@ class Resource(Base):
     deleted_at = Column(DateTime, nullable=True, default=None)
 
 
+class AppSecret(Base):
+    """Server-managed secrets that must persist across restarts (e.g. JWT signing key).
+
+    The JWT signing key is generated on first startup and rotated via
+    POST /admin/rotate-jwt-secret. Storing it in the DB removes the need for
+    a JWT_SECRET env var while keeping sessions stable across container
+    restarts and deploys.
+    """
+    __tablename__ = "app_secrets"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(64), unique=True, nullable=False, index=True)
+    value = Column(String(255), nullable=False)
+    created_at = Column(DateTime, default=_utcnow)
+    updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)
+
+
 class ReminderLog(Base):
     __tablename__ = "reminder_logs"
 

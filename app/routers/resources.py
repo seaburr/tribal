@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from .. import models, schemas
 from ..database import get_db
 from ..dependencies import get_current_user, require_write_access
-from ..cert_utils import extract_expiry_from_pem, fetch_cert_expiry_from_endpoint
+from ..cert_utils import assert_public_url, extract_expiry_from_pem, fetch_cert_expiry_from_endpoint
 from ..scheduler import send_deletion_notification, send_admin_deletion_notification, _TRIBAL_FOOTER
 from .. import providers
 
@@ -115,6 +115,10 @@ async def test_webhook(
             _TRIBAL_FOOTER,
         ],
     }
+    try:
+        assert_public_url(req.webhook_url)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     try:
         async with httpx.AsyncClient() as client:
             r = await client.post(req.webhook_url, json=payload, timeout=10)

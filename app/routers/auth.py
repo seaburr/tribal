@@ -50,7 +50,7 @@ def register(req: schemas.RegisterRequest, request: Request, db: Session = Depen
     db.commit()
     db.refresh(user)
     write_audit(db, "user.create", user_email=user.email, detail={"is_admin": user.is_admin})
-    token = create_access_token(user.id)
+    token = create_access_token(user.id, db=db)
     response = JSONResponse(
         status_code=201,
         content={"id": user.id, "email": user.email, "display_name": user.display_name},
@@ -66,7 +66,7 @@ async def login(req: schemas.LoginRequest, request: Request, db: Session = Depen
         await asyncio.sleep(1)  # slow brute-force
         raise HTTPException(status_code=401, detail="Incorrect email or password.")
     write_audit(db, "user.login", user_email=user.email)
-    token = create_access_token(user.id)
+    token = create_access_token(user.id, db=db)
     response = JSONResponse(
         content={"id": user.id, "email": user.email, "display_name": user.display_name}
     )

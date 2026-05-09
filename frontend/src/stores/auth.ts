@@ -32,9 +32,12 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function signOut() {
-    await apiLogout()
     user.value = null
-    window.location.href = '/login'
+    try {
+      await apiLogout()
+    } finally {
+      window.location.href = '/login'
+    }
   }
 
   return { user, loaded, load, signOut, setTimezone }

@@ -30,6 +30,20 @@ def _assert_public_host(hostname: str, port: int) -> None:
             )
 
 
+def assert_public_url(url: str) -> None:
+    """Raise ValueError if the URL's hostname resolves to a non-public address.
+
+    Defense-in-depth wrapper for use before issuing outbound HTTP requests to
+    user-supplied URLs (e.g. Slack webhooks, certificate URLs).
+    """
+    parsed = urlparse(url)
+    hostname = parsed.hostname
+    if not hostname:
+        raise ValueError("URL is missing a hostname.")
+    port = parsed.port or (443 if parsed.scheme == "https" else 80)
+    _assert_public_host(hostname, port)
+
+
 def fetch_cert_expiry_from_endpoint(endpoint: str) -> date:
     """Connect to a TLS endpoint and return the certificate's expiry date.
 

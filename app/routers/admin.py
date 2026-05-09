@@ -9,6 +9,8 @@ from sqlalchemy.orm import Session
 
 from .. import models, schemas
 from ..audit import write_audit
+from ..auth import rotate_jwt_secret
+from ..cert_utils import assert_public_url
 from ..database import get_db
 from ..dependencies import get_current_user, require_admin
 from ..scheduler import _TRIBAL_FOOTER
@@ -43,6 +45,10 @@ async def test_admin_webhook(req: schemas.WebhookTestRequest):
             _TRIBAL_FOOTER,
         ],
     }
+    try:
+        assert_public_url(req.webhook_url)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     try:
         async with httpx.AsyncClient() as client:
             r = await client.post(req.webhook_url, json=payload, timeout=10)
@@ -342,13 +348,26 @@ def purge_resource(
     db.commit()
 
 
+@router.post("/rotate-jwt-secret", status_code=204)
+def rotate_jwt_signing_key(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """Generate a new JWT signing key, invalidating all active sessions.
+
+    Admin-only. After this returns, every existing session cookie (including
+    the caller's) becomes invalid; clients must log in again.
+    """
+    rotate_jwt_secret(db)
+    write_audit(db, "admin.rotate_jwt_secret", user_email=current_user.email)
+
+
 @router.get("/audit-log", response_model=list[schemas.AuditLogEntry])
 def get_audit_log(
-    limit: int = 25,
+    limit: int = Query(default=25, ge=1, le=500),
     offset: int = Query(default=0, ge=0, le=10_000_000),
     db: Session = Depends(get_db),
 ):
-    limit = min(limit, 500)
     return (
         db.query(models.AuditLog)
         .order_by(models.AuditLog.created_at.desc())
@@ -493,7 +512,10 @@ def _add_months(d: date, months: int) -> date:
 
 
 @router.get("/reports/recent-changes")
-def report_recent_changes(days: int = 30, db: Session = Depends(get_db)):
+def report_recent_changes(
+    days: int = Query(default=30, ge=1, le=365),
+    db: Session = Depends(get_db),
+):
     since = datetime.now(timezone.utc) - timedelta(days=days)
     entries = (
         db.query(models.AuditLog)
