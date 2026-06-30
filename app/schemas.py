@@ -49,6 +49,15 @@ class UserPreferencesUpdate(BaseModel):
     timezone: Optional[str] = None
 
 
+BANNER_LEVELS = ("info", "warning", "critical")
+
+
+def _validate_banner_level(v: str) -> str:
+    if v not in BANNER_LEVELS:
+        raise ValueError(f"Banner level must be one of {', '.join(BANNER_LEVELS)}.")
+    return v
+
+
 class AdminSettingsResponse(BaseModel):
     org_name: Optional[str] = None
     reminder_days: list[int]
@@ -58,6 +67,12 @@ class AdminSettingsResponse(BaseModel):
     alert_on_delete: bool = False
     alert_on_review_overdue: bool = False
     review_cadence_months: Optional[int] = None
+    login_banner_enabled: bool = False
+    login_banner_message: Optional[str] = None
+    login_banner_level: str = "warning"
+    app_banner_enabled: bool = False
+    app_banner_message: Optional[str] = None
+    app_banner_level: str = "info"
 
     model_config = {"from_attributes": True}
 
@@ -71,11 +86,29 @@ class AdminSettingsUpdate(BaseModel):
     alert_on_delete: bool = False
     alert_on_review_overdue: bool = False
     review_cadence_months: Optional[int] = None
+    login_banner_enabled: bool = False
+    login_banner_message: Optional[str] = Field(default=None, max_length=500)
+    login_banner_level: str = "warning"
+    app_banner_enabled: bool = False
+    app_banner_message: Optional[str] = Field(default=None, max_length=500)
+    app_banner_level: str = "info"
 
     @field_validator("slack_webhook")
     @classmethod
     def validate_slack_webhook(cls, v):
         return _validate_https_url(v)
+
+    @field_validator("login_banner_level", "app_banner_level")
+    @classmethod
+    def validate_banner_level(cls, v):
+        return _validate_banner_level(v)
+
+
+class BannerResponse(BaseModel):
+    """A single announcement banner returned to clients (login or app)."""
+    enabled: bool = False
+    message: Optional[str] = None
+    level: str = "info"
 
 
 class TeamCreate(BaseModel):

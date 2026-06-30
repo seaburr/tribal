@@ -1,13 +1,17 @@
 from contextlib import asynccontextmanager
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from prometheus_client import CONTENT_TYPE_LATEST, REGISTRY, generate_latest
 from prometheus_fastapi_instrumentator import Instrumentator
+from sqlalchemy.orm import Session
 
+from . import models, schemas
 from .auth import decode_access_token
+from .database import get_db
+from .dependencies import get_current_user
 from .routers import resources
 from .routers import auth as auth_router
 from .routers import admin as admin_router
@@ -31,7 +35,7 @@ Instrumentator().instrument(app)  # .expose() intentionally omitted — see /met
 # ── Auth middleware ────────────────────────────────────────────────────────────
 # Paths that do NOT require a valid session cookie.
 _AUTH_EXEMPT_PREFIXES = ("/auth/", "/static/")
-_AUTH_EXEMPT_EXACT = {"/login", "/healthz", "/metrics"}
+_AUTH_EXEMPT_EXACT = {"/login", "/healthz", "/metrics", "/api/login-banner"}
 
 
 @app.middleware("http")
@@ -84,6 +88,37 @@ class _LabelledRegistry:
 @app.get("/metrics", include_in_schema=False)
 def metrics():
     return Response(generate_latest(_LabelledRegistry()), media_type=CONTENT_TYPE_LATEST)
+
+
+@app.get("/api/login-banner", response_model=schemas.BannerResponse, include_in_schema=False)
+def get_login_banner(db: Session = Depends(get_db)):
+    """The login-page announcement banner. Public (auth-exempt) so it can be
+    shown before sign-in. Only admins change it via /admin/settings."""
+    settings = db.get(models.AdminSettings, 1)
+    if not settings or not settings.login_banner_enabled or not settings.login_banner_message:
+        return schemas.BannerResponse(enabled=False)
+    return schemas.BannerResponse(
+        enabled=True,
+        message=settings.login_banner_message,
+        level=settings.login_banner_level,
+    )
+
+
+@app.get("/api/banner", response_model=schemas.BannerResponse)
+def get_app_banner(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """The in-app announcement banner. Readable by any authenticated user;
+    only admins can change it via /admin/settings."""
+    settings = db.get(models.AdminSettings, 1)
+    if not settings or not settings.app_banner_enabled or not settings.app_banner_message:
+        return schemas.BannerResponse(enabled=False)
+    return schemas.BannerResponse(
+        enabled=True,
+        message=settings.app_banner_message,
+        level=settings.app_banner_level,
+    )
 
 
 @app.get("/healthz", include_in_schema=False)
