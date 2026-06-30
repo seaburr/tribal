@@ -82,6 +82,11 @@ def update_settings(
     new_org_name = updates.org_name.strip() if updates.org_name and updates.org_name.strip() else None
     new_reminder_days = sorted(set(updates.reminder_days), reverse=True)
     new_slack_webhook = updates.slack_webhook or None
+    # A banner with no message is treated as disabled.
+    new_login_banner_message = updates.login_banner_message.strip() if updates.login_banner_message and updates.login_banner_message.strip() else None
+    new_login_banner_enabled = updates.login_banner_enabled and new_login_banner_message is not None
+    new_app_banner_message = updates.app_banner_message.strip() if updates.app_banner_message and updates.app_banner_message.strip() else None
+    new_app_banner_enabled = updates.app_banner_enabled and new_app_banner_message is not None
 
     # Collect changed fields for the audit log
     changes: dict = {}
@@ -101,6 +106,18 @@ def update_settings(
         changes["alert_on_review_overdue"] = {"old": settings.alert_on_review_overdue, "new": updates.alert_on_review_overdue}
     if settings.review_cadence_months != updates.review_cadence_months:
         changes["review_cadence_months"] = {"old": settings.review_cadence_months, "new": updates.review_cadence_months}
+    if settings.login_banner_enabled != new_login_banner_enabled:
+        changes["login_banner_enabled"] = {"old": settings.login_banner_enabled, "new": new_login_banner_enabled}
+    if settings.login_banner_message != new_login_banner_message:
+        changes["login_banner_message"] = {"old": settings.login_banner_message, "new": new_login_banner_message}
+    if settings.login_banner_level != updates.login_banner_level:
+        changes["login_banner_level"] = {"old": settings.login_banner_level, "new": updates.login_banner_level}
+    if settings.app_banner_enabled != new_app_banner_enabled:
+        changes["app_banner_enabled"] = {"old": settings.app_banner_enabled, "new": new_app_banner_enabled}
+    if settings.app_banner_message != new_app_banner_message:
+        changes["app_banner_message"] = {"old": settings.app_banner_message, "new": new_app_banner_message}
+    if settings.app_banner_level != updates.app_banner_level:
+        changes["app_banner_level"] = {"old": settings.app_banner_level, "new": updates.app_banner_level}
 
     settings.org_name = new_org_name
     settings.reminder_days = new_reminder_days
@@ -110,6 +127,12 @@ def update_settings(
     settings.alert_on_delete = updates.alert_on_delete
     settings.alert_on_review_overdue = updates.alert_on_review_overdue
     settings.review_cadence_months = updates.review_cadence_months
+    settings.login_banner_enabled = new_login_banner_enabled
+    settings.login_banner_message = new_login_banner_message
+    settings.login_banner_level = updates.login_banner_level
+    settings.app_banner_enabled = new_app_banner_enabled
+    settings.app_banner_message = new_app_banner_message
+    settings.app_banner_level = updates.app_banner_level
     settings.updated_at = datetime.now(timezone.utc)
 
     # Keep the singleton Team name in sync with org_name

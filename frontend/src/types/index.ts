@@ -38,6 +38,8 @@ export interface Team {
   created_at: string
 }
 
+export type BannerLevel = 'info' | 'warning' | 'critical'
+
 export interface AdminSettings {
   org_name: string | null
   reminder_days: number[]
@@ -47,6 +49,18 @@ export interface AdminSettings {
   alert_on_delete: boolean
   alert_on_review_overdue: boolean
   review_cadence_months: number | null
+  login_banner_enabled: boolean
+  login_banner_message: string | null
+  login_banner_level: BannerLevel
+  app_banner_enabled: boolean
+  app_banner_message: string | null
+  app_banner_level: BannerLevel
+}
+
+export interface Banner {
+  enabled: boolean
+  message: string | null
+  level: BannerLevel
 }
 
 export interface AuditEntry {

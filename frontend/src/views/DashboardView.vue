@@ -2,8 +2,10 @@
 import { ref, provide, computed, onMounted, defineAsyncComponent } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import { useResourcesStore } from '../stores/resources'
+import { useBannerStore } from '../stores/banner'
 import { useToast } from '../composables/useToast'
 import AppHeader from '../components/layout/AppHeader.vue'
+import BannerBar from '../components/layout/BannerBar.vue'
 import OverviewTab from '../components/overview/OverviewTab.vue'
 import ResourcesTab from '../components/resources/ResourcesTab.vue'
 import ResourceModal from '../components/resources/ResourceModal.vue'
@@ -17,6 +19,7 @@ import type { Resource } from '../types'
 
 const authStore = useAuthStore()
 const resourcesStore = useResourcesStore()
+const bannerStore = useBannerStore()
 const { show } = useToast()
 
 type Tab = 'overview' | 'resources' | 'admin' | 'docs'
@@ -94,6 +97,7 @@ function handleDeleteFromDetail(resource: Resource) {
 
 // ── Load resources on mount ────────────────────────────────────────────────────
 onMounted(async () => {
+  bannerStore.loadAppBanner()
   try {
     await resourcesStore.load()
   } catch (e: unknown) {
@@ -116,6 +120,9 @@ const tabs = computed(() => {
 
 <template>
   <div class="min-h-screen bg-tribal-bg flex flex-col">
+    <!-- Announcement banner -->
+    <BannerBar :banner="bannerStore.appBanner" />
+
     <!-- Header -->
     <AppHeader
       @add-resource="openResourceModal()"

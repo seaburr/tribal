@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { ref, reactive, watch, onMounted, computed } from 'vue'
-import type { Team } from '../../types'
+import type { Team, BannerLevel } from '../../types'
 import { useAdminStore } from '../../stores/admin'
 import { useAuthStore } from '../../stores/auth'
 import { useToast } from '../../composables/useToast'
 import { useResourcesStore } from '../../stores/resources'
+import { useBannerStore } from '../../stores/banner'
 import Pagination from '../common/Pagination.vue'
 import { useDateFormat } from '../../composables/useDateFormat'
 import * as adminApi from '../../api/admin'
@@ -12,6 +13,7 @@ import * as adminApi from '../../api/admin'
 const adminStore = useAdminStore()
 const authStore = useAuthStore()
 const resourcesStore = useResourcesStore()
+const bannerStore = useBannerStore()
 const { show } = useToast()
 const { formatDateTime } = useDateFormat()
 
@@ -44,6 +46,12 @@ const settingsForm = reactive({
   alert_on_delete: false,
   alert_on_review_overdue: false,
   review_cadence_months: null as number | null,
+  login_banner_enabled: false,
+  login_banner_message: '',
+  login_banner_level: 'warning' as BannerLevel,
+  app_banner_enabled: false,
+  app_banner_message: '',
+  app_banner_level: 'info' as BannerLevel,
 })
 
 watch(
@@ -58,11 +66,22 @@ watch(
     settingsForm.alert_on_delete = s.alert_on_delete
     settingsForm.alert_on_review_overdue = s.alert_on_review_overdue
     settingsForm.review_cadence_months = s.review_cadence_months
+    settingsForm.login_banner_enabled = s.login_banner_enabled
+    settingsForm.login_banner_message = s.login_banner_message ?? ''
+    settingsForm.login_banner_level = s.login_banner_level
+    settingsForm.app_banner_enabled = s.app_banner_enabled
+    settingsForm.app_banner_message = s.app_banner_message ?? ''
+    settingsForm.app_banner_level = s.app_banner_level
   },
   { immediate: true },
 )
 
 const reminderOptions = [1, 3, 7, 14, 30, 45, 60]
+const bannerLevelOptions: { value: BannerLevel; label: string }[] = [
+  { value: 'info', label: 'Info (blue)' },
+  { value: 'warning', label: 'Warning (amber)' },
+  { value: 'critical', label: 'Critical (red)' },
+]
 
 // Show the notify_hour (UTC) in the user's local timezone as a hint.
 const notifyHourLocalHint = computed(() => {
@@ -96,9 +115,17 @@ async function saveSettings() {
       alert_on_delete: settingsForm.alert_on_delete,
       alert_on_review_overdue: settingsForm.alert_on_review_overdue,
       review_cadence_months: settingsForm.review_cadence_months,
+      login_banner_enabled: settingsForm.login_banner_enabled,
+      login_banner_message: settingsForm.login_banner_message || null,
+      login_banner_level: settingsForm.login_banner_level,
+      app_banner_enabled: settingsForm.app_banner_enabled,
+      app_banner_message: settingsForm.app_banner_message || null,
+      app_banner_level: settingsForm.app_banner_level,
     })
     adminStore.settings = updated
     resourcesStore.reviewCadenceMonths = updated.review_cadence_months
+    // Refresh the live in-app banner so the change is reflected immediately.
+    bannerStore.loadAppBanner()
     show('Settings saved', 'success')
   } catch (e: unknown) {
     show(e instanceof Error ? e.message : 'Save failed', 'error')
@@ -291,6 +318,82 @@ async function handlePurge(id: number, name: string) {
             Create Team
           </button>
         </div>
+      </div>
+    </section>
+
+    <!-- ── Announcement Banners ──────────────────────────────────────────────── -->
+    <section class="bg-tribal-panel rounded-xl border border-tribal-border p-6">
+      <h2 class="text-base font-semibold text-white mb-1">Announcement Banners</h2>
+      <p class="text-zinc-500 text-sm mb-5">Show a message across the top of the app. The login banner is visible publicly on the sign-in page; the in-app banner is shown to signed-in users.</p>
+
+      <div class="space-y-6">
+        <!-- Login banner -->
+        <div class="space-y-3">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input v-model="settingsForm.login_banner_enabled" type="checkbox" class="rounded" />
+            <span class="text-sm font-medium text-zinc-300">Enable login page banner</span>
+          </label>
+          <div>
+            <textarea
+              v-model="settingsForm.login_banner_message"
+              rows="2"
+              maxlength="500"
+              placeholder="e.g. This is a personal demo instance — do not store real credentials."
+              class="w-full bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-accent-blue transition-colors"
+            />
+          </div>
+          <div class="relative inline-block">
+            <select
+              v-model="settingsForm.login_banner_level"
+              class="appearance-none bg-tribal-card border border-tribal-border rounded-lg px-3 pr-10 py-2 text-white focus:outline-none focus:border-accent-blue transition-colors"
+            >
+              <option v-for="opt in bannerLevelOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+            </select>
+            <div class="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+              <svg class="w-4 h-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- In-app banner -->
+        <div class="space-y-3 border-t border-tribal-border pt-5">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input v-model="settingsForm.app_banner_enabled" type="checkbox" class="rounded" />
+            <span class="text-sm font-medium text-zinc-300">Enable in-app banner</span>
+          </label>
+          <div>
+            <textarea
+              v-model="settingsForm.app_banner_message"
+              rows="2"
+              maxlength="500"
+              placeholder="e.g. Scheduled maintenance this Saturday 02:00–03:00 UTC."
+              class="w-full bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-accent-blue transition-colors"
+            />
+          </div>
+          <div class="relative inline-block">
+            <select
+              v-model="settingsForm.app_banner_level"
+              class="appearance-none bg-tribal-card border border-tribal-border rounded-lg px-3 pr-10 py-2 text-white focus:outline-none focus:border-accent-blue transition-colors"
+            >
+              <option v-for="opt in bannerLevelOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+            </select>
+            <div class="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+              <svg class="w-4 h-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <button
+          :disabled="savingSettings"
+          class="px-4 py-2 bg-accent-blue-dark hover:bg-accent-blue text-white font-semibold rounded-lg text-sm transition-colors disabled:opacity-50"
+          @click="saveSettings"
+        >
+          {{ savingSettings ? 'Saving...' : 'Save Banners' }}
+        </button>
       </div>
     </section>
 

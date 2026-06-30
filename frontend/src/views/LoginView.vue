@@ -1,8 +1,11 @@
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { login, register } from '../api/auth'
+import { getLoginBanner } from '../api/banner'
 import { useAuthStore } from '../stores/auth'
+import BannerBar from '../components/layout/BannerBar.vue'
+import type { Banner } from '../types'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -10,6 +13,15 @@ const authStore = useAuthStore()
 const activeTab = ref<'signin' | 'register'>('signin')
 const error = ref('')
 const loading = ref(false)
+const loginBanner = ref<Banner | null>(null)
+
+onMounted(async () => {
+  try {
+    loginBanner.value = await getLoginBanner()
+  } catch {
+    loginBanner.value = null
+  }
+})
 
 const signinForm = reactive({
   email: '',
@@ -64,8 +76,12 @@ async function handleRegister() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-tribal-bg flex items-center justify-center px-4">
-    <div class="w-full max-w-md">
+  <div class="min-h-screen bg-tribal-bg flex flex-col">
+    <!-- Public announcement banner -->
+    <BannerBar :banner="loginBanner" />
+
+    <div class="flex-1 flex items-center justify-center px-4">
+      <div class="w-full max-w-md">
       <!-- Logo + Title -->
       <div class="text-center mb-8">
         <img
@@ -181,6 +197,7 @@ async function handleRegister() {
             {{ loading ? 'Creating account...' : 'Create Account' }}
           </button>
         </form>
+      </div>
       </div>
     </div>
   </div>

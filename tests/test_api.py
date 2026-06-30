@@ -498,6 +498,121 @@ def test_admin_settings_change_writes_audit_log(client):
     assert "changes" in entry["detail"]
 
 
+# ── Announcement banners ──────────────────────────────────────────────────────
+
+_BANNER_BASE = {
+    "reminder_days": [30, 14, 7, 3],
+    "notify_hour": 9,
+    "slack_webhook": None,
+}
+
+
+def test_banners_default_disabled(client):
+    """With no configuration, both banner endpoints report disabled."""
+    login = client.get("/api/login-banner")
+    assert login.status_code == 200
+    assert login.json() == {"enabled": False, "message": None, "level": "info"}
+
+    app_banner = client.get("/api/banner")
+    assert app_banner.status_code == 200
+    assert app_banner.json()["enabled"] is False
+
+
+def test_admin_can_set_login_and_app_banners(client):
+    payload = {
+        **_BANNER_BASE,
+        "login_banner_enabled": True,
+        "login_banner_message": "Demo instance — do not store real secrets.",
+        "login_banner_level": "warning",
+        "app_banner_enabled": True,
+        "app_banner_message": "Maintenance tonight 02:00 UTC.",
+        "app_banner_level": "info",
+    }
+    r = client.put("/admin/settings", json=payload)
+    assert r.status_code == 200
+
+    login = client.get("/api/login-banner").json()
+    assert login == {
+        "enabled": True,
+        "message": "Demo instance — do not store real secrets.",
+        "level": "warning",
+    }
+
+    app_banner = client.get("/api/banner").json()
+    assert app_banner == {
+        "enabled": True,
+        "message": "Maintenance tonight 02:00 UTC.",
+        "level": "info",
+    }
+
+
+def test_login_banner_is_public(client):
+    """The login banner must be readable without authentication."""
+    client.put("/admin/settings", json={
+        **_BANNER_BASE,
+        "login_banner_enabled": True,
+        "login_banner_message": "Public notice.",
+        "login_banner_level": "critical",
+    })
+
+    # A fresh client shares the same app/DB override but has no session cookie.
+    with TestClient(app, follow_redirects=False) as anon:
+        r = anon.get("/api/login-banner")
+        assert r.status_code == 200
+        assert r.json() == {"enabled": True, "message": "Public notice.", "level": "critical"}
+
+
+def test_app_banner_requires_auth(client):
+    """The in-app banner must NOT be readable without authentication."""
+    with TestClient(app, follow_redirects=False) as anon:
+        r = anon.get("/api/banner")
+        assert r.status_code == 303
+        assert r.headers["location"] == "/login"
+
+
+def test_banner_enabled_without_message_is_disabled(client):
+    """Enabling a banner with no message is treated as disabled."""
+    r = client.put("/admin/settings", json={
+        **_BANNER_BASE,
+        "app_banner_enabled": True,
+        "app_banner_message": "   ",
+    })
+    assert r.status_code == 200
+    assert r.json()["app_banner_enabled"] is False
+    assert client.get("/api/banner").json()["enabled"] is False
+
+
+def test_banner_rejects_invalid_level(client):
+    r = client.put("/admin/settings", json={
+        **_BANNER_BASE,
+        "login_banner_enabled": True,
+        "login_banner_message": "Hi",
+        "login_banner_level": "emergency",
+    })
+    assert r.status_code == 422
+
+
+def test_banner_message_too_long_rejected(client):
+    r = client.put("/admin/settings", json={
+        **_BANNER_BASE,
+        "app_banner_enabled": True,
+        "app_banner_message": "x" * 501,
+    })
+    assert r.status_code == 422
+
+
+def test_banner_change_writes_audit_log(client):
+    client.put("/admin/settings", json={
+        **_BANNER_BASE,
+        "app_banner_enabled": True,
+        "app_banner_message": "Heads up",
+        "app_banner_level": "warning",
+    })
+    entries = client.get("/admin/audit-log").json()
+    entry = next(e for e in entries if e["action"] == "admin.settings_updated")
+    assert "app_banner_enabled" in entry["detail"]["changes"]
+
+
 def test_admin_settings_no_change_does_not_write_audit_log(client):
     """Saving settings without changing anything must NOT add an audit entry."""
     # Read current settings

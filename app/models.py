@@ -36,6 +36,14 @@ class AdminSettings(Base):
     alert_on_delete = Column(Boolean, nullable=False, default=False)
     alert_on_review_overdue = Column(Boolean, nullable=False, default=False)
     review_cadence_months = Column(Integer, nullable=True, default=None)
+    # Announcement banners. The login banner is shown publicly on the sign-in
+    # page; the app banner is shown to authenticated users inside the app.
+    login_banner_enabled = Column(Boolean, nullable=False, default=False)
+    login_banner_message = Column(String(500), nullable=True)
+    login_banner_level = Column(String(20), nullable=False, default="warning")
+    app_banner_enabled = Column(Boolean, nullable=False, default=False)
+    app_banner_message = Column(String(500), nullable=True)
+    app_banner_level = Column(String(20), nullable=False, default="info")
     updated_at = Column(DateTime, default=_utcnow)
 
 
