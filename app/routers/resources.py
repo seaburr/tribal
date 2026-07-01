@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Optional
 
 import httpx
@@ -15,6 +16,10 @@ from ..scheduler import send_deletion_notification, send_admin_deletion_notifica
 from .. import providers
 
 router = APIRouter(prefix="/api/resources", tags=["resources"])
+
+# DejaVu fonts are vendored under app/fonts/ so PDF reports render identically
+# on any OS (macOS dev, Linux/Docker prod) without depending on system fonts.
+_FONT_DIR = Path(__file__).resolve().parent.parent / "fonts"
 
 BLOCKED_EXTENSIONS = {".key", ".p12", ".p7b", ".pfx"}
 ALLOWED_EXTENSIONS = {".pem", ".crt", ".cer"}
@@ -361,8 +366,8 @@ def get_resource_report(
         return str(text)
 
     pdf = FPDF()
-    pdf.add_font("DejaVu", "",  "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")
-    pdf.add_font("DejaVu", "B", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf")
+    pdf.add_font("DejaVu", "",  str(_FONT_DIR / "DejaVuSans.ttf"))
+    pdf.add_font("DejaVu", "B", str(_FONT_DIR / "DejaVuSans-Bold.ttf"))
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.add_page()
     pdf.set_margins(15, 15, 15)
