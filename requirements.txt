@@ -6,6 +6,7 @@ httpx>=0.27.0
 cryptography>=47.0.0
 python-multipart>=0.0.27
 pytest>=8.0.0
+httpx2>=2.0.0  # required by starlette.testclient (httpx backend is deprecated)
 bcrypt>=5.0.0
 pyjwt>=2.12.1
 email-validator>=2.3.0
