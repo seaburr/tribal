@@ -11,6 +11,6 @@ bcrypt>=5.0.0
 pyjwt>=2.12.1
 email-validator>=2.3.0
 prometheus-fastapi-instrumentator>=7.1.0
-PyMySQL>=1.1.0
+PyMySQL>=1.2.0
 alembic>=1.13.0
 fpdf2>=2.8.7
