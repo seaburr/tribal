@@ -130,7 +130,7 @@ jobs:
           subject-digest: ${{ needs.build-and-push.outputs.digest }}
 
       - name: Attest SBOM
-        uses: actions/attest-sbom@v2
+        uses: actions/attest-sbom@v4
         with:
           subject-name: registry.digitalocean.com/seaburr/tribal
           subject-digest: ${{ needs.build-and-push.outputs.digest }}
