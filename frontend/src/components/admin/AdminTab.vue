@@ -6,6 +6,9 @@ import { useAuthStore } from '../../stores/auth'
 import { useToast } from '../../composables/useToast'
 import { useResourcesStore } from '../../stores/resources'
 import { useBannerStore } from '../../stores/banner'
+import { BarChart3, Ban, CalendarClock, ClipboardList, RotateCcw, Trash2 } from '@lucide/vue'
+import ConfirmDialog from '../common/ConfirmDialog.vue'
+import IconButton from '../common/IconButton.vue'
 import Pagination from '../common/Pagination.vue'
 import { useDateFormat } from '../../composables/useDateFormat'
 import * as adminApi from '../../api/admin'
@@ -195,8 +198,32 @@ function getUserRole(user: { is_admin: boolean; is_readonly: boolean }): string 
   return 'member'
 }
 
-async function handleDeleteUser(id: number) {
-  if (!confirm('Delete this user?')) return
+// One dialog for the destructive actions below. `requireText` makes the user type the name for irreversible ones.
+interface PendingConfirm {
+  title: string
+  message: string
+  confirmLabel: string
+  busyLabel: string
+  requireText?: string
+  run: () => Promise<void>
+}
+const pendingConfirm = ref<PendingConfirm | null>(null)
+const lastConfirm = ref<PendingConfirm | null>(null)
+const confirmBusy = ref(false)
+watch(pendingConfirm, (p) => { if (p) lastConfirm.value = p })
+
+async function runConfirm() {
+  if (!pendingConfirm.value) return
+  confirmBusy.value = true
+  try {
+    await pendingConfirm.value.run()
+  } finally {
+    confirmBusy.value = false
+    pendingConfirm.value = null
+  }
+}
+
+async function deleteUser(id: number) {
   try {
     await adminApi.deleteUser(id)
     await adminStore.loadUsers()
@@ -206,9 +233,28 @@ async function handleDeleteUser(id: number) {
   }
 }
 
+function handleDeleteUser(user: { id: number; email: string }) {
+  pendingConfirm.value = {
+    title: 'Delete user',
+    message: `Delete ${user.email}? They will lose access to Tribal.`,
+    confirmLabel: 'Delete user',
+    busyLabel: 'Deleting…',
+    run: () => deleteUser(user.id),
+  }
+}
+
 // ── Admin API keys ─────────────────────────────────────────────────────────────
-async function handleRevokeAdminKey(id: number) {
-  if (!confirm('Revoke this API key?')) return
+function handleRevokeAdminKey(key: { id: number; name: string }) {
+  pendingConfirm.value = {
+    title: 'Revoke API key',
+    message: `Revoke "${key.name}"? Anything using it stops working immediately.`,
+    confirmLabel: 'Revoke key',
+    busyLabel: 'Revoking…',
+    run: () => revokeAdminKey(key.id),
+  }
+}
+
+async function revokeAdminKey(id: number) {
   try {
     await adminApi.revokeAdminApiKey(id)
     await adminStore.loadApiKeys()
@@ -243,8 +289,18 @@ async function handleRestore(id: number) {
   }
 }
 
-async function handlePurge(id: number, name: string) {
-  if (!confirm(`Permanently delete "${name}"? This cannot be undone.`)) return
+function handlePurge(id: number, name: string) {
+  pendingConfirm.value = {
+    title: 'Permanently delete resource',
+    message: `This permanently removes "${name}" and cannot be undone.`,
+    confirmLabel: 'Delete permanently',
+    busyLabel: 'Deleting…',
+    requireText: name,
+    run: () => purge(id),
+  }
+}
+
+async function purge(id: number) {
   try {
     await adminApi.purgeResource(id)
     await adminStore.loadDeletedResources()
@@ -256,20 +312,20 @@ async function handlePurge(id: number, name: string) {
 </script>
 
 <template>
-  <div v-if="!authStore.user?.is_admin" class="text-center py-12 text-zinc-500">
+  <div v-if="!authStore.user?.is_admin" class="py-12 text-center text-zinc-400">
     Admin access required.
   </div>
 
   <div v-else-if="!loaded" class="text-center py-12 text-zinc-400">
-    Loading admin data...
+    Loading admin data…
   </div>
 
-  <div v-else class="space-y-8">
+  <div v-else class="space-y-4">
 
-    <!-- ── Team Settings ────────────────────────────────────────────────────── -->
-    <section class="bg-tribal-panel rounded-xl border border-tribal-border p-6">
-      <h2 class="text-base font-semibold text-white mb-1">Team Settings</h2>
-      <p class="text-zinc-500 text-sm mb-4">The team name is displayed across the application and included in Slack notifications.</p>
+    <!-- ── Team settings ────────────────────────────────────────────────────── -->
+    <section class="card card-pad">
+      <h2 class="section-title mb-1">Team settings</h2>
+      <p class="meta mb-3">The team name is displayed across the application and included in Slack notifications.</p>
       <div class="space-y-3">
         <div v-if="teams.length > 0" class="space-y-2">
           <div
@@ -281,56 +337,54 @@ async function handlePurge(id: number, name: string) {
               :value="editingTeam?.id === team.id ? teamName : team.name"
               :disabled="editingTeam?.id !== team.id"
               type="text"
-              class="flex-1 bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-sm transition-colors focus:outline-none"
-              :class="editingTeam?.id === team.id
-                ? 'text-white focus:border-accent-blue cursor-text'
-                : 'text-zinc-500 cursor-default'"
+              class="input flex-1"
+              :aria-label="`Team name: ${team.name}`"
               @input="teamName = ($event.target as HTMLInputElement).value"
             />
             <template v-if="editingTeam?.id === team.id">
-              <button
-                class="text-xs px-3 py-1.5 bg-accent-blue-dark hover:bg-accent-blue text-white font-medium rounded-lg transition-colors"
+              <button type="button"
+                class="btn-primary"
                 @click="saveTeam"
               >Save</button>
-              <button
-                class="text-xs px-3 py-1.5 border border-tribal-border text-zinc-400 hover:text-white rounded-lg transition-colors"
+              <button type="button"
+                class="btn-secondary btn-sm"
                 @click="editingTeam = null; teamName = ''"
               >Cancel</button>
             </template>
-            <button
+            <button type="button"
               v-else
-              class="text-xs px-3 py-1.5 border border-tribal-border text-zinc-400 hover:border-accent-blue/50 hover:text-accent-blue rounded-lg transition-colors"
+              class="btn-secondary btn-sm"
               @click="editingTeam = { id: team.id, name: team.name }; teamName = team.name"
             >Edit</button>
           </div>
         </div>
-        <div v-else class="flex items-center gap-3">
+        <div v-else class="flex items-center gap-2">
           <input
             v-model="teamName"
             type="text"
             placeholder="Team name"
-            class="flex-1 bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-accent-blue transition-colors"
+            class="input flex-1"
           />
-          <button
-            class="px-4 py-2 bg-accent-blue-dark hover:bg-accent-blue text-white font-semibold rounded-lg text-sm transition-colors"
+          <button type="button"
+            class="btn-primary"
             @click="saveTeam"
           >
-            Create Team
+            Create team
           </button>
         </div>
       </div>
     </section>
 
-    <!-- ── Announcement Banners ──────────────────────────────────────────────── -->
-    <section class="bg-tribal-panel rounded-xl border border-tribal-border p-6">
-      <h2 class="text-base font-semibold text-white mb-1">Announcement Banners</h2>
-      <p class="text-zinc-500 text-sm mb-5">Show a message across the top of the app. The login banner is visible publicly on the sign-in page; the in-app banner is shown to signed-in users.</p>
+    <!-- ── Announcement banners ──────────────────────────────────────────────── -->
+    <section class="card card-pad">
+      <h2 class="section-title mb-1">Announcement banners</h2>
+      <p class="meta mb-3">Show a message across the top of the app. The login banner is visible publicly on the sign-in page; the in-app banner is shown to signed-in users.</p>
 
       <div class="space-y-6">
         <!-- Login banner -->
         <div class="space-y-3">
-          <label class="flex items-center gap-2 cursor-pointer">
-            <input v-model="settingsForm.login_banner_enabled" type="checkbox" class="rounded" />
+          <label class="flex cursor-pointer items-center gap-2">
+            <input v-model="settingsForm.login_banner_enabled" type="checkbox" class="check" />
             <span class="text-sm font-medium text-zinc-300">Enable login page banner</span>
           </label>
           <div>
@@ -339,28 +393,21 @@ async function handlePurge(id: number, name: string) {
               rows="2"
               maxlength="500"
               placeholder="e.g. This is a personal demo instance — do not store real credentials."
-              class="w-full bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-accent-blue transition-colors"
+              class="input"
             />
           </div>
-          <div class="relative inline-block">
-            <select
+          <select
               v-model="settingsForm.login_banner_level"
-              class="appearance-none bg-tribal-card border border-tribal-border rounded-lg px-3 pr-10 py-2 text-white focus:outline-none focus:border-accent-blue transition-colors"
+              class="input w-auto"
             >
               <option v-for="opt in bannerLevelOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
             </select>
-            <div class="pointer-events-none absolute inset-y-0 right-3 flex items-center">
-              <svg class="w-4 h-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-              </svg>
-            </div>
-          </div>
         </div>
 
         <!-- In-app banner -->
         <div class="space-y-3 border-t border-tribal-border pt-5">
-          <label class="flex items-center gap-2 cursor-pointer">
-            <input v-model="settingsForm.app_banner_enabled" type="checkbox" class="rounded" />
+          <label class="flex cursor-pointer items-center gap-2">
+            <input v-model="settingsForm.app_banner_enabled" type="checkbox" class="check" />
             <span class="text-sm font-medium text-zinc-300">Enable in-app banner</span>
           </label>
           <div>
@@ -369,53 +416,46 @@ async function handlePurge(id: number, name: string) {
               rows="2"
               maxlength="500"
               placeholder="e.g. Scheduled maintenance this Saturday 02:00–03:00 UTC."
-              class="w-full bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-accent-blue transition-colors"
+              class="input"
             />
           </div>
-          <div class="relative inline-block">
-            <select
+          <select
               v-model="settingsForm.app_banner_level"
-              class="appearance-none bg-tribal-card border border-tribal-border rounded-lg px-3 pr-10 py-2 text-white focus:outline-none focus:border-accent-blue transition-colors"
+              class="input w-auto"
             >
               <option v-for="opt in bannerLevelOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
             </select>
-            <div class="pointer-events-none absolute inset-y-0 right-3 flex items-center">
-              <svg class="w-4 h-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-              </svg>
-            </div>
-          </div>
         </div>
 
-        <button
+        <button type="button"
           :disabled="savingSettings"
-          class="px-4 py-2 bg-accent-blue-dark hover:bg-accent-blue text-white font-semibold rounded-lg text-sm transition-colors disabled:opacity-50"
+          class="btn-primary"
           @click="saveSettings"
         >
-          {{ savingSettings ? 'Saving...' : 'Save Banners' }}
+          {{ savingSettings ? 'Saving…' : 'Save banners' }}
         </button>
       </div>
     </section>
 
-    <!-- ── Notification Settings ─────────────────────────────────────────────── -->
-    <section class="bg-tribal-panel rounded-xl border border-tribal-border p-6">
-      <h2 class="text-base font-semibold text-white mb-1">Notification Settings</h2>
-      <p class="text-zinc-500 text-sm mb-5">Configure when and where Tribal sends Slack reminders about expiring resources.</p>
+    <!-- ── Notification settings ─────────────────────────────────────────────── -->
+    <section class="card card-pad">
+      <h2 class="section-title mb-1">Notification settings</h2>
+      <p class="meta mb-3">Configure when and where Tribal sends Slack reminders about expiring resources.</p>
 
       <div class="space-y-5">
         <!-- Reminder days -->
         <div>
-          <label class="block text-sm font-medium text-zinc-300 mb-1">Reminder days before expiry</label>
-          <p class="text-zinc-500 text-xs mb-2">Tribal will send a Slack notification on each selected day before a resource expires.</p>
+          <p class="label">Reminder days before expiry</p>
+          <p class="help mb-2">Tribal will send a Slack notification on each selected day before a resource expires.</p>
           <div class="flex flex-wrap gap-2">
             <label
               v-for="day in reminderOptions"
               :key="day"
               :class="[
-                'flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm cursor-pointer transition-colors',
+                'btn cursor-pointer has-focus-visible:ring-2 has-focus-visible:ring-accent-blue-light',
                 settingsForm.reminder_days.includes(day)
-                  ? 'bg-accent-blue/20 border-accent-blue/50 text-accent-blue'
-                  : 'bg-tribal-card border-tribal-border text-zinc-400 hover:border-accent-blue/30',
+                  ? 'border-accent-blue/60 bg-accent-blue/20 text-accent-blue-light'
+                  : 'border-tribal-border bg-tribal-card text-zinc-400 hover:border-zinc-500',
               ]"
             >
               <input
@@ -431,60 +471,46 @@ async function handlePurge(id: number, name: string) {
 
         <!-- Notify hour -->
         <div>
-          <label class="block text-sm font-medium text-zinc-300 mb-1">Notify hour (UTC)</label>
-          <p class="text-zinc-500 text-xs mb-1">Notifications are dispatched once daily at this hour.</p>
-          <div class="relative inline-block">
-            <select
+          <label for="admintab-field-2" class="label">Notify hour (UTC)</label>
+          <p class="help mb-1">Notifications are dispatched once daily at this hour.</p>
+          <select id="admintab-field-2"
               v-model.number="settingsForm.notify_hour"
-              class="appearance-none bg-tribal-card border border-tribal-border rounded-lg px-3 pr-10 py-2 text-white focus:outline-none focus:border-accent-blue transition-colors"
+              class="input w-auto"
             >
               <option v-for="h in 24" :key="h - 1" :value="h - 1">{{ String(h - 1).padStart(2, '0') }}:00 UTC</option>
             </select>
-            <div class="pointer-events-none absolute inset-y-0 right-3 flex items-center">
-              <svg class="w-4 h-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-              </svg>
-            </div>
-          </div>
-          <p v-if="notifyHourLocalHint" class="text-zinc-500 text-xs mt-1">≈ {{ notifyHourLocalHint }}</p>
+          <p v-if="notifyHourLocalHint" class="help">≈ {{ notifyHourLocalHint }}</p>
         </div>
 
         <!-- Review cadence -->
         <div>
-          <label class="block text-sm font-medium text-zinc-300 mb-1">Periodic review cadence</label>
-          <p class="text-zinc-500 text-xs mb-1">When enabled, resources not reviewed within this window will be flagged as overdue for review. Members can mark a resource reviewed from its detail view.</p>
-          <div class="relative inline-block">
-            <select
+          <label for="admintab-field-3" class="label">Periodic review cadence</label>
+          <p class="help mb-1">When enabled, resources not reviewed within this window will be flagged as overdue for review. Members can mark a resource reviewed from its detail view.</p>
+          <select id="admintab-field-3"
               v-model="settingsForm.review_cadence_months"
-              class="appearance-none bg-tribal-card border border-tribal-border rounded-lg px-3 pr-10 py-2 text-white focus:outline-none focus:border-accent-blue transition-colors"
+              class="input w-auto"
             >
               <option :value="null">Disabled</option>
               <option :value="6">Every 6 months</option>
               <option :value="12">Every 12 months</option>
               <option :value="24">Every 24 months</option>
             </select>
-            <div class="pointer-events-none absolute inset-y-0 right-3 flex items-center">
-              <svg class="w-4 h-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-              </svg>
-            </div>
-          </div>
         </div>
 
         <!-- Slack webhook -->
         <div>
-          <label class="block text-sm font-medium text-zinc-300 mb-1">Tribal Admins Slack Webhook URL</label>
-          <p class="text-zinc-500 text-xs mb-1">Slack webhook used to notify Tribal admins when resources expire, reviews become overdue, or resources are deleted.</p>
+          <label for="admintab-field-4" class="label">Tribal admins Slack webhook URL</label>
+          <p class="help mb-1">Slack webhook used to notify Tribal admins when resources expire, reviews become overdue, or resources are deleted.</p>
           <div class="flex gap-2">
-            <input
+            <input id="admintab-field-4"
               v-model="settingsForm.slack_webhook"
               type="url"
               placeholder="https://hooks.slack.com/..."
-              class="flex-1 bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-accent-blue transition-colors"
+              class="input flex-1"
             />
             <button
               :disabled="!settingsForm.slack_webhook"
-              class="px-4 py-2 border border-tribal-border text-zinc-400 hover:border-accent-blue/50 hover:text-accent-blue rounded-lg text-sm transition-colors disabled:opacity-50"
+              class="btn-secondary"
               type="button"
               @click="testAdminWebhook"
             >
@@ -495,121 +521,106 @@ async function handlePurge(id: number, name: string) {
 
         <!-- Admin alert checkboxes -->
         <div class="space-y-2">
-          <p class="text-zinc-500 text-xs">Notify admins via the webhook above when:</p>
-          <label class="flex items-center gap-2 cursor-pointer">
-            <input v-model="settingsForm.alert_on_overdue" type="checkbox" class="rounded" />
+          <p class="help">Notify admins via the webhook above when:</p>
+          <label class="flex cursor-pointer items-center gap-2">
+            <input v-model="settingsForm.alert_on_overdue" type="checkbox" class="check" />
             <span class="text-sm text-zinc-300">Resources become overdue</span>
           </label>
-          <label class="flex items-center gap-2 cursor-pointer">
-            <input v-model="settingsForm.alert_on_delete" type="checkbox" class="rounded" />
+          <label class="flex cursor-pointer items-center gap-2">
+            <input v-model="settingsForm.alert_on_delete" type="checkbox" class="check" />
             <span class="text-sm text-zinc-300">Resources are deleted</span>
           </label>
-          <label class="flex items-center gap-2 cursor-pointer">
-            <input v-model="settingsForm.alert_on_review_overdue" type="checkbox" class="rounded" />
+          <label class="flex cursor-pointer items-center gap-2">
+            <input v-model="settingsForm.alert_on_review_overdue" type="checkbox" class="check" />
             <span class="text-sm text-zinc-300">Reviews are overdue</span>
           </label>
         </div>
 
-        <button
+        <button type="button"
           :disabled="savingSettings"
-          class="px-4 py-2 bg-accent-blue-dark hover:bg-accent-blue text-white font-semibold rounded-lg text-sm transition-colors disabled:opacity-50"
+          class="btn-primary"
           @click="saveSettings"
         >
-          {{ savingSettings ? 'Saving...' : 'Save Settings' }}
+          {{ savingSettings ? 'Saving…' : 'Save settings' }}
         </button>
       </div>
     </section>
 
     <!-- ── Reports ────────────────────────────────────────────────────────────── -->
-    <section class="bg-tribal-panel rounded-xl border border-tribal-border p-6">
-      <h2 class="text-base font-semibold text-white mb-1">Reports</h2>
-      <p class="text-zinc-500 text-sm mb-5">Download CSV snapshots for offline review or sharing with your team.</p>
+    <section class="card card-pad">
+      <h2 class="section-title mb-1">Reports</h2>
+      <p class="meta mb-3">Download CSV snapshots for offline review or sharing with your team.</p>
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <button
-          class="flex flex-col items-start gap-1 px-4 py-3 border border-tribal-border text-left rounded-lg hover:border-accent-blue/50 transition-colors group"
+        <button type="button"
+          class="group flex flex-col items-start gap-1 rounded-md border border-tribal-border px-3 py-2.5 text-left transition-colors hover:border-zinc-500 hover:bg-tribal-card"
           @click="openReport('/admin/reports/upcoming')"
         >
-          <span class="text-zinc-300 group-hover:text-accent-blue text-sm font-medium transition-colors">📊 Upcoming Expiry</span>
-          <span class="text-zinc-500 text-xs">Resources expiring within the next 30 days.</span>
+          <span class="flex items-center gap-1.5 text-sm font-medium text-zinc-200 group-hover:text-white"><BarChart3 :size="16" aria-hidden="true" />Upcoming expiry</span>
+          <span class="help">Resources expiring within the next 30 days.</span>
         </button>
-        <button
-          class="flex flex-col items-start gap-1 px-4 py-3 border border-tribal-border text-left rounded-lg hover:border-accent-blue/50 transition-colors group"
+        <button type="button"
+          class="group flex flex-col items-start gap-1 rounded-md border border-tribal-border px-3 py-2.5 text-left transition-colors hover:border-zinc-500 hover:bg-tribal-card"
           @click="openReport('/admin/reports/recent-changes')"
         >
-          <span class="text-zinc-300 group-hover:text-accent-blue text-sm font-medium transition-colors">📋 Recent Changes</span>
-          <span class="text-zinc-500 text-xs">All audit log events from the last 30 days.</span>
+          <span class="flex items-center gap-1.5 text-sm font-medium text-zinc-200 group-hover:text-white"><ClipboardList :size="16" aria-hidden="true" />Recent changes</span>
+          <span class="help">All audit log events from the last 30 days.</span>
         </button>
-        <button
-          class="flex flex-col items-start gap-1 px-4 py-3 border border-tribal-border text-left rounded-lg hover:border-accent-blue/50 transition-colors group"
+        <button type="button"
+          class="group flex flex-col items-start gap-1 rounded-md border border-tribal-border px-3 py-2.5 text-left transition-colors hover:border-zinc-500 hover:bg-tribal-card"
           @click="openReport('/admin/reports/reviews-due')"
         >
-          <span class="text-zinc-300 group-hover:text-accent-blue text-sm font-medium transition-colors">📅 Reviews Due</span>
-          <span class="text-zinc-500 text-xs">Resources nearing (within 30 days) or overdue for review.</span>
+          <span class="flex items-center gap-1.5 text-sm font-medium text-zinc-200 group-hover:text-white"><CalendarClock :size="16" aria-hidden="true" />Reviews due</span>
+          <span class="help">Resources nearing (within 30 days) or overdue for review.</span>
         </button>
       </div>
     </section>
 
     <!-- ── Users ──────────────────────────────────────────────────────────────── -->
-    <section class="bg-tribal-panel rounded-xl border border-tribal-border overflow-hidden">
-      <div class="px-6 py-4 border-b border-tribal-border">
-        <h2 class="text-base font-semibold text-white">Users</h2>
+    <section class="card overflow-hidden">
+      <div class="border-b border-tribal-border px-3 py-3 sm:px-4">
+        <h2 class="section-title">Users</h2>
       </div>
       <div class="overflow-x-auto">
-        <table class="w-full text-sm">
+        <table class="tbl">
           <thead>
-            <tr class="bg-tribal-card border-b border-tribal-border">
-              <th class="text-left text-zinc-400 text-xs uppercase tracking-wider px-4 py-3">Name / Email</th>
-              <th class="text-left text-zinc-400 text-xs uppercase tracking-wider px-4 py-3">Role</th>
-              <th class="text-right text-zinc-400 text-xs uppercase tracking-wider px-4 py-3">Actions</th>
+            <tr class="bg-tribal-card">
+              <th>Name / Email</th>
+              <th>Role</th>
+              <th class="text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
             <tr
               v-for="user in adminStore.users.slice((usersPage - 1) * 25, usersPage * 25)"
               :key="user.id"
-              class="border-b border-tribal-border/50 hover:bg-tribal-card/50 transition-colors"
+              class="hover:bg-tribal-card/50"
             >
-              <td class="px-4 py-3">
+              <td>
                 <p class="text-white">{{ user.display_name || user.email }}</p>
-                <p v-if="user.display_name" class="text-zinc-500 text-xs">{{ user.email }}</p>
-                <span v-if="user.is_account_creator" class="text-xs text-accent-blue">Account Creator</span>
+                <p v-if="user.display_name" class="help">{{ user.email }}</p>
+                <span v-if="user.is_account_creator" class="badge-info mt-1">Account creator</span>
               </td>
-              <td class="px-4 py-3">
-                <div class="relative inline-block">
-                  <select
+              <td>
+                <select
+                    :aria-label="`Role for ${user.email}`"
                     :value="getUserRole(user)"
                     :disabled="user.id === authStore.user?.id || user.is_account_creator"
-                    class="appearance-none bg-tribal-card border border-tribal-border rounded px-2 pr-8 py-1 text-white text-sm focus:outline-none focus:border-accent-blue disabled:opacity-50 disabled:cursor-not-allowed"
+                    class="input w-auto"
                     @change="handleRoleChange(user.id, ($event.target as HTMLSelectElement).value)"
                   >
                     <option value="admin">Admin</option>
                     <option value="member">Member</option>
                     <option value="readonly">Read-only</option>
                   </select>
-                  <div class="pointer-events-none absolute inset-y-0 right-2 flex items-center">
-                    <svg class="w-3.5 h-3.5 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
-                </div>
               </td>
-              <td class="px-4 py-3 text-right">
-                <button
-                  :disabled="user.id === authStore.user?.id || user.is_account_creator"
-                  class="text-danger hover:text-danger-light transition-colors p-1 disabled:opacity-30 disabled:cursor-not-allowed"
-                  title="Delete user"
-                  @click="handleDeleteUser(user.id)"
-                >
-                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </button>
+              <td class="text-right">
+                <IconButton :icon="Trash2" label="Delete user" danger sm :disabled="user.id === authStore.user?.id || user.is_account_creator" @click="handleDeleteUser(user)" />
               </td>
             </tr>
           </tbody>
         </table>
       </div>
-      <div class="px-4 py-3 border-t border-tribal-border/50">
+      <div class="border-t border-tribal-border">
         <Pagination
           :total="adminStore.users.length"
           :page="usersPage"
@@ -620,19 +631,19 @@ async function handlePurge(id: number, name: string) {
     </section>
 
     <!-- ── Admin API Keys ─────────────────────────────────────────────────────── -->
-    <section class="bg-tribal-panel rounded-xl border border-tribal-border overflow-hidden">
-      <div class="px-6 py-4 border-b border-tribal-border">
-        <h2 class="text-base font-semibold text-white">API Keys (All Users)</h2>
+    <section class="card overflow-hidden">
+      <div class="border-b border-tribal-border px-3 py-3 sm:px-4">
+        <h2 class="section-title">API keys (all users)</h2>
       </div>
       <div class="overflow-x-auto">
-        <table class="w-full text-sm">
+        <table class="tbl">
           <thead>
-            <tr class="bg-tribal-card border-b border-tribal-border">
-              <th class="text-left text-zinc-400 text-xs uppercase tracking-wider px-4 py-3">Name</th>
-              <th class="text-left text-zinc-400 text-xs uppercase tracking-wider px-4 py-3">Owner</th>
-              <th class="text-left text-zinc-400 text-xs uppercase tracking-wider px-4 py-3">Prefix</th>
-              <th class="text-left text-zinc-400 text-xs uppercase tracking-wider px-4 py-3">Last Used</th>
-              <th class="text-right text-zinc-400 text-xs uppercase tracking-wider px-4 py-3">Actions</th>
+            <tr class="bg-tribal-card">
+              <th>Name</th>
+              <th>Owner</th>
+              <th>Prefix</th>
+              <th>Last used</th>
+              <th class="text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -644,27 +655,17 @@ async function handlePurge(id: number, name: string) {
                 key.revoked_at ? 'opacity-50' : '',
               ]"
             >
-              <td class="px-4 py-3 text-white">{{ key.name }}</td>
-              <td class="px-4 py-3 text-zinc-400">{{ key.user_email }}</td>
-              <td class="px-4 py-3 font-mono text-zinc-400 text-xs">{{ key.key_prefix }}...</td>
-              <td class="px-4 py-3 text-zinc-400">{{ formatDateTime(key.last_used_at) }}</td>
-              <td class="px-4 py-3 text-right">
-                <button
-                  v-if="!key.revoked_at"
-                  class="text-danger hover:text-danger-light transition-colors p-1"
-                  title="Revoke API key"
-                  @click="handleRevokeAdminKey(key.id)"
-                >
-                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <circle cx="12" cy="12" r="9" stroke-width="2" />
-                    <path stroke-linecap="round" stroke-width="2" d="M4.929 4.929l14.142 14.142" />
-                  </svg>
-                </button>
-                <span v-else class="text-zinc-600 text-xs">Revoked</span>
+              <td class="text-white">{{ key.name }}</td>
+              <td class="text-zinc-400">{{ key.user_email }}</td>
+              <td class="mono text-zinc-400">{{ key.key_prefix }}</td>
+              <td class="text-zinc-400">{{ formatDateTime(key.last_used_at) }}</td>
+              <td class="text-right">
+                <IconButton v-if="!key.revoked_at" :icon="Ban" label="Revoke API key" danger sm @click="handleRevokeAdminKey(key)" />
+                <span v-else class="badge-neutral">Revoked</span>
               </td>
             </tr>
             <tr v-if="adminStore.apiKeys.length === 0">
-              <td colspan="5" class="px-4 py-8 text-center text-zinc-500">No API keys found.</td>
+              <td colspan="5" class="py-8 text-center text-zinc-400">No API keys found.</td>
             </tr>
           </tbody>
         </table>
@@ -672,105 +673,102 @@ async function handlePurge(id: number, name: string) {
     </section>
 
     <!-- ── Audit Log ──────────────────────────────────────────────────────────── -->
-    <section class="bg-tribal-panel rounded-xl border border-tribal-border overflow-hidden">
-      <div class="px-6 py-4 border-b border-tribal-border">
-        <h2 class="text-base font-semibold text-white">Audit Log</h2>
+    <section class="card overflow-hidden">
+      <div class="border-b border-tribal-border px-3 py-3 sm:px-4">
+        <h2 class="section-title">Audit log</h2>
       </div>
       <div class="overflow-x-auto">
-        <table class="w-full text-sm">
+        <table class="tbl">
           <thead>
-            <tr class="bg-tribal-card border-b border-tribal-border">
-              <th class="text-left text-zinc-400 text-xs uppercase tracking-wider px-4 py-3">Time</th>
-              <th class="text-left text-zinc-400 text-xs uppercase tracking-wider px-4 py-3">User</th>
-              <th class="text-left text-zinc-400 text-xs uppercase tracking-wider px-4 py-3">Action</th>
-              <th class="text-left text-zinc-400 text-xs uppercase tracking-wider px-4 py-3">Resource</th>
+            <tr class="bg-tribal-card">
+              <th>Time</th>
+              <th>User</th>
+              <th>Action</th>
+              <th>Resource</th>
             </tr>
           </thead>
           <tbody>
             <tr
               v-for="entry in adminStore.auditLog"
               :key="entry.id"
-              class="border-b border-tribal-border/50 hover:bg-tribal-card/50 transition-colors"
+              class="hover:bg-tribal-card/50"
             >
-              <td class="px-4 py-3 text-zinc-400 whitespace-nowrap text-xs">{{ formatDateTime(entry.created_at) }}</td>
-              <td class="px-4 py-3 text-zinc-300">{{ entry.user_email ?? '—' }}</td>
-              <td class="px-4 py-3">
-                <span class="text-zinc-300 font-mono text-xs">{{ entry.action }}</span>
+              <td class="text-zinc-400 whitespace-nowrap text-xs">{{ formatDateTime(entry.created_at) }}</td>
+              <td class="text-zinc-300">{{ entry.user_email ?? '—' }}</td>
+              <td>
+                <span class="mono text-zinc-300">{{ entry.action }}</span>
               </td>
-              <td class="px-4 py-3 text-zinc-400">{{ entry.resource_name ?? '—' }}</td>
+              <td class="text-zinc-400">{{ entry.resource_name ?? '—' }}</td>
             </tr>
             <tr v-if="adminStore.auditLog.length === 0">
-              <td colspan="4" class="px-4 py-8 text-center text-zinc-500">No audit log entries.</td>
+              <td colspan="4" class="py-8 text-center text-zinc-400">No audit log entries.</td>
             </tr>
           </tbody>
         </table>
       </div>
-      <div class="px-4 py-3 border-t border-tribal-border/50">
-        <button
-          class="text-sm text-zinc-400 hover:text-white transition-colors"
+      <div class="border-t border-tribal-border px-3 py-2">
+        <button type="button"
+          class="btn-ghost btn-sm"
           @click="loadMoreAudit"
         >
-          Load More
+          Load more
         </button>
       </div>
     </section>
 
     <!-- ── Deleted Resources ──────────────────────────────────────────────────── -->
-    <section class="bg-tribal-panel rounded-xl border border-tribal-border overflow-hidden">
-      <div class="px-6 py-4 border-b border-tribal-border">
-        <h2 class="text-base font-semibold text-white">Deleted Resources</h2>
-        <p class="text-zinc-500 text-sm mt-1">Restore returns a resource to the active list. Purge permanently removes it and cannot be undone.</p>
+    <section class="card overflow-hidden">
+      <div class="border-b border-tribal-border px-3 py-3 sm:px-4">
+        <h2 class="section-title">Deleted resources</h2>
+        <p class="meta mt-1">Restore returns a resource to the active list. Purge permanently removes it and cannot be undone.</p>
       </div>
       <div class="overflow-x-auto">
-        <table class="w-full text-sm">
+        <table class="tbl">
           <thead>
-            <tr class="bg-tribal-card border-b border-tribal-border">
-              <th class="text-left text-zinc-400 text-xs uppercase tracking-wider px-4 py-3">Name</th>
-              <th class="text-left text-zinc-400 text-xs uppercase tracking-wider px-4 py-3">Type</th>
-              <th class="text-left text-zinc-400 text-xs uppercase tracking-wider px-4 py-3">DRI</th>
-              <th class="text-left text-zinc-400 text-xs uppercase tracking-wider px-4 py-3">Deleted At</th>
-              <th class="text-right text-zinc-400 text-xs uppercase tracking-wider px-4 py-3">Actions</th>
+            <tr class="bg-tribal-card">
+              <th>Name</th>
+              <th>Type</th>
+              <th>DRI</th>
+              <th>Deleted at</th>
+              <th class="text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
             <tr
               v-for="resource in adminStore.deletedResources"
               :key="resource.id"
-              class="border-b border-tribal-border/50 hover:bg-tribal-card/50 transition-colors"
+              class="hover:bg-tribal-card/50"
             >
-              <td class="px-4 py-3 text-white">{{ resource.name }}</td>
-              <td class="px-4 py-3 text-zinc-400">{{ resource.type }}</td>
-              <td class="px-4 py-3 text-zinc-400">{{ resource.dri }}</td>
-              <td class="px-4 py-3 text-zinc-400 text-xs">{{ formatDateTime(resource.deleted_at) }}</td>
-              <td class="px-4 py-3 text-right">
-                <div class="flex justify-end gap-2">
-                  <button
-                    class="text-accent-green hover:text-accent-green-light transition-colors p-1"
-                    title="Restore"
-                    @click="handleRestore(resource.id)"
-                  >
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                  </button>
-                  <button
-                    class="text-danger hover:text-danger-light transition-colors p-1"
-                    title="Purge"
-                    @click="handlePurge(resource.id, resource.name)"
-                  >
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </button>
+              <td class="text-white">{{ resource.name }}</td>
+              <td class="text-zinc-400">{{ resource.type }}</td>
+              <td class="text-zinc-400">{{ resource.dri }}</td>
+              <td class="text-zinc-400 text-xs">{{ formatDateTime(resource.deleted_at) }}</td>
+              <td class="text-right">
+                <div class="flex justify-end gap-1">
+                  <IconButton :icon="RotateCcw" label="Restore" sm @click="handleRestore(resource.id)" />
+                  <IconButton :icon="Trash2" label="Purge" danger sm @click="handlePurge(resource.id, resource.name)" />
                 </div>
               </td>
             </tr>
             <tr v-if="adminStore.deletedResources.length === 0">
-              <td colspan="5" class="px-4 py-8 text-center text-zinc-500">No deleted resources.</td>
+              <td colspan="5" class="py-8 text-center text-zinc-400">No deleted resources.</td>
             </tr>
           </tbody>
         </table>
       </div>
     </section>
+
+    <ConfirmDialog
+      :open="pendingConfirm !== null"
+      :title="lastConfirm?.title ?? ''"
+      :message="lastConfirm?.message ?? ''"
+      :confirm-label="lastConfirm?.confirmLabel"
+      :busy-label="lastConfirm?.busyLabel"
+      :require-text="pendingConfirm?.requireText"
+      :busy="confirmBusy"
+      danger
+      @confirm="runConfirm"
+      @cancel="pendingConfirm = null"
+    />
   </div>
 </template>

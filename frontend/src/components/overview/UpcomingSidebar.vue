@@ -33,36 +33,32 @@ const upcoming = computed(() => {
 </script>
 
 <template>
-  <div class="bg-tribal-panel rounded-xl border border-tribal-border p-4 h-full">
-    <h3 class="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">
-      Upcoming Events
-    </h3>
+  <div class="card card-pad h-full">
+    <h2 class="section-title mb-3">Upcoming events</h2>
 
-    <div v-if="upcoming.length === 0" class="text-zinc-500 text-sm text-center py-8">
+    <div v-if="upcoming.length === 0" class="py-8 text-center text-sm text-zinc-400">
       Zarro items due.
     </div>
 
-    <ul v-else class="space-y-2 overflow-y-auto max-h-[600px] pr-1">
-      <li
-        v-for="resource in upcoming"
-        :key="resource.id"
-        class="p-3 bg-tribal-card rounded-lg border border-tribal-border hover:border-accent-blue/30 cursor-pointer transition-colors"
-        @click="openResourceDetail(resource)"
-      >
-        <div class="flex items-start justify-between gap-2">
-          <div class="min-w-0">
-            <p class="text-white text-sm font-medium truncate">{{ resource.name }}</p>
-            <p class="text-zinc-500 text-xs mt-0.5 truncate">{{ resource.dri }}</p>
-          </div>
-          <span class="shrink-0 text-xs text-zinc-500 bg-tribal-muted/30 px-2 py-0.5 rounded">{{ resource.type }}</span>
-        </div>
-        <div class="mt-2 flex items-center gap-1.5 flex-wrap">
-          <StatusBadge :resource="resource" />
-          <span
-            v-if="isReviewDue(resource)"
-            class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-accent-purple/20 text-accent-purple"
-          >Review Due</span>
-        </div>
+    <ul v-else class="max-h-[600px] space-y-2 overflow-y-auto pr-1">
+      <li v-for="resource in upcoming" :key="resource.id">
+        <button
+          type="button"
+          class="w-full rounded-md border border-tribal-border bg-tribal-card p-3 text-left transition-colors hover:border-zinc-500"
+          @click="openResourceDetail(resource)"
+        >
+          <span class="flex items-start justify-between gap-2">
+            <span class="min-w-0">
+              <span class="block truncate text-sm font-medium text-white">{{ resource.name }}</span>
+              <span class="meta mt-0.5 block truncate">{{ resource.dri }}</span>
+            </span>
+            <span class="meta shrink-0">{{ resource.type }}</span>
+          </span>
+          <span class="mt-2 flex flex-wrap items-center gap-1.5">
+            <StatusBadge :resource="resource" />
+            <span v-if="isReviewDue(resource)" class="badge-review">Review due</span>
+          </span>
+        </button>
       </li>
     </ul>
   </div>

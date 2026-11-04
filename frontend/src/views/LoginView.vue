@@ -76,129 +76,76 @@ async function handleRegister() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-tribal-bg flex flex-col">
+  <div class="flex min-h-screen flex-col">
     <!-- Public announcement banner -->
     <BannerBar :banner="loginBanner" />
 
-    <div class="flex-1 flex items-center justify-center px-4">
-      <div class="w-full max-w-md">
-      <!-- Logo + Title -->
-      <div class="text-center mb-8">
-        <img
-          src="/tribal_logo.png"
-          alt="Tribal"
-          class="w-16 h-16 object-contain mx-auto mb-3"
-        />
-        <h1 class="text-2xl font-bold text-white">Tribal</h1>
-        <p class="text-zinc-500 text-sm mt-1">Credential Lifecycle Management</p>
-      </div>
-
-      <!-- Card -->
-      <div class="bg-tribal-panel rounded-xl border border-tribal-border p-8">
-        <!-- Tabs -->
-        <div class="flex border-b border-tribal-border mb-6">
-          <button
-            :class="[
-              'pb-3 px-1 mr-6 text-sm font-medium transition-colors',
-              activeTab === 'signin'
-                ? 'text-accent-blue border-b-2 border-accent-blue'
-                : 'text-zinc-400 hover:text-zinc-200',
-            ]"
-            @click="activeTab = 'signin'; error = ''"
-          >
-            Sign In
-          </button>
-          <button
-            :class="[
-              'pb-3 px-1 text-sm font-medium transition-colors',
-              activeTab === 'register'
-                ? 'text-accent-blue border-b-2 border-accent-blue'
-                : 'text-zinc-400 hover:text-zinc-200',
-            ]"
-            @click="activeTab = 'register'; error = ''"
-          >
-            Create Account
-          </button>
+    <main class="flex flex-1 items-center justify-center px-4 py-8">
+      <div class="w-full max-w-sm">
+        <div class="mb-5 text-center">
+          <img src="/tribal_logo.png" alt="" class="mx-auto mb-2 h-12 w-12 object-contain" />
+          <h1 class="page-title">Tribal</h1>
+          <p class="meta mt-0.5">Credential lifecycle management</p>
         </div>
 
-        <!-- Sign In -->
-        <form v-if="activeTab === 'signin'" class="space-y-4" @submit.prevent="handleSignin">
-          <div>
-            <label class="block text-sm font-medium text-zinc-300 mb-1">Email</label>
-            <input
-              v-model="signinForm.email"
-              type="email"
-              required
-              placeholder="you@example.com"
-              class="w-full bg-tribal-card border border-tribal-border rounded-lg px-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-accent-blue transition-colors"
-            />
+        <div class="card card-pad">
+          <div class="mb-4 grid grid-cols-2 gap-1 rounded-md bg-tribal-bg p-1" role="tablist" aria-label="Account">
+            <button
+              type="button"
+              role="tab"
+              :aria-selected="activeTab === 'signin'"
+              :class="['nav-link justify-center', activeTab === 'signin' ? 'nav-active' : '']"
+              @click="activeTab = 'signin'; error = ''"
+            >
+              Sign in
+            </button>
+            <button
+              type="button"
+              role="tab"
+              :aria-selected="activeTab === 'register'"
+              :class="['nav-link justify-center', activeTab === 'register' ? 'nav-active' : '']"
+              @click="activeTab = 'register'; error = ''"
+            >
+              Create account
+            </button>
           </div>
-          <div>
-            <label class="block text-sm font-medium text-zinc-300 mb-1">Password</label>
-            <input
-              v-model="signinForm.password"
-              type="password"
-              required
-              placeholder="••••••••"
-              class="w-full bg-tribal-card border border-tribal-border rounded-lg px-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-accent-blue transition-colors"
-            />
-          </div>
-          <div v-if="error" class="text-danger text-sm bg-danger/10 border border-danger/20 rounded-lg px-3 py-2">
-            {{ error }}
-          </div>
-          <button
-            type="submit"
-            :disabled="loading"
-            class="w-full bg-accent-blue-dark hover:bg-accent-blue text-white font-semibold rounded-lg px-4 py-2.5 transition-colors disabled:opacity-50"
-          >
-            {{ loading ? 'Signing in...' : 'Sign In' }}
-          </button>
-        </form>
 
-        <!-- Register -->
-        <form v-else class="space-y-4" @submit.prevent="handleRegister">
-          <div>
-            <label class="block text-sm font-medium text-zinc-300 mb-1">Display Name <span class="text-zinc-500">(optional)</span></label>
-            <input
-              v-model="registerForm.display_name"
-              type="text"
-              placeholder="Your Name"
-              class="w-full bg-tribal-card border border-tribal-border rounded-lg px-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-accent-blue transition-colors"
-            />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-zinc-300 mb-1">Email</label>
-            <input
-              v-model="registerForm.email"
-              type="email"
-              required
-              placeholder="you@example.com"
-              class="w-full bg-tribal-card border border-tribal-border rounded-lg px-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-accent-blue transition-colors"
-            />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-zinc-300 mb-1">Password</label>
-            <input
-              v-model="registerForm.password"
-              type="password"
-              required
-              placeholder="Min 8 chars, 1 digit, 1 special"
-              class="w-full bg-tribal-card border border-tribal-border rounded-lg px-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-accent-blue transition-colors"
-            />
-          </div>
-          <div v-if="error" class="text-danger text-sm bg-danger/10 border border-danger/20 rounded-lg px-3 py-2">
-            {{ error }}
-          </div>
-          <button
-            type="submit"
-            :disabled="loading"
-            class="w-full bg-accent-blue-dark hover:bg-accent-blue text-white font-semibold rounded-lg px-4 py-2.5 transition-colors disabled:opacity-50"
-          >
-            {{ loading ? 'Creating account...' : 'Create Account' }}
-          </button>
-        </form>
+          <form v-if="activeTab === 'signin'" class="space-y-4" @submit.prevent="handleSignin">
+            <div>
+              <label for="signin-email" class="label">Email</label>
+              <input id="signin-email" v-model="signinForm.email" type="email" required autocomplete="username" placeholder="you@example.com" class="input" :aria-invalid="error ? 'true' : undefined" />
+            </div>
+            <div>
+              <label for="signin-password" class="label">Password</label>
+              <input id="signin-password" v-model="signinForm.password" type="password" required autocomplete="current-password" class="input" :aria-invalid="error ? 'true' : undefined" />
+            </div>
+            <div v-if="error" class="alert-error" role="alert">{{ error }}</div>
+            <button type="submit" :disabled="loading" class="btn-primary btn-block">
+              {{ loading ? 'Signing in…' : 'Sign in' }}
+            </button>
+          </form>
+
+          <form v-else class="space-y-4" @submit.prevent="handleRegister">
+            <div>
+              <label for="register-name" class="label">Display name <span class="font-normal text-zinc-400">(optional)</span></label>
+              <input id="register-name" v-model="registerForm.display_name" type="text" autocomplete="name" placeholder="Your name" class="input" />
+            </div>
+            <div>
+              <label for="register-email" class="label">Email</label>
+              <input id="register-email" v-model="registerForm.email" type="email" required autocomplete="username" placeholder="you@example.com" class="input" />
+            </div>
+            <div>
+              <label for="register-password" class="label">Password</label>
+              <input id="register-password" v-model="registerForm.password" type="password" required autocomplete="new-password" aria-describedby="register-password-help" class="input" :aria-invalid="error ? 'true' : undefined" />
+              <p id="register-password-help" class="help">At least 8 characters, with 1 digit and 1 special character.</p>
+            </div>
+            <div v-if="error" class="alert-error" role="alert">{{ error }}</div>
+            <button type="submit" :disabled="loading" class="btn-primary btn-block">
+              {{ loading ? 'Creating account…' : 'Create account' }}
+            </button>
+          </form>
+        </div>
       </div>
-      </div>
-    </div>
+    </main>
   </div>
 </template>

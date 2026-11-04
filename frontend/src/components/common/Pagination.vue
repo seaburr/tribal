@@ -18,33 +18,11 @@ const to = computed(() => Math.min(props.page * perPage.value, props.total))
 </script>
 
 <template>
-  <div v-if="total > perPage" class="flex items-center justify-between mt-4 text-sm text-zinc-400">
-    <span>{{ from }}–{{ to }} of {{ total }}</span>
+  <nav v-if="total > perPage" aria-label="Pagination" class="flex items-center justify-between gap-3 px-3 py-2">
+    <span class="meta">{{ from }}–{{ to }} of {{ total }}</span>
     <div class="flex gap-2">
-      <button
-        :disabled="page <= 1"
-        :class="[
-          'px-3 py-1.5 rounded-lg border transition-colors',
-          page <= 1
-            ? 'border-tribal-border text-zinc-600 cursor-not-allowed'
-            : 'border-tribal-border hover:border-accent-blue/50 hover:text-accent-blue',
-        ]"
-        @click="emit('update:page', page - 1)"
-      >
-        ← Prev
-      </button>
-      <button
-        :disabled="page >= totalPages"
-        :class="[
-          'px-3 py-1.5 rounded-lg border transition-colors',
-          page >= totalPages
-            ? 'border-tribal-border text-zinc-600 cursor-not-allowed'
-            : 'border-tribal-border hover:border-accent-blue/50 hover:text-accent-blue',
-        ]"
-        @click="emit('update:page', page + 1)"
-      >
-        Next →
-      </button>
+      <button type="button" class="btn-secondary btn-sm" :disabled="page <= 1" @click="emit('update:page', page - 1)">Previous</button>
+      <button type="button" class="btn-secondary btn-sm" :disabled="page >= totalPages" @click="emit('update:page', page + 1)">Next</button>
     </div>
-  </div>
+  </nav>
 </template>

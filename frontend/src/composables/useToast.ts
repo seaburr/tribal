@@ -9,13 +9,16 @@ interface Toast {
 const toasts = ref<Toast[]>([])
 let nextId = 0
 
+function dismiss(id: number) {
+  toasts.value = toasts.value.filter((t) => t.id !== id)
+}
+
 export function useToast() {
   function show(message: string, type: 'success' | 'error' = 'success') {
     const id = nextId++
-    toasts.value.push({ id, message, type })
-    setTimeout(() => {
-      toasts.value = toasts.value.filter((t) => t.id !== id)
-    }, 3000)
+    toasts.value = [...toasts.value.slice(-3), { id, message, type }]
+    // Errors stay up longer: they usually need reading, and can be dismissed by hand.
+    setTimeout(() => dismiss(id), type === 'error' ? 9000 : 5000)
   }
-  return { toasts, show }
+  return { toasts, show, dismiss }
 }

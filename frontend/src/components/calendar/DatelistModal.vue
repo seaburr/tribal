@@ -17,28 +17,29 @@ const emit = defineEmits<{
 
 <template>
   <BaseModal
-    :title="date ? `Expiring on ${formatDate(date)}` : 'Expiring Resources'"
+    :title="date ? `Expiring on ${formatDate(date)}` : 'Expiring resources'"
     :open="!!date"
     @close="emit('close')"
   >
-    <div v-if="resources.length === 0" class="text-zinc-400 text-sm py-4 text-center">
+    <div v-if="resources.length === 0" class="py-4 text-center text-sm text-zinc-400">
       No resources expire on this date.
     </div>
     <ul v-else class="space-y-2">
-      <li
-        v-for="resource in resources"
-        :key="resource.id"
-        class="flex items-center justify-between p-3 bg-tribal-card rounded-lg border border-tribal-border hover:border-accent-blue/30 cursor-pointer transition-colors"
-        @click="emit('view-resource', resource)"
-      >
-        <div>
-          <p class="text-white font-medium text-sm">{{ resource.name }}</p>
-          <p class="text-zinc-500 text-xs mt-0.5">{{ resource.dri }}</p>
-        </div>
-        <div class="flex items-center gap-2">
-          <span class="text-xs text-zinc-500 bg-tribal-muted/30 px-2 py-0.5 rounded">{{ resource.type }}</span>
-          <StatusBadge :resource="resource" />
-        </div>
+      <li v-for="resource in resources" :key="resource.id">
+        <button
+          type="button"
+          class="flex w-full flex-wrap items-center justify-between gap-2 rounded-md border border-tribal-border bg-tribal-card p-3 text-left transition-colors hover:border-zinc-500"
+          @click="emit('view-resource', resource)"
+        >
+          <span class="min-w-0">
+            <span class="block text-sm font-medium text-white">{{ resource.name }}</span>
+            <span class="meta mt-0.5 block">{{ resource.dri }}</span>
+          </span>
+          <span class="flex items-center gap-2">
+            <span class="meta">{{ resource.type }}</span>
+            <StatusBadge :resource="resource" />
+          </span>
+        </button>
       </li>
     </ul>
   </BaseModal>

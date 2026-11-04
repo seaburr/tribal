@@ -23,7 +23,7 @@ function onDateClick(date: string) {
 </script>
 
 <template>
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
     <!-- Calendar (takes 2/3 width on large screens) -->
     <div class="lg:col-span-2">
       <CalendarView @date-click="onDateClick" />

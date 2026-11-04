@@ -20,7 +20,7 @@ const emit = defineEmits<{
 const { show } = useToast()
 
 const isNew = computed(() => props.resourceId === null)
-const title = computed(() => (isNew.value ? 'Add Resource' : 'Edit Resource'))
+const title = computed(() => (isNew.value ? 'Add resource' : 'Edit resource'))
 
 // Form state
 const form = ref({
@@ -202,207 +202,194 @@ async function handleSave() {
 <template>
   <BaseModal :title="title" :open="open" @close="emit('close')">
     <div v-if="loading && !isNew" class="flex items-center justify-center py-12">
-      <span class="text-zinc-400">Loading...</span>
+      <span class="text-zinc-400">Loading…</span>
     </div>
 
     <form v-else class="space-y-4" @submit.prevent="handleSave">
       <!-- Name -->
       <div>
-        <label class="block text-sm font-medium text-zinc-300 mb-1">Name <span class="text-danger">*</span></label>
-        <input
+        <label for="resourcemodal-field-1" class="label">Name <span class="text-danger-light" aria-hidden="true">*</span></label>
+        <input id="resourcemodal-field-1"
           v-model="form.name"
           type="text"
           placeholder="e.g., GitHub Actions Token"
-          class="w-full bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-accent-blue transition-colors"
+          class="input"
         />
       </div>
 
       <!-- DRI -->
       <div>
-        <label class="block text-sm font-medium text-zinc-300 mb-1">DRI (Directly Responsible Individual) <span class="text-danger">*</span></label>
-        <input
+        <label for="resourcemodal-field-2" class="label">DRI (Directly Responsible Individual) <span class="text-danger-light" aria-hidden="true">*</span></label>
+        <input id="resourcemodal-field-2"
           v-model="form.dri"
           type="text"
           placeholder="e.g., platform-team"
-          class="w-full bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-accent-blue transition-colors"
+          class="input"
         />
       </div>
 
       <!-- Type -->
       <div>
-        <label class="block text-sm font-medium text-zinc-300 mb-1">Type</label>
-        <div class="relative">
-          <select
+        <label for="resourcemodal-field-3" class="label">Type</label>
+        <select id="resourcemodal-field-3"
             v-model="form.type"
-            class="w-full appearance-none bg-tribal-card border border-tribal-border rounded-lg px-3 pr-10 py-2 text-white focus:outline-none focus:border-accent-blue transition-colors"
+            class="input"
           >
             <option value="Certificate">Certificate</option>
             <option value="API Key">API Key</option>
             <option value="SSH Key">SSH Key</option>
             <option value="Other">Other</option>
           </select>
-          <div class="pointer-events-none absolute inset-y-0 right-3 flex items-center">
-            <svg class="w-4 h-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-            </svg>
-          </div>
-        </div>
       </div>
 
       <!-- Certificate-specific: endpoint lookup -->
       <div v-if="form.type === 'Certificate'" class="space-y-3">
         <div>
-          <label class="block text-sm font-medium text-zinc-300 mb-1">TLS Endpoint</label>
+          <label for="resourcemodal-field-4" class="label">TLS endpoint</label>
           <div class="flex gap-2">
-            <input
+            <input id="resourcemodal-field-4"
               v-model="certEndpoint"
               type="text"
               placeholder="e.g., example.com or https://example.com"
-              class="flex-1 bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-accent-blue transition-colors"
+              class="input flex-1"
             />
             <button
               type="button"
               :disabled="certLoading || !certEndpoint"
-              class="px-4 py-2 border border-accent-blue/50 text-accent-blue hover:border-accent-blue rounded-lg text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              class="btn-secondary"
               @click="handleCertLookup"
             >
-              {{ certLoading ? 'Loading...' : 'Get Expiry' }}
+              {{ certLoading ? 'Loading…' : 'Get expiry' }}
             </button>
           </div>
         </div>
-        <label class="flex items-center gap-2 cursor-pointer">
-          <input v-model="form.auto_refresh_expiry" type="checkbox" class="rounded border-tribal-border" />
+        <label class="flex cursor-pointer items-center gap-2">
+          <input v-model="form.auto_refresh_expiry" type="checkbox" class="check" />
           <span class="text-sm text-zinc-300">Auto-refresh expiry date daily</span>
         </label>
       </div>
 
       <!-- API Key-specific: detect provider -->
       <div v-if="form.type === 'API Key'" class="space-y-2">
-        <label class="block text-sm font-medium text-zinc-300 mb-1">Detect Provider (optional)</label>
+        <label for="resourcemodal-field-5" class="label">Detect provider (optional)</label>
         <div class="flex gap-2">
-          <input
+          <input id="resourcemodal-field-5"
             v-model="apiKeyInput"
             type="password"
+            autocomplete="off"
             placeholder="Paste API key to auto-detect provider"
-            class="flex-1 bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-accent-blue transition-colors"
+            class="input flex-1"
           />
           <button
             type="button"
             :disabled="detectLoading || !apiKeyInput"
-            class="px-4 py-2 border border-accent-blue/50 text-accent-blue hover:border-accent-blue rounded-lg text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            class="btn-secondary"
             @click="handleDetect"
           >
-            {{ detectLoading ? 'Detecting...' : 'Detect' }}
+            {{ detectLoading ? 'Detecting…' : 'Detect' }}
           </button>
         </div>
-        <p class="text-xs text-zinc-500">The key is used only for detection and is <b>never stored within Tribal.</b></p>
+        <p class="help">The key is used only for detection and is <b>never stored within Tribal.</b></p>
       </div>
 
       <!-- Provider -->
       <div>
-        <label class="block text-sm font-medium text-zinc-300 mb-1">Provider</label>
-        <input
+        <label for="resourcemodal-field-6" class="label">Provider</label>
+        <input id="resourcemodal-field-6"
           v-model="form.provider"
           type="text"
           placeholder="e.g., GitHub, AWS, Stripe"
-          class="w-full bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-accent-blue transition-colors"
+          class="input"
         />
       </div>
 
       <!-- Does not expire -->
-      <label class="flex items-center gap-2 cursor-pointer">
-        <input v-model="form.does_not_expire" type="checkbox" class="rounded border-tribal-border" />
+      <label class="flex cursor-pointer items-center gap-2">
+        <input v-model="form.does_not_expire" type="checkbox" class="check" />
         <span class="text-sm text-zinc-300">This resource does not expire</span>
       </label>
 
       <!-- Expiration date -->
       <div v-if="!form.does_not_expire">
-        <label class="block text-sm font-medium text-zinc-300 mb-1">Expiration Date</label>
-        <input
+        <label for="resourcemodal-field-7" class="label">Expiration date</label>
+        <input id="resourcemodal-field-7"
           v-model="form.expiration_date"
           type="date"
-          class="w-full bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white focus:outline-none focus:border-accent-blue transition-colors [color-scheme:dark]"
+          class="input"
         />
       </div>
 
       <!-- Team -->
       <div v-if="teams.length > 0">
-        <label class="block text-sm font-medium text-zinc-300 mb-1">Team</label>
-        <div class="relative">
-          <select
+        <label for="resourcemodal-field-8" class="label">Team</label>
+        <select id="resourcemodal-field-8"
             v-model="form.team_id"
-            class="w-full appearance-none bg-tribal-card border border-tribal-border rounded-lg px-3 pr-10 py-2 text-white focus:outline-none focus:border-accent-blue transition-colors"
+            class="input"
           >
             <option :value="null">No team</option>
             <option v-for="team in teams" :key="team.id" :value="team.id">{{ team.name }}</option>
           </select>
-          <div class="pointer-events-none absolute inset-y-0 right-3 flex items-center">
-            <svg class="w-4 h-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-            </svg>
-          </div>
-        </div>
       </div>
 
       <!-- Purpose -->
       <div>
-        <label class="block text-sm font-medium text-zinc-300 mb-1">Purpose</label>
-        <textarea
+        <label for="resourcemodal-field-9" class="label">Purpose</label>
+        <textarea id="resourcemodal-field-9"
           v-model="form.purpose"
           rows="2"
           placeholder="What is this credential used for?"
-          class="w-full bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-accent-blue transition-colors resize-none"
+          class="input resize-none"
         />
       </div>
 
       <!-- Generation / Rotation Instructions -->
       <div>
-        <label class="block text-sm font-medium text-zinc-300 mb-1">Generation / Rotation Instructions</label>
-        <textarea
+        <label for="resourcemodal-field-10" class="label">Generation / rotation instructions</label>
+        <textarea id="resourcemodal-field-10"
           v-model="form.generation_instructions"
           rows="3"
           placeholder="Steps to generate or rotate this credential"
-          class="w-full bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-accent-blue transition-colors resize-none"
+          class="input resize-none"
         />
       </div>
 
       <!-- Secret Manager Link -->
       <div>
-        <label class="block text-sm font-medium text-zinc-300 mb-1">Secret Manager Link</label>
-        <input
+        <label for="resourcemodal-field-11" class="label">Secret manager link</label>
+        <input id="resourcemodal-field-11"
           v-model="form.secret_manager_link"
           type="url"
           placeholder="https://..."
-          class="w-full bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-accent-blue transition-colors"
+          class="input"
         />
       </div>
 
       <!-- Slack Webhook -->
       <div>
-        <label class="block text-sm font-medium text-zinc-300 mb-1">Slack Webhook URL</label>
+        <label for="resourcemodal-field-12" class="label">Slack webhook URL</label>
         <div class="flex gap-2">
-          <input
+          <input id="resourcemodal-field-12"
             v-model="form.slack_webhook"
             type="url"
             placeholder="https://hooks.slack.com/..."
-            class="flex-1 bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-accent-blue transition-colors"
+            class="input flex-1"
           />
           <button
             type="button"
             :disabled="!form.slack_webhook"
-            class="px-4 py-2 border border-tribal-border text-zinc-400 hover:border-accent-blue/50 hover:text-accent-blue rounded-lg text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            class="btn-secondary"
             @click="handleTestWebhook"
           >
-            Send Test
+            Send test
           </button>
         </div>
       </div>
 
       <!-- Actions -->
-      <div class="flex justify-end gap-3 pt-2 border-t border-tribal-border">
+      <div class="flex flex-col-reverse gap-2 border-t border-tribal-border pt-4 sm:flex-row sm:justify-end">
         <button
           type="button"
-          class="px-4 py-2 border border-tribal-border text-zinc-400 hover:text-white rounded-lg text-sm transition-colors"
+          class="btn-secondary"
           @click="emit('close')"
         >
           Cancel
@@ -410,9 +397,9 @@ async function handleSave() {
         <button
           type="submit"
           :disabled="loading"
-          class="px-4 py-2 bg-accent-blue-dark hover:bg-accent-blue text-white font-semibold rounded-lg text-sm transition-colors disabled:opacity-50"
+          class="btn-primary"
         >
-          {{ loading ? 'Saving...' : (isNew ? 'Create Resource' : 'Save Changes') }}
+          {{ loading ? 'Saving…' : (isNew ? 'Create resource' : 'Save changes') }}
         </button>
       </div>
     </form>
