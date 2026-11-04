@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { CircleAlert, CircleCheck, Clock, Infinity as NoExpiry, TriangleAlert } from '@lucide/vue'
 import type { Resource } from '../../types'
 import { urgency, daysUntil, formatDate } from '../../utils/date'
 
@@ -26,26 +27,29 @@ const label = computed(() => {
   }
 })
 
-const cls = computed(() => {
+// Status is never colour-only: each urgency level also has its own icon.
+const look = computed(() => {
   switch (u.value) {
     case 'overdue':
-      return 'bg-status-overdue/15 text-status-overdue border border-status-overdue/25'
+      return { icon: CircleAlert, cls: 'badge border-status-overdue/40 bg-status-overdue/10 text-status-overdue' }
     case 'critical':
-      return 'bg-status-critical/15 text-status-critical border border-status-critical/25'
+      return { icon: TriangleAlert, cls: 'badge border-status-critical/40 bg-status-critical/10 text-status-critical' }
     case 'warning':
-      return 'bg-status-warning/15 text-status-warning border border-status-warning/25'
+      return { icon: Clock, cls: 'badge border-status-warning/40 bg-status-warning/10 text-status-warning' }
     case 'upcoming':
-      return 'bg-status-upcoming/15 text-status-upcoming border border-status-upcoming/25'
+      return { icon: Clock, cls: 'badge border-status-upcoming/40 bg-status-upcoming/10 text-status-upcoming' }
     case 'ok':
-      return 'bg-accent-green/20 text-accent-green border border-accent-green/30'
+      return { icon: CircleCheck, cls: 'badge-ok' }
     case 'none':
-      return 'bg-zinc-700/50 text-zinc-400'
+    default:
+      return { icon: NoExpiry, cls: 'badge-neutral' }
   }
 })
 </script>
 
 <template>
-  <span :class="['inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap', cls]">
+  <span :class="look.cls">
+    <component :is="look.icon" :size="12" aria-hidden="true" />
     {{ label }}
   </span>
 </template>

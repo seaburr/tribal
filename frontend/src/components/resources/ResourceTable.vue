@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { ChevronDown, ChevronUp, Eye, FileDown, Pencil, Trash2 } from '@lucide/vue'
+import IconButton from '../common/IconButton.vue'
 import type { Resource } from '../../types'
 import StatusBadge from '../common/StatusBadge.vue'
 import Pagination from '../common/Pagination.vue'
@@ -36,9 +38,9 @@ function setSort(key: SortKey) {
   page.value = 1
 }
 
-function sortIndicator(key: SortKey) {
-  if (sortKey.value !== key) return ''
-  return sortDir.value === 'asc' ? ' ▲' : ' ▼'
+function ariaSort(key: SortKey) {
+  if (sortKey.value !== key) return 'none'
+  return sortDir.value === 'asc' ? 'ascending' : 'descending'
 }
 
 function urgencyScore(r: Resource): number {
@@ -105,11 +107,11 @@ function isReviewDue(resource: Resource): boolean {
 </script>
 
 <template>
-  <div class="bg-tribal-panel rounded-xl border border-tribal-border overflow-hidden">
+  <div class="card overflow-hidden">
     <div class="overflow-x-auto">
-      <table class="w-full text-sm">
+      <table class="tbl min-w-[720px]">
         <thead>
-          <tr class="bg-tribal-card border-b border-tribal-border">
+          <tr class="bg-tribal-card">
             <th
               v-for="col in [
                 { key: 'name', label: 'Name' },
@@ -119,96 +121,59 @@ function isReviewDue(resource: Resource): boolean {
                 { key: 'status', label: 'Status' },
               ]"
               :key="col.key"
-              class="text-left text-zinc-400 text-xs uppercase tracking-wider px-4 py-3 cursor-pointer hover:text-white select-none transition-colors"
-              @click="setSort(col.key as SortKey)"
+              :aria-sort="ariaSort(col.key as SortKey)"
             >
-              {{ col.label }}{{ sortIndicator(col.key as SortKey) }}
+              <button
+                type="button"
+                class="inline-flex items-center gap-1 uppercase tracking-wide hover:text-white"
+                @click="setSort(col.key as SortKey)"
+              >
+                {{ col.label }}
+                <template v-if="sortKey === col.key">
+                  <ChevronUp v-if="sortDir === 'asc'" :size="12" aria-hidden="true" />
+                  <ChevronDown v-else :size="12" aria-hidden="true" />
+                </template>
+              </button>
             </th>
-            <th class="text-zinc-400 text-xs uppercase tracking-wider px-4 py-3 text-right">Actions</th>
+            <th class="text-right">Actions</th>
           </tr>
         </thead>
         <tbody>
           <tr
             v-for="resource in paginated"
             :key="resource.id"
-            class="border-b border-tribal-border/50 hover:bg-tribal-card/50 transition-colors"
+            class="hover:bg-tribal-card/50"
           >
-            <td class="px-4 py-3">
+            <td>
               <button
-                class="text-white hover:text-accent-blue font-medium transition-colors text-left"
+                type="button"
+                class="text-left font-medium text-white hover:text-accent-blue-light"
                 @click="emit('view', resource)"
               >
                 {{ resource.name }}
               </button>
-              <span
-                v-if="isReviewDue(resource)"
-                class="ml-2 inline-flex items-center rounded-full px-2 py-0.5 text-xs bg-accent-purple/20 text-accent-purple border border-accent-purple/30"
-              >
-                Review Due
-              </span>
+              <span v-if="isReviewDue(resource)" class="badge-review ml-2">Review due</span>
             </td>
-            <td class="px-4 py-3">
-              <span class="text-zinc-400">{{ resource.type }}</span>
-            </td>
-            <td class="px-4 py-3 text-zinc-400">{{ resource.dri }}</td>
-            <td class="px-4 py-3 text-zinc-400">
+            <td class="text-zinc-400">{{ resource.type }}</td>
+            <td class="text-zinc-400">{{ resource.dri }}</td>
+            <td class="text-zinc-400">
               <template v-if="resource.does_not_expire">—</template>
               <template v-else>{{ formatDate(resource.expiration_date) }}</template>
             </td>
-            <td class="px-4 py-3">
-              <StatusBadge :resource="resource" />
-            </td>
-            <td class="px-4 py-3">
-              <div class="flex items-center justify-end gap-2">
-                <!-- View -->
-                <button
-                  class="text-zinc-400 hover:text-white transition-colors p-1"
-                  title="View details"
-                  @click="emit('view', resource)"
-                >
-                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                  </svg>
-                </button>
-                <!-- Download report -->
-                <a
-                  :href="getResourceReportUrl(resource.id)"
-                  target="_blank"
-                  class="text-zinc-400 hover:text-zinc-200 transition-colors p-1"
-                  title="Download report"
-                >
-                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-                  </svg>
-                </a>
-                <!-- Edit (non-readonly) -->
-                <button
-                  v-if="!authStore.user?.is_readonly"
-                  class="text-zinc-400 hover:text-accent-blue transition-colors p-1"
-                  title="Edit"
-                  @click="emit('edit', resource)"
-                >
-                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
-                </button>
-                <!-- Delete (non-readonly) -->
-                <button
-                  v-if="!authStore.user?.is_readonly"
-                  class="text-danger hover:text-danger-light transition-colors p-1"
-                  title="Delete"
-                  @click="emit('delete', resource)"
-                >
-                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </button>
+            <td><StatusBadge :resource="resource" /></td>
+            <td>
+              <div class="flex items-center justify-end gap-0.5">
+                <IconButton :icon="Eye" label="View details" sm @click="emit('view', resource)" />
+                <IconButton :icon="FileDown" label="Download report" sm :href="getResourceReportUrl(resource.id)" />
+                <template v-if="!authStore.user?.is_readonly">
+                  <IconButton :icon="Pencil" label="Edit" sm @click="emit('edit', resource)" />
+                  <IconButton :icon="Trash2" label="Delete" danger sm @click="emit('delete', resource)" />
+                </template>
               </div>
             </td>
           </tr>
           <tr v-if="resources.length === 0">
-            <td colspan="6" class="px-4 py-12 text-center text-zinc-500">
+            <td colspan="6" class="py-12 text-center text-zinc-400">
               No resources found. Add your first resource to get started.
             </td>
           </tr>
@@ -216,7 +181,7 @@ function isReviewDue(resource: Resource): boolean {
       </table>
     </div>
 
-    <div class="px-4 py-3 border-t border-tribal-border/50">
+    <div v-if="sorted.length > perPage" class="border-t border-tribal-border">
       <Pagination
         :total="sorted.length"
         :page="page"

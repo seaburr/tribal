@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { Check, FileDown, Pencil, Trash2 } from '@lucide/vue'
 import type { Resource } from '../../types'
 import BaseModal from '../common/BaseModal.vue'
 import StatusBadge from '../common/StatusBadge.vue'
@@ -44,7 +45,7 @@ function linkify(text: string): string {
       if (i % 2 === 1) {
         // URL match
         const escaped = escapeHtml(part)
-        return `<a href="${escaped}" target="_blank" rel="noopener noreferrer" class="text-accent-blue hover:text-accent-blue-light underline">${escaped}</a>`
+        return `<a href="${escaped}" target="_blank" rel="noopener noreferrer" class="link underline">${escaped}</a>`
       }
       return escapeHtml(part).replace(/\n/g, '<br>')
     })
@@ -87,110 +88,96 @@ function openReport() {
     :open="open"
     @close="emit('close')"
   >
-    <div v-if="!resource" class="py-8 text-center text-zinc-400">Loading...</div>
+    <div v-if="!resource" class="py-8 text-center text-zinc-400">Loading…</div>
 
     <div v-else class="space-y-5">
       <!-- Header row: type + status -->
       <div class="flex flex-wrap items-center gap-2">
-        <span class="text-sm text-zinc-500 bg-tribal-muted/30 px-3 py-1 rounded-full border border-tribal-border">
+        <span class="badge-neutral">
           {{ resource.type }}
         </span>
         <StatusBadge :resource="resource" />
-        <span
-          v-if="isReviewDue()"
-          class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs bg-accent-purple/20 text-accent-purple border border-accent-purple/30"
-        >
-          Review Due
-        </span>
+        <span v-if="isReviewDue()" class="badge-review">Review due</span>
       </div>
 
       <!-- Details grid -->
-      <div class="grid grid-cols-2 gap-4 text-sm">
+      <div class="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
         <div>
-          <p class="text-zinc-500 text-xs uppercase tracking-wider mb-1">Expiration</p>
+          <p class="table-th mb-1">Expiration</p>
           <p class="text-white">
             {{ resource.does_not_expire ? 'Does not expire' : formatDate(resource.expiration_date) }}
           </p>
         </div>
         <div>
-          <p class="text-zinc-500 text-xs uppercase tracking-wider mb-1">DRI</p>
+          <p class="table-th mb-1">DRI</p>
           <p class="text-white">{{ resource.dri }}</p>
         </div>
         <div v-if="resource.provider">
-          <p class="text-zinc-500 text-xs uppercase tracking-wider mb-1">Provider</p>
+          <p class="table-th mb-1">Provider</p>
           <p class="text-white">{{ resource.provider }}</p>
         </div>
         <div v-if="reviewCadenceMonths">
-          <p class="text-zinc-500 text-xs uppercase tracking-wider mb-1">Last Reviewed</p>
+          <p class="table-th mb-1">Last reviewed</p>
           <p class="text-white">{{ formatDateTime(resource.last_reviewed_at) }}</p>
         </div>
         <div>
-          <p class="text-zinc-500 text-xs uppercase tracking-wider mb-1">Created</p>
+          <p class="table-th mb-1">Created</p>
           <p class="text-white">{{ formatDateTime(resource.created_at) }}</p>
         </div>
         <div>
-          <p class="text-zinc-500 text-xs uppercase tracking-wider mb-1">Updated</p>
+          <p class="table-th mb-1">Updated</p>
           <p class="text-white">{{ formatDateTime(resource.updated_at) }}</p>
         </div>
       </div>
 
       <!-- Purpose -->
       <div v-if="resource.purpose">
-        <p class="text-zinc-500 text-xs uppercase tracking-wider mb-1">Purpose</p>
-        <p class="text-zinc-300 text-sm leading-relaxed" v-html="purposeHtml" />
+        <p class="table-th mb-1">Purpose</p>
+        <p class="text-sm leading-relaxed text-zinc-300 wrap-break-word" v-html="purposeHtml" />
       </div>
 
       <!-- Instructions -->
       <div v-if="resource.generation_instructions">
-        <p class="text-zinc-500 text-xs uppercase tracking-wider mb-1">Rotation / Generation Instructions</p>
+        <p class="table-th mb-1">Rotation / generation instructions</p>
         <div
-          class="bg-tribal-card rounded-lg border border-tribal-border p-3 text-sm text-zinc-300 leading-relaxed"
+          class="rounded-md border border-tribal-border bg-tribal-card p-3 text-sm leading-relaxed text-zinc-300 wrap-break-word"
           v-html="instructionsHtml"
         />
       </div>
 
       <!-- Secret Manager Link -->
       <div v-if="resource.secret_manager_link">
-        <p class="text-zinc-500 text-xs uppercase tracking-wider mb-1">Secret Manager</p>
+        <p class="table-th mb-1">Secret manager</p>
         <a
           :href="resource.secret_manager_link"
           target="_blank"
           rel="noopener noreferrer"
-          class="text-accent-blue hover:text-accent-blue-light underline text-sm"
+          class="link text-sm break-all underline"
         >
           {{ resource.secret_manager_link }}
         </a>
       </div>
 
       <!-- Actions -->
-      <div class="flex flex-wrap gap-2 pt-3 border-t border-tribal-border">
-        <button
-          class="px-4 py-2 border border-tribal-border text-zinc-400 hover:text-white hover:border-zinc-500 rounded-lg text-sm transition-colors"
-          @click="openReport"
-        >
-          📄 Download Report
+      <div class="flex flex-wrap gap-2 border-t border-tribal-border pt-4">
+        <button type="button" class="btn-secondary" @click="openReport">
+          <FileDown :size="16" aria-hidden="true" />
+          Download report
         </button>
-        <button
-          v-if="reviewCadenceMonths && !authStore.user?.is_readonly"
-          class="px-4 py-2 border border-accent-purple/50 text-accent-purple hover:border-accent-purple rounded-lg text-sm transition-colors"
-          @click="handleReview"
-        >
-          ✓ Mark Reviewed
-        </button>
-        <button
-          v-if="!authStore.user?.is_readonly"
-          class="px-4 py-2 border border-accent-blue/50 text-accent-blue hover:border-accent-blue rounded-lg text-sm transition-colors"
-          @click="emit('edit', resource)"
-        >
-          ✏️ Edit
-        </button>
-        <button
-          v-if="!authStore.user?.is_readonly"
-          class="px-4 py-2 border border-danger/50 text-danger hover:border-danger rounded-lg text-sm transition-colors"
-          @click="emit('delete', resource)"
-        >
-          🗑️ Delete
-        </button>
+        <template v-if="!authStore.user?.is_readonly">
+          <button v-if="reviewCadenceMonths" type="button" class="btn-secondary" @click="handleReview">
+            <Check :size="16" aria-hidden="true" />
+            Mark reviewed
+          </button>
+          <button type="button" class="btn-secondary" @click="emit('edit', resource)">
+            <Pencil :size="16" aria-hidden="true" />
+            Edit
+          </button>
+          <button type="button" class="btn-danger" @click="emit('delete', resource)">
+            <Trash2 :size="16" aria-hidden="true" />
+            Delete
+          </button>
+        </template>
       </div>
     </div>
   </BaseModal>

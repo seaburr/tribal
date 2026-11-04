@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { Ban, Check, Copy } from '@lucide/vue'
+import ConfirmDialog from '../common/ConfirmDialog.vue'
+import IconButton from '../common/IconButton.vue'
 import BaseModal from '../common/BaseModal.vue'
 import { useToast } from '../../composables/useToast'
 import { listApiKeys, createApiKey, revokeApiKey } from '../../api/keys'
@@ -62,14 +65,21 @@ async function handleCreate() {
   }
 }
 
-async function handleRevoke(id: number) {
-  if (!confirm('Revoke this API key? This cannot be undone.')) return
+const revoking = ref<ApiKey | null>(null)
+const revokeBusy = ref(false)
+
+async function confirmRevoke() {
+  if (!revoking.value) return
+  revokeBusy.value = true
   try {
-    await revokeApiKey(id)
+    await revokeApiKey(revoking.value.id)
     await loadKeys()
     show('API key revoked', 'success')
   } catch (e: unknown) {
     show(e instanceof Error ? e.message : 'Failed to revoke key', 'error')
+  } finally {
+    revokeBusy.value = false
+    revoking.value = null
   }
 }
 
@@ -84,91 +94,80 @@ const activeKeys = () => keys.value.filter(k => !k.revoked_at)
 </script>
 
 <template>
-  <BaseModal title="API Keys" :open="open" @close="emit('close')">
+  <BaseModal title="API keys" :open="open" @close="emit('close')">
     <div class="space-y-5">
-      <!-- Newly created key banner -->
-      <div
-        v-if="createdKey"
-        class="bg-accent-green-dark/30 border border-accent-green/30 rounded-lg p-4 space-y-2"
-      >
-        <p class="text-accent-green font-medium text-sm">
-          ✓ Key created — copy it now. It will not be shown again.
-        </p>
+      <!-- Newly created key -->
+      <div v-if="createdKey" class="alert-success space-y-2" role="status">
+        <p class="font-medium">Key created. Copy it now: it will not be shown again.</p>
         <div class="flex items-center gap-2">
-          <code class="flex-1 bg-[#0d0d14] rounded px-3 py-2 text-sm text-accent-green-light font-mono truncate border border-accent-green-dark/50">
-            {{ createdKey.full_key }}
-          </code>
-          <button
-            class="px-3 py-2 border border-accent-green/50 text-accent-green hover:border-accent-green rounded-lg text-sm transition-colors whitespace-nowrap"
-            @click="copyKey"
-          >
-            {{ copied ? 'Copied!' : 'Copy' }}
+          <code class="mono min-w-0 flex-1 truncate rounded-md border border-tribal-border bg-tribal-bg px-2.5 py-2 text-emerald-200">{{ createdKey.full_key }}</code>
+          <button type="button" class="btn-secondary shrink-0" @click="copyKey">
+            <Check v-if="copied" :size="16" aria-hidden="true" />
+            <Copy v-else :size="16" aria-hidden="true" />
+            {{ copied ? 'Copied' : 'Copy' }}
           </button>
         </div>
       </div>
 
       <!-- Create new key -->
-      <div>
-        <label class="block text-sm font-medium text-zinc-300 mb-2">Generate New Key</label>
+      <form @submit.prevent="handleCreate">
+        <label for="new-api-key-name" class="label">Generate new key</label>
         <div class="flex gap-2">
           <input
+            id="new-api-key-name"
             v-model="newKeyName"
             type="text"
             placeholder="Key name (e.g., CI/CD Pipeline)"
-            class="flex-1 bg-tribal-card border border-tribal-border rounded-lg px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-accent-blue transition-colors"
-            @keyup.enter="handleCreate"
+            class="input flex-1"
           />
-          <button
-            :disabled="creating || !newKeyName"
-            class="px-4 py-2 bg-accent-blue-dark hover:bg-accent-blue text-white font-semibold rounded-lg text-sm transition-colors disabled:opacity-50"
-            @click="handleCreate"
-          >
-            {{ creating ? 'Creating...' : 'Generate' }}
+          <button type="submit" class="btn-primary shrink-0" :disabled="creating || !newKeyName">
+            {{ creating ? 'Creating…' : 'Generate' }}
           </button>
         </div>
-      </div>
+      </form>
 
-      <!-- Active keys table -->
+      <!-- Active keys -->
       <div>
-        <h3 class="text-sm font-medium text-zinc-400 mb-2">Active Keys</h3>
-        <div v-if="loading" class="text-center py-4 text-zinc-500 text-sm">Loading...</div>
-        <div v-else-if="activeKeys().length === 0" class="text-center py-4 text-zinc-500 text-sm">
+        <h3 class="section-title mb-2">Active keys</h3>
+        <div v-if="loading" class="py-4 text-center text-sm text-zinc-400">Loading…</div>
+        <div v-else-if="activeKeys().length === 0" class="py-4 text-center text-sm text-zinc-400">
           No active API keys.
         </div>
-        <table v-else class="w-full text-sm">
-          <thead>
-            <tr class="bg-tribal-card border-b border-tribal-border">
-              <th class="text-left text-zinc-400 text-xs uppercase tracking-wider px-3 py-2">Name</th>
-              <th class="text-left text-zinc-400 text-xs uppercase tracking-wider px-3 py-2">Prefix</th>
-              <th class="text-left text-zinc-400 text-xs uppercase tracking-wider px-3 py-2">Last Used</th>
-              <th class="text-right text-zinc-400 text-xs uppercase tracking-wider px-3 py-2">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="key in activeKeys()"
-              :key="key.id"
-              class="border-b border-tribal-border/50 hover:bg-tribal-card/30 transition-colors"
-            >
-              <td class="px-3 py-2.5 text-white">{{ key.name }}</td>
-              <td class="px-3 py-2.5 font-mono text-zinc-400 text-xs">{{ key.key_prefix }}...</td>
-              <td class="px-3 py-2.5 text-zinc-400 text-xs">{{ formatDateTime(key.last_used_at) }}</td>
-              <td class="px-3 py-2.5 text-right">
-                <button
-                  class="text-danger hover:text-danger-light transition-colors p-1"
-                  title="Revoke API key"
-                  @click="handleRevoke(key.id)"
-                >
-                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <circle cx="12" cy="12" r="9" stroke-width="2" />
-                    <path stroke-linecap="round" stroke-width="2" d="M4.929 4.929l14.142 14.142" />
-                  </svg>
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <div v-else class="overflow-x-auto rounded-md border border-tribal-border">
+          <table class="tbl">
+            <thead>
+              <tr class="bg-tribal-card">
+                <th>Name</th>
+                <th>Prefix</th>
+                <th>Last used</th>
+                <th class="text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="key in activeKeys()" :key="key.id" class="hover:bg-tribal-card/30">
+                <td class="text-white">{{ key.name }}</td>
+                <td class="mono text-zinc-400">{{ key.key_prefix }}</td>
+                <td class="text-xs text-zinc-400">{{ formatDateTime(key.last_used_at) }}</td>
+                <td class="text-right">
+                  <IconButton :icon="Ban" label="Revoke API key" danger sm @click="revoking = key" />
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
+
+    <ConfirmDialog
+      :open="revoking !== null"
+      title="Revoke API key"
+      :message="`Revoke '${revoking?.name ?? ''}'? This cannot be undone, and anything using it stops working immediately.`"
+      confirm-label="Revoke key"
+      busy-label="Revoking…"
+      danger
+      :busy="revokeBusy"
+      @confirm="confirmRevoke"
+      @cancel="revoking = null"
+    />
   </BaseModal>
 </template>

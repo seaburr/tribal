@@ -19,7 +19,7 @@ const classes = computed(() => levelClasses[props.banner?.level ?? 'info'])
   <div
     v-if="visible"
     role="status"
-    :class="['w-full border-b px-4 sm:px-6 py-2.5 text-sm text-center font-medium', classes]"
+    :class="['w-full border-b px-4 py-2 text-center text-sm font-medium sm:px-6', classes]"
   >
     {{ banner?.message }}
   </div>

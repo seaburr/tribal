@@ -1,25 +1,63 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { onClickOutside } from '@vueuse/core'
+import { ref, computed, onBeforeUnmount, nextTick, watch } from 'vue'
+import { ChevronDown, CircleUserRound, KeyRound, LogOut, Menu, Plus, X } from '@lucide/vue'
 import { useAuthStore } from '../../stores/auth'
 import { useToast } from '../../composables/useToast'
 
-defineEmits<{
+defineProps<{
+  tabs: { key: string; label: string }[]
+  activeTab: string
+}>()
+
+const emit = defineEmits<{
   'add-resource': []
   'open-api-keys': []
+  'select-tab': [key: string]
 }>()
 
 const authStore = useAuthStore()
 const { show } = useToast()
 const menuOpen = ref(false)
+const navOpen = ref(false)
 const menuRef = ref<HTMLElement | null>(null)
+const navButton = ref<HTMLButtonElement | null>(null)
 const changingTimezone = ref(false)
 const pendingTimezone = ref('')
 
-onClickOutside(menuRef, () => {
+function closeMenu() {
   menuOpen.value = false
   changingTimezone.value = false
+}
+
+function onDocumentClick(e: Event) {
+  if (menuRef.value && !menuRef.value.contains(e.target as Node)) closeMenu()
+}
+
+watch(menuOpen, (open) => {
+  if (open) document.addEventListener('click', onDocumentClick)
+  else document.removeEventListener('click', onDocumentClick)
 })
+onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick))
+
+function onEscape() {
+  closeMenu()
+  if (navOpen.value) {
+    navOpen.value = false
+    nextTick(() => navButton.value?.focus())
+  }
+}
+
+function selectTab(key: string) {
+  navOpen.value = false
+  emit('select-tab', key)
+}
+
+function skipToContent(e: Event) {
+  e.preventDefault()
+  const main = document.getElementById('main')
+  main?.focus()
+  main?.scrollIntoView()
+}
 
 // Build timezone list from the browser's Intl API, falling back to a curated set.
 const timezones = computed<string[]>(() => {
@@ -65,134 +103,141 @@ async function saveTimezone() {
 </script>
 
 <template>
-  <header class="bg-tribal-panel border-b border-tribal-border px-4 sm:px-6 py-3 flex items-center justify-between">
-    <!-- Left: Logo + Brand -->
-    <div class="flex items-center gap-3">
-      <img src="/tribal_logo.png" alt="Tribal" class="h-6 w-6 object-contain" width="24" height="24" />
-      <span class="text-white font-bold text-lg tracking-tight">Tribal</span>
-    </div>
+  <header class="relative border-b border-tribal-border bg-tribal-panel" @keydown.esc="onEscape">
+    <a
+      href="#main"
+      class="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-md focus:bg-tribal-card focus:px-3 focus:py-2 focus:text-sm focus:text-white"
+      @click="skipToContent"
+    >
+      Skip to content
+    </a>
+    <div class="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-2 sm:px-6">
+      <div class="flex min-w-0 items-center gap-1 lg:gap-3">
+        <div class="mr-1 flex items-center gap-2 py-1 pr-2">
+          <img src="/tribal_logo.png" alt="" class="h-6 w-6 object-contain" width="24" height="24" />
+          <span class="font-semibold tracking-tight text-white">Tribal</span>
+        </div>
 
-    <!-- Right: Add Resource + User Menu -->
-    <div class="flex items-center gap-2 sm:gap-3">
-      <!-- Add Resource button (hidden for readonly users) -->
-      <button
-        v-if="authStore.user && !authStore.user.is_readonly"
-        class="bg-accent-blue-dark hover:bg-accent-blue text-white font-semibold rounded-lg transition-colors"
-        :class="['sm:px-4 sm:py-2 sm:text-sm', 'px-2.5 py-2']"
-        :title="'Add Resource'"
-        @click="$emit('add-resource')"
-      >
-        <span class="hidden sm:inline">+ Add Resource</span>
-        <svg class="sm:hidden w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-        </svg>
-      </button>
-
-      <!-- User menu -->
-      <div ref="menuRef" class="relative">
-        <button
-          class="flex items-center gap-2 text-zinc-300 hover:text-white transition-colors rounded-lg hover:bg-tribal-card"
-          :class="['sm:px-3 sm:py-2 sm:text-sm', 'px-2 py-2']"
-          :aria-label="menuOpen ? 'Close account menu' : 'Open account menu'"
-          :aria-expanded="menuOpen"
-          @click="menuOpen = !menuOpen"
-        >
-          <!-- Mobile: user icon only -->
-          <svg class="sm:hidden w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-          </svg>
-          <!-- Desktop: name + chevron -->
-          <span class="hidden sm:inline">{{ authStore.user?.display_name || authStore.user?.email }}</span>
-          <svg
-            :class="['hidden sm:block w-4 h-4 transition-transform', menuOpen ? 'rotate-180' : '']"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
+        <nav aria-label="Main" class="hidden items-center gap-0.5 sm:flex">
+          <button
+            v-for="tab in tabs"
+            :key="tab.key"
+            type="button"
+            :class="['nav-link', activeTab === tab.key ? 'nav-active' : '']"
+            :aria-current="activeTab === tab.key ? 'page' : undefined"
+            @click="selectTab(tab.key)"
           >
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-          </svg>
+            {{ tab.label }}
+          </button>
+        </nav>
+      </div>
+
+      <div class="flex shrink-0 items-center gap-2">
+        <button
+          v-if="authStore.user && !authStore.user.is_readonly"
+          type="button"
+          class="btn-primary"
+          aria-label="Add resource"
+          title="Add resource"
+          @click="emit('add-resource')"
+        >
+          <Plus :size="16" aria-hidden="true" />
+          <span class="hidden md:inline" aria-hidden="true">Add resource</span>
         </button>
 
-        <Transition name="dropdown">
+        <div ref="menuRef" class="relative">
+          <button
+            type="button"
+            class="nav-link gap-1.5"
+            aria-haspopup="true"
+            :aria-expanded="menuOpen"
+            :aria-label="`Account menu (${authStore.user?.email ?? ''})`"
+            @click="menuOpen = !menuOpen"
+          >
+            <CircleUserRound :size="20" aria-hidden="true" />
+            <span class="hidden max-w-40 truncate lg:inline" aria-hidden="true">{{ authStore.user?.display_name || authStore.user?.email }}</span>
+            <ChevronDown :size="14" :class="['hidden transition-transform lg:block', menuOpen ? 'rotate-180' : '']" aria-hidden="true" />
+          </button>
+
           <div
             v-if="menuOpen"
-            class="absolute right-0 mt-1 w-64 bg-tribal-card border border-tribal-border rounded-xl shadow-xl z-20 py-1"
+            class="absolute right-0 z-20 mt-1 w-64 rounded-md border border-tribal-border bg-tribal-panel py-1 shadow-xl"
           >
-            <div class="px-4 py-2 border-b border-tribal-border">
-              <p class="text-xs text-zinc-500">Signed in as</p>
-              <p class="text-sm text-white truncate">{{ authStore.user?.email }}</p>
+            <div class="border-b border-tribal-border px-3 py-2">
+              <p class="meta">Signed in as</p>
+              <p class="truncate text-sm text-white">{{ authStore.user?.email }}</p>
             </div>
 
-            <!-- Timezone -->
-            <div class="px-4 py-2.5 border-b border-tribal-border">
-              <p class="text-xs text-zinc-500 mb-1">Timezone</p>
-              <div v-if="changingTimezone" class="flex flex-col gap-1.5">
-                <div class="relative">
-                  <select
-                    v-model="pendingTimezone"
-                    class="w-full appearance-none bg-tribal-muted border border-tribal-border rounded-lg px-2 pr-7 py-1.5 text-xs text-white focus:outline-none focus:border-accent-blue transition-colors"
-                  >
-                    <option v-for="tz in timezones" :key="tz" :value="tz">{{ tz }}</option>
-                  </select>
-                  <div class="pointer-events-none absolute inset-y-0 right-2 flex items-center">
-                    <svg class="w-3.5 h-3.5 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
+            <div class="border-b border-tribal-border px-3 py-2">
+              <template v-if="changingTimezone">
+                <label for="header-timezone" class="meta mb-1 block">Timezone</label>
+                <select id="header-timezone" v-model="pendingTimezone" class="input">
+                  <option v-for="tz in timezones" :key="tz" :value="tz">{{ tz }}</option>
+                </select>
+                <div class="mt-2 flex gap-2">
+                  <button type="button" class="btn-primary btn-sm flex-1" @click="saveTimezone">Save</button>
+                  <button type="button" class="btn-ghost btn-sm flex-1" @click.stop="changingTimezone = false">Cancel</button>
                 </div>
-                <div class="flex gap-2">
-                  <button
-                    class="flex-1 text-xs bg-accent-blue-dark hover:bg-accent-blue text-white rounded-md px-2 py-1 transition-colors"
-                    @click="saveTimezone"
-                  >
-                    Save
-                  </button>
-                  <button
-                    class="flex-1 text-xs text-zinc-400 hover:text-white transition-colors"
-                    @click="changingTimezone = false"
-                  >
-                    Cancel
-                  </button>
+              </template>
+              <template v-else>
+                <p class="meta mb-1">Timezone</p>
+                <div class="flex items-center justify-between gap-2">
+                  <p class="truncate text-xs text-white">{{ currentTimezone }}</p>
+                  <button type="button" class="link shrink-0 text-xs" @click.stop="startChangingTimezone">Change</button>
                 </div>
-              </div>
-              <div v-else class="flex items-center justify-between gap-2">
-                <p class="text-xs text-white truncate">{{ currentTimezone }}</p>
-                <button
-                  class="text-xs text-accent-blue hover:text-accent-blue-light transition-colors shrink-0"
-                  @click="startChangingTimezone"
-                >
-                  Change
-                </button>
-              </div>
+              </template>
             </div>
 
             <button
-              class="w-full text-left px-4 py-2.5 text-sm text-zinc-300 hover:text-white hover:bg-tribal-muted/30 transition-colors"
-              @click="menuOpen = false; $emit('open-api-keys')"
+              type="button"
+              class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-zinc-300 hover:bg-tribal-card hover:text-white"
+              @click="closeMenu(); emit('open-api-keys')"
             >
-              🔑 API Keys
+              <KeyRound :size="16" aria-hidden="true" />
+              API keys
             </button>
             <button
-              class="w-full text-left px-4 py-2.5 text-sm text-danger hover:text-danger-light hover:bg-danger/10 transition-colors"
+              type="button"
+              class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-danger-light hover:bg-danger/10"
               @click="authStore.signOut()"
             >
-              Sign Out
+              <LogOut :size="16" aria-hidden="true" />
+              Sign out
             </button>
           </div>
-        </Transition>
+        </div>
+
+        <button
+          ref="navButton"
+          type="button"
+          class="btn-icon sm:hidden"
+          aria-label="Menu"
+          aria-controls="mobile-nav"
+          :aria-expanded="navOpen"
+          @click="navOpen = !navOpen"
+        >
+          <X v-if="navOpen" :size="16" aria-hidden="true" />
+          <Menu v-else :size="16" aria-hidden="true" />
+        </button>
       </div>
     </div>
+
+    <nav
+      v-show="navOpen"
+      id="mobile-nav"
+      aria-label="Main (mobile)"
+      class="absolute inset-x-0 top-full z-40 flex flex-col gap-0.5 border-b border-tribal-border bg-tribal-panel px-4 pb-4 pt-2 shadow-xl sm:hidden"
+    >
+      <button
+        v-for="tab in tabs"
+        :key="tab.key"
+        type="button"
+        :class="['nav-link', activeTab === tab.key ? 'nav-active' : '']"
+        :aria-current="activeTab === tab.key ? 'page' : undefined"
+        @click="selectTab(tab.key)"
+      >
+        {{ tab.label }}
+      </button>
+    </nav>
   </header>
 </template>
-
-<style scoped>
-.dropdown-enter-active,
-.dropdown-leave-active {
-  transition: all 0.15s ease;
-}
-.dropdown-enter-from,
-.dropdown-leave-to {
-  opacity: 0;
-  transform: translateY(-0.25rem);
-}
-</style>

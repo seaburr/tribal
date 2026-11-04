@@ -57,10 +57,10 @@ Runtime dependencies compiled into `/static` and served by the app:
 | vue | MIT |
 | vue-router | MIT |
 | pinia | MIT |
-| @vueuse/core | MIT |
+| @lucide/vue | ISC |
 | tailwindcss (generated CSS) | MIT |
 
-Build-time-only tooling (vite, typescript, vue-tsc, postcss, autoprefixer, etc.)
+Build-time-only tooling (vite, typescript, vue-tsc, postcss, etc.)
 is **not** redistributed — only its compiled output ships — so it is out of scope
 for redistribution notices.
 

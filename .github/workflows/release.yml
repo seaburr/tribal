@@ -11,7 +11,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.14"
 
@@ -124,13 +124,13 @@ jobs:
       # is left off (default) so this does not depend on the DigitalOcean registry
       # supporting OCI 1.1 referrers.
       - name: Attest build provenance
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@v4
         with:
           subject-name: registry.digitalocean.com/seaburr/tribal
           subject-digest: ${{ needs.build-and-push.outputs.digest }}
 
       - name: Attest SBOM
-        uses: actions/attest-sbom@v2
+        uses: actions/attest-sbom@v4
         with:
           subject-name: registry.digitalocean.com/seaburr/tribal
           subject-digest: ${{ needs.build-and-push.outputs.digest }}

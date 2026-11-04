@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { ChevronLeft, ChevronRight } from '@lucide/vue'
+import IconButton from '../common/IconButton.vue'
 import { useResourcesStore } from '../../stores/resources'
 import { urgency } from '../../utils/date'
 
@@ -61,15 +63,17 @@ const todayISO = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(toda
 
 // Returns the worst-case color bucket for a calendar cell.
 // Priority: overdue > critical > amber > green
-function cellColor(iso: string | null): 'overdue' | 'critical' | 'amber' | 'green' | null {
+type CellColor = 'overdue' | 'critical' | 'amber' | 'green'
+
+function cellColor(iso: string | null): CellColor | null {
   if (!iso) return null
   const resources = resourcesStore.byDate[iso]
   if (!resources || resources.length === 0) return null
-  let best: 'overdue' | 'critical' | 'amber' | 'green' | null = null
+  let best = null as CellColor | null
   const rank = { overdue: 4, critical: 3, amber: 2, green: 1 } as const
   for (const r of resources) {
     const u = urgency(r.expiration_date, r.does_not_expire)
-    const bucket: typeof best =
+    const bucket: CellColor | null =
       u === 'overdue'              ? 'overdue'  :
       u === 'critical'             ? 'critical' :
       u === 'warning'              ? 'amber'    :
@@ -123,39 +127,25 @@ const yearMonths = computed(() =>
 </script>
 
 <template>
-  <div class="bg-tribal-panel rounded-xl border border-tribal-border p-4">
+  <div class="card card-pad">
     <!-- Header -->
     <div class="flex items-center justify-between mb-4">
       <div class="flex items-center gap-1">
-        <button
-          class="text-zinc-400 hover:text-white transition-colors p-2 rounded hover:bg-tribal-card min-w-[2rem] min-h-[2rem]"
-          :aria-label="showYearView ? 'Previous year' : 'Previous month'"
-          @click="showYearView ? calYear-- : prevMonth()"
-        >◀</button>
-        <span class="font-semibold text-white text-center px-1">
+        <IconButton :icon="ChevronLeft" :label="showYearView ? 'Previous year' : 'Previous month'" @click="showYearView ? calYear-- : prevMonth()" />
+        <h2 class="section-title min-w-20 text-center" aria-live="polite">
           <template v-if="showYearView">{{ calYear }}</template>
           <template v-else>{{ MONTH_NAMES[calMonth].slice(0, 3) }} {{ calYear }}</template>
-        </span>
-        <button
-          class="text-zinc-400 hover:text-white transition-colors p-2 rounded hover:bg-tribal-card min-w-[2rem] min-h-[2rem]"
-          :aria-label="showYearView ? 'Next year' : 'Next month'"
-          @click="showYearView ? calYear++ : nextMonth()"
-        >▶</button>
+        </h2>
+        <IconButton :icon="ChevronRight" :label="showYearView ? 'Next year' : 'Next month'" @click="showYearView ? calYear++ : nextMonth()" />
       </div>
       <div class="flex gap-2">
-        <button
-          class="text-xs px-3 py-1 rounded-lg border border-tribal-border text-zinc-400 hover:text-white hover:border-status-warning/50 transition-colors"
-          @click="goToday"
-        >
+        <button type="button" class="btn-secondary btn-sm" @click="goToday">
           Today
         </button>
         <button
-          :class="[
-            'text-xs px-3 py-1 rounded-lg border transition-colors',
-            showYearView
-              ? 'border-status-warning text-status-warning'
-              : 'border-tribal-border text-zinc-400 hover:border-status-warning/50 hover:text-white',
-          ]"
+          type="button"
+          :class="['btn-secondary btn-sm', showYearView ? 'border-status-warning text-status-warning hover:text-status-warning' : '']"
+          :aria-pressed="showYearView"
           @click="showYearView = !showYearView"
         >
           Year
@@ -180,14 +170,17 @@ const yearMonths = computed(() =>
       </div>
       <!-- Day cells — flex-1 + grid-auto-rows:1fr makes cells fill the height and stay square -->
       <div class="flex-1 grid grid-cols-7 gap-0.5" style="grid-auto-rows: 1fr">
-        <div
+        <component
+          :is="cell.iso ? 'button' : 'div'"
           v-for="(cell, i) in cells"
           :key="i"
+          :type="cell.iso ? 'button' : undefined"
+          :aria-label="cell.iso ? `${cell.iso}${resourcesStore.byDate[cell.iso]?.length ? `, ${resourcesStore.byDate[cell.iso].length} expiring` : ''}` : undefined"
           :class="[
-            'relative rounded-lg p-1 text-sm transition-colors',
+            'relative rounded-md p-1 text-left align-top text-sm transition-colors',
             cell.iso
-              ? 'cursor-pointer hover:bg-tribal-card'
-              : 'opacity-0 pointer-events-none',
+              ? 'flex flex-col items-start justify-start hover:bg-tribal-card'
+              : 'pointer-events-none opacity-0',
             cell.iso === todayISO ? 'ring-2 ring-status-warning' : '',
             cellColor(cell.iso) === 'overdue'  ? 'bg-status-overdue/20 ring-1 ring-status-overdue/35' : '',
             cellColor(cell.iso) === 'critical' ? 'bg-status-critical/15'  : '',
@@ -217,29 +210,31 @@ const yearMonths = computed(() =>
             />
             <span
               v-if="resourcesStore.byDate[cell.iso].length > 3"
-              class="text-zinc-500 text-xs leading-none"
+              class="text-xs leading-none text-zinc-400"
             >+{{ resourcesStore.byDate[cell.iso].length - 3 }}</span>
           </div>
-        </div>
+        </component>
       </div>
     </template>
 
     <!-- Year view -->
     <template v-else>
       <div class="grid grid-cols-3 gap-2">
-        <div
+        <button
           v-for="month in yearMonths"
           :key="month.m"
-          class="cursor-pointer rounded-lg p-1 hover:bg-tribal-card/50 transition-colors"
+          type="button"
+          :aria-label="`${MONTH_NAMES[month.m]} ${calYear}`"
+          class="rounded-md p-1 transition-colors hover:bg-tribal-card/50"
           @click="calMonth = month.m; showYearView = false"
         >
-          <p class="text-xs font-semibold text-zinc-400 mb-1 text-center">{{ month.label }}</p>
-          <div class="grid grid-cols-7 gap-px">
+          <p class="mb-1 text-center text-xs font-semibold text-zinc-400">{{ month.label }}</p>
+          <div class="grid w-fit grid-cols-7 gap-px mx-auto">
             <div
               v-for="(cell, i) in month.cells"
               :key="i"
               :class="[
-                'w-4 h-4 rounded-sm flex items-center justify-center text-[9px]',
+                'h-3.5 w-3.5 rounded-xs flex sm:h-4 sm:w-4 items-center justify-center text-[9px]',
                 !cell.day ? 'opacity-0' : '',
                 cell.iso === todayISO ? 'ring-1 ring-status-warning text-status-warning' : 'text-zinc-500',
                 cellColor(cell.iso) === 'overdue'  ? 'bg-status-overdue/60 text-zinc-100 font-bold' : '',
@@ -251,7 +246,7 @@ const yearMonths = computed(() =>
               {{ cell.day ?? '' }}
             </div>
           </div>
-        </div>
+        </button>
       </div>
     </template>
 

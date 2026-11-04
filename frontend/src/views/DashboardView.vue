@@ -119,37 +119,21 @@ const tabs = computed(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-tribal-bg flex flex-col">
+  <div class="flex min-h-screen flex-col">
     <!-- Announcement banner -->
     <BannerBar :banner="bannerStore.appBanner" />
 
-    <!-- Header -->
+    <!-- Header + navigation -->
     <AppHeader
+      :tabs="tabs"
+      :active-tab="activeTab"
+      @select-tab="activeTab = $event as Tab"
       @add-resource="openResourceModal()"
       @open-api-keys="apiKeysModalOpen = true"
     />
 
-    <!-- Tab navigation -->
-    <div class="bg-tribal-panel border-b border-tribal-border px-6">
-      <div class="flex gap-6">
-        <button
-          v-for="tab in tabs"
-          :key="tab.key"
-          :class="[
-            'py-3 text-sm font-medium transition-colors',
-            activeTab === tab.key
-              ? 'text-accent-blue border-b-2 border-accent-blue'
-              : 'text-zinc-400 hover:text-zinc-200',
-          ]"
-          @click="activeTab = tab.key"
-        >
-          {{ tab.label }}
-        </button>
-      </div>
-    </div>
-
     <!-- Tab content -->
-    <main class="flex-1 p-6">
+    <main id="main" tabindex="-1" class="page-main w-full flex-1">
       <OverviewTab v-if="activeTab === 'overview'" />
       <ResourcesTab v-else-if="activeTab === 'resources'" />
       <AdminTab v-else-if="activeTab === 'admin'" />

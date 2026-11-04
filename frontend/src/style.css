@@ -1,13 +1,341 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+@theme {
+  --color-tribal-bg: #0d0d14;
+  --color-tribal-panel: #16161f;
+  --color-tribal-card: #1c1c28;
+  --color-tribal-border: #2c2c3c;
+  --color-tribal-muted: #4a4a5e;
+
+  /* Brand accents. DEFAULT is readable as text on dark surfaces; dark is the base brand colour. */
+  --color-accent-blue: #4a78c2;
+  --color-accent-blue-dark: #233775;
+  --color-accent-blue-light: #7aa0d4;
+  --color-accent-purple: #8a52a0;
+  --color-accent-purple-dark: #623b75;
+  --color-accent-purple-light: #b07bc4;
+  --color-accent-green: #6a9e4a;
+  --color-accent-green-dark: #50753b;
+  --color-accent-green-light: #8fbf6a;
+
+  --color-primary: #3a6bd0;
+  --color-primary-hover: #2f5fc4;
+  --color-primary-active: #2653b0;
+
+  /* Lifted so secondary text stays legible on the dark surfaces. */
+  --color-zinc-500: #8b8b96;
+  --color-zinc-600: #8b8b96;
+
+  --color-danger: #d95555;
+  --color-danger-dark: #9e2424;
+  --color-danger-light: #e87070;
+
+  /* Expiry urgency */
+  --color-status-overdue: #e06868;
+  --color-status-critical: #e0924a;
+  --color-status-warning: #d4aa20;
+  --color-status-upcoming: #c8b83a;
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
+
+/*
+ * Design tokens as component classes. Use these instead of ad-hoc utility soup.
+ *   Buttons : .btn-primary .btn-secondary .btn-danger .btn-danger-solid .btn-ghost  (+ .btn-sm, .btn-block)
+ *   Forms   : .input .label .help .field-error .check
+ *   Surfaces: .card .card-pad .alert-error .alert-warn .alert-info .alert-success
+ *   Badges  : .badge-ok .badge-warn .badge-error .badge-neutral .badge-info
+ *   Text    : .page-title .section-title .meta .link .table-th
+ */
+
+/* Page width. Every signed-in page's <main> uses page-main so all pages line up; only the small centered
+   sign-in/status pages use page-narrow. */
+@utility page-main {
+  @apply mx-auto max-w-6xl px-4 py-4 sm:px-6;
+}
+@utility page-narrow {
+  @apply mx-auto max-w-md px-4;
+}
+
+@utility btn {
+  @apply inline-flex min-h-[32px] items-center justify-center gap-1.5 whitespace-nowrap rounded-md border border-transparent px-3 py-1 text-sm font-medium transition-colors;
+  @apply disabled:cursor-not-allowed aria-disabled:cursor-not-allowed;
+}
+
+@utility btn-sm {
+  @apply min-h-[28px] px-2 py-0.5 text-xs;
+}
+
+@utility btn-block {
+  @apply w-full;
+}
+
+@utility btn-primary {
+  @apply btn bg-primary text-white hover:bg-primary-hover active:bg-primary-active;
+  @apply disabled:border-zinc-700 disabled:bg-zinc-800 disabled:text-zinc-500 disabled:hover:bg-zinc-800;
+  @apply aria-disabled:border-zinc-700 aria-disabled:bg-zinc-800 aria-disabled:text-zinc-500;
+}
+
+@utility btn-secondary {
+  @apply btn border-zinc-500 bg-transparent text-zinc-200 hover:bg-tribal-card hover:text-white;
+  @apply disabled:border-dashed disabled:border-zinc-700 disabled:bg-transparent disabled:text-zinc-500 disabled:hover:bg-transparent;
+  @apply aria-disabled:border-dashed aria-disabled:border-zinc-700 aria-disabled:text-zinc-500;
+}
+
+@utility btn-danger {
+  @apply btn border-danger/50 bg-transparent text-danger-light hover:bg-danger/10;
+  @apply disabled:border-dashed disabled:border-zinc-700 disabled:text-zinc-500 disabled:hover:bg-transparent;
+}
+
+@utility btn-danger-solid {
+  @apply btn bg-danger-dark text-white hover:bg-[#b32b2b] active:bg-[#8a1f1f];
+  @apply disabled:bg-zinc-800 disabled:text-zinc-500 disabled:hover:bg-zinc-800;
+}
+
+@utility btn-ghost {
+  @apply btn text-zinc-300 hover:bg-tribal-card hover:text-white;
+  @apply disabled:text-zinc-500 disabled:hover:bg-transparent;
+}
+
+@utility input {
+  @apply block min-h-[32px] w-full rounded-md border border-zinc-500 bg-tribal-card px-2.5 py-1 text-sm text-white placeholder:text-zinc-500;
+  @apply focus-visible:border-accent-blue-light disabled:cursor-not-allowed disabled:border-dashed disabled:border-zinc-700 disabled:text-zinc-500;
+  &[aria-invalid='true'] {
+    @apply border-danger-light;
+  }
+  /* Selects: our own chevron with room on the right (the native arrow hugs the border). */
+  &select {
+    @apply appearance-none bg-no-repeat pr-8;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-position: right 0.5rem center;
+    background-size: 14px 14px;
+  }
+}
+
+@utility label {
+  @apply mb-1 block text-xs font-medium text-zinc-200;
+}
+
+@utility help {
+  @apply mt-1 text-xs text-zinc-400;
+}
+
+@utility field-error {
+  @apply mt-1 text-xs text-danger-light;
+}
+
+@utility check {
+  @apply h-4 w-4 rounded-sm border-zinc-500 accent-primary;
+}
+
+@utility card {
+  @apply rounded-lg border border-tribal-border bg-tribal-panel;
+}
+
+@utility card-pad {
+  @apply p-3 sm:p-4;
+}
+
+@utility alert-error {
+  @apply rounded-md border px-3 py-2 text-sm;
+  @apply border-danger/40 bg-danger/10 text-danger-light;
+}
+
+@utility alert-warn {
+  @apply rounded-md border px-3 py-2 text-sm;
+  @apply border-amber-500/40 bg-amber-500/10 text-amber-300;
+}
+
+@utility alert-info {
+  @apply rounded-md border px-3 py-2 text-sm;
+  @apply border-accent-blue/40 bg-accent-blue/10 text-accent-blue-light;
+}
+
+@utility alert-success {
+  @apply rounded-md border px-3 py-2 text-sm;
+  @apply border-emerald-500/40 bg-emerald-500/10 text-emerald-300;
+}
+
+@utility badge {
+  @apply inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2 py-0.5 text-xs font-medium;
+}
+
+@utility badge-ok {
+  @apply badge border-emerald-500/30 bg-emerald-500/10 text-emerald-300;
+}
+
+@utility badge-warn {
+  @apply badge border-amber-500/30 bg-amber-500/10 text-amber-300;
+}
+
+@utility badge-error {
+  @apply badge border-danger/40 bg-danger/10 text-danger-light;
+}
+
+@utility badge-neutral {
+  @apply badge border-zinc-500/40 bg-zinc-500/10 text-zinc-300;
+}
+
+@utility badge-info {
+  @apply badge border-accent-blue/40 bg-accent-blue/10 text-accent-blue-light;
+}
+
+@utility badge-review {
+  @apply badge border-accent-purple/40 bg-accent-purple/15 text-accent-purple-light;
+}
+
+@utility nav-link {
+  @apply inline-flex min-h-[32px] items-center whitespace-nowrap rounded-md px-2.5 py-1 text-sm text-zinc-400 hover:bg-tribal-border hover:text-white;
+  /* idle (dim) -> hover (strong card + white) -> active (full card, medium, bright white); no underline */
+  &.nav-active {
+    @apply bg-tribal-muted font-medium text-white ring-1 ring-inset ring-zinc-400/60;
+  }
+}
+
+@utility nav-active {
+  /* idle (dim) -> hover (strong card + white) -> active (full card, medium, bright white); no underline */
+  &.nav-link {
+    @apply bg-tribal-muted font-medium text-white ring-1 ring-inset ring-zinc-400/60;
+  }
+}
+
+@utility page-title {
+  @apply text-lg font-semibold text-white;
+}
+
+@utility section-title {
+  @apply text-sm font-semibold text-white;
+}
+
+@utility meta {
+  @apply text-xs text-zinc-400;
+}
+
+@utility link {
+  @apply text-accent-blue-light underline-offset-2 hover:underline;
+}
+
+@utility table-th {
+  @apply text-left text-[11px] font-medium uppercase tracking-wide text-zinc-400;
+}
+
+@utility mono {
+  /* Technical data (hostnames, images, ports, ids, keys, timestamps, resources). Same look as the audit table. */
+  @apply font-mono text-xs tabular-nums;
+}
+
+@utility btn-icon {
+  /* Icon buttons: square hit area, quiet until hovered. Danger turns red on hover/focus only. */
+  @apply inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-transparent text-zinc-400 transition-colors hover:bg-tribal-card hover:text-white;
+  @apply disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-zinc-400 aria-disabled:cursor-not-allowed aria-disabled:opacity-40;
+}
+
+@utility btn-icon-busy {
+  & svg {
+    @apply animate-spin;
+  }
+}
+
+@utility btn-icon-sm {
+  @apply h-7 w-7;
+}
+
+@utility btn-icon-text {
+  /* Icon button that also shows its label from sm up (the label stays as aria-label below sm). */
+  @apply sm:w-auto sm:gap-1.5 sm:px-2.5 sm:text-sm;
+}
+
+@utility btn-icon-touch {
+  /* 44px touch target below sm; compact from sm up. */
+  @apply max-sm:h-11 max-sm:w-11;
+}
+
+@utility btn-icon-danger {
+  @apply hover:bg-danger/10 hover:text-danger-light focus-visible:text-danger-light;
+}
+
+@utility tbl {
+  /* Data tables: th/td share padding. Right-align numeric and action columns with .text-right on both. */
+  @apply w-full border-collapse text-sm;
+  & th {
+    @apply table-th px-3 py-2 align-middle;
+  }
+  & td {
+    @apply px-3 py-1.5 align-middle;
+  }
+  & th.text-right {
+    text-align: right;
+  }
+  & td.text-right {
+    text-align: right;
+  }
+  & tbody tr {
+    @apply border-t border-tribal-border;
+  }
+}
 
 @layer base {
+  input[type='number']::-webkit-outer-spin-button,
+  input[type='number']::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type='number'] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+  html {
+    color-scheme: dark;
+  }
+  /* Tailwind 4 preflight no longer sets a pointer cursor on buttons. */
+  button:not(:disabled),
+  [role='button']:not(:disabled),
+  summary {
+    cursor: pointer;
+  }
   html,
   body {
     @apply bg-tribal-bg text-white font-sans antialiased;
+    /* Belt-and-suspenders against stray page-level horizontal overflow on small screens
+       (e.g. a non-shrinking flex child). `clip` doesn't create a scroll container, so
+       inner overflow-x-auto tables and position: sticky keep working. */
+    overflow-x: clip;
   }
   * {
     @apply border-tribal-border;
+  }
+  :focus-visible {
+    @apply outline-hidden ring-2 ring-accent-blue-light ring-offset-2 ring-offset-tribal-bg;
+  }
+  main:focus {
+    outline: none; /* skip-link target only */
+  }
+  [hidden] {
+    display: none !important;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }
